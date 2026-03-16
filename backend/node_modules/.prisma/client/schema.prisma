@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  password            String
+  name                String
+  matriculeFiscal     String
+  registreCommerce    String?
+  address             String
+  city                String?
+  zipCode             String?
+  country             String?   @default("Tunisie")
+  phone               String?
+  rib                 String?
+  logo                String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  certificatePassword String?
+  certificatePath     String?
+  clients             Client[]
+  devis               Devis[]
+  invoices            Invoice[]
+  products            Product[]
+}
+
+model Client {
+  id              String    @id @default(uuid())
+  companyId       String
+  name            String
+  email           String?
+  matriculeFiscal String?
+  address         String?
+  city            String?
+  zipCode         String?
+  country         String?   @default("Tunisie")
+  phone           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  company         Company   @relation(fields: [companyId], references: [id])
+  devis           Devis[]
+  invoices        Invoice[]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  companyId   String
+  code        String?
+  name        String
+  description String?
+  priceHT     Float
+  tvaRate     Float    @default(19)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id])
+}
+
+model Devis {
+  id             String      @id @default(uuid())
+  companyId      String
+  clientId       String
+  status         DevisStatus @default(PENDING)
+  totalHT        Float       @default(0)
+  totalTVA       Float       @default(0)
+  totalTTC       Float       @default(0)
+  stampDuty      Float       @default(1.0)
+  withholdingTax Float       @default(0)
+  netToPay       Float       @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  client         Client      @relation(fields: [clientId], references: [id])
+  company        Company     @relation(fields: [companyId], references: [id])
+  lines          DevisLine[]
+  invoice        Invoice?
+}
+
+model DevisLine {
+  id          String @id @default(uuid())
+  devisId     String
+  description String
+  quantity    Float  @default(1)
+  unitPrice   Float
+  tvaRate     Float  @default(19)
+  totalHT     Float
+  devis       Devis  @relation(fields: [devisId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  devisId        String?       @unique
+  companyId      String
+  clientId       String
+  status         InvoiceStatus @default(DRAFT)
+  ttnId          String?
+  ttnStatus      String?
+  totalHT        Float         @default(0)
+  totalTVA       Float         @default(0)
+  totalTTC       Float         @default(0)
+  stampDuty      Float         @default(1.0)
+  withholdingTax Float         @default(0)
+  netToPay       Float         @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  client         Client        @relation(fields: [clientId], references: [id])
+  company        Company       @relation(fields: [companyId], references: [id])
+  devis          Devis?        @relation(fields: [devisId], references: [id])
+  lines          InvoiceLine[]
+}
+
+model InvoiceLine {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float
+  tvaRate     Float   @default(19)
+  totalHT     Float
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+enum DevisStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT_TO_TTN
+  PENDING_VALIDATION
+  VALIDATED
+  REJECTED
+}

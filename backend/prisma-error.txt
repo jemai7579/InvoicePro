@@ -1,0 +1,26 @@
+PrismaClientInitializationError: 
+Invalid `prisma.company.findMany()` invocation in
+C:\Users\hamza jemai\.gemini\antigravity\scratch\el-fatoora\backend\test-db.js:7:36
+
+  4 
+  5 async function main() {
+  6   try {
+→ 7     const c = await prisma.company.findMany(
+Authentication failed against database server, the provided database credentials for `elfatoora` are not valid.
+
+Please make sure to provide valid database credentials for the database server at the configured address.\nPrismaClientInitializationError: 
+Invalid `prisma.company.findMany()` invocation in
+C:\Users\hamza jemai\.gemini\antigravity\scratch\el-fatoora\backend\test-db.js:7:36
+
+  4 
+  5 async function main() {
+  6   try {
+→ 7     const c = await prisma.company.findMany(
+Authentication failed against database server, the provided database credentials for `elfatoora` are not valid.
+
+Please make sure to provide valid database credentials for the database server at the configured address.
+    at ei.handleRequestError (C:\Users\hamza jemai\.gemini\antigravity\scratch\el-fatoora\backend\node_modules\@prisma\client\runtime\library.js:121:7568)
+    at ei.handleAndLogRequestError (C:\Users\hamza jemai\.gemini\antigravity\scratch\el-fatoora\backend\node_modules\@prisma\client\runtime\library.js:121:6593)
+    at ei.request (C:\Users\hamza jemai\.gemini\antigravity\scratch\el-fatoora\backend\node_modules\@prisma\client\runtime\library.js:121:6300)
+    at async a (C:\Users\hamza jemai\.gemini\antigravity\scratch\el-fatoora\backend\node_modules\@prisma\client\runtime\library.js:130:9551)
+    at async main (C:\Users\hamza jemai\.gemini\antigravity\scratch\el-fatoora\backend\test-db.js:7:15)
