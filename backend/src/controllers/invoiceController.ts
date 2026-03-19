@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../prisma';
 import generatePdf from '../utils/pdfGenerator';
 import { generateTeifXml } from '../utils/teifGenerator';
+import { createNotif } from '../utils/notificationHelper';
 
 export const getInvoices = async (req: Request, res: Response) => {
   try {
@@ -291,6 +292,40 @@ export const sendInvoiceEmailController = async (req: Request, res: Response) =>
   }
 };
 
+const VALID_STATUSES = ['DRAFT', 'PENDING_VALIDATION', 'SENT_TO_TTN', 'VALIDATED', 'PAID', 'REJECTED'];
+
+export const updateInvoiceStatus = async (req: Request, res: Response) => {
+  try {
+    const { status } = req.body;
+
+    if (!status || !VALID_STATUSES.includes(status)) {
+      return res.status(400).json({
+        message: `Statut invalide. Valeurs acceptées : ${VALID_STATUSES.join(', ')}`
+      });
+    }
+
+    const invoice = await prisma.invoice.findFirst({
+      where: {
+        id: req.params.id as string,
+        companyId: (req as any).company.id
+      }
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    const updated = await prisma.invoice.update({
+      where: { id: req.params.id as string },
+      data: { status }
+    });
+
+    res.status(200).json(updated);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 import { submitInvoiceToTTN } from '../services/ttnService';
 
 export const submitToTTNController = async (req: Request, res: Response) => {
@@ -351,3 +386,126 @@ export const submitToTTNController = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Server error during TTN submission' });
   }
 };
+
+// ── Import TEIF XML ──────────────────────────────────────────────────────────
+import { convert } from 'xmlbuilder2';
+
+export const importInvoiceXml = async (req: Request, res: Response) => {
+  try {
+    const xmlString: string = (req as any).file?.buffer?.toString('utf-8') ?? req.body?.xml;
+    if (!xmlString) {
+      return res.status(400).json({ message: 'Aucun fichier XML fourni.' });
+    }
+
+    // Parse the XML into a plain JS object
+    let doc: any;
+    try {
+      doc = convert(xmlString, { format: 'object' }) as any;
+    } catch {
+      return res.status(400).json({ message: 'XML invalide ou non lisible.' });
+    }
+
+    const invoice = doc?.Invoice ?? doc;
+    const companyId = (req as any).company.id;
+
+    // ── Extract client info ──────────────────────────────────────────────
+    const customerParty  = invoice?.['cac:AccountingCustomerParty']?.['cac:Party'];
+    const clientMf       = customerParty?.['cac:PartyIdentification']?.['cbc:ID']?.['#'] ??
+                           customerParty?.['cac:PartyIdentification']?.['cbc:ID'];
+    const clientName     = customerParty?.['cac:PartyName']?.['cbc:Name']?.['#'] ??
+                           customerParty?.['cac:PartyName']?.['cbc:Name'] ?? 'Importé depuis XML';
+    const clientAddress  = customerParty?.['cac:PostalAddress']?.['cbc:StreetName']?.['#'] ??
+                           customerParty?.['cac:PostalAddress']?.['cbc:StreetName'] ?? '';
+    const clientCity     = customerParty?.['cac:PostalAddress']?.['cbc:CityName']?.['#'] ??
+                           customerParty?.['cac:PostalAddress']?.['cbc:CityName'] ?? '';
+    const clientEmail    = customerParty?.['cac:Contact']?.['cbc:ElectronicMail']?.['#'] ??
+                           customerParty?.['cac:Contact']?.['cbc:ElectronicMail'] ?? undefined;
+    const clientPhone    = customerParty?.['cac:Contact']?.['cbc:Telephone']?.['#'] ??
+                           customerParty?.['cac:Contact']?.['cbc:Telephone'] ?? undefined;
+
+    // ── Find or create client ────────────────────────────────────────────
+    let client = null;
+    if (clientMf && clientMf !== 'NOT_PROVIDED') {
+      client = await prisma.client.findFirst({ where: { companyId, matriculeFiscal: String(clientMf) } });
+    }
+    if (!client) {
+      client = await prisma.client.create({
+        data: {
+          companyId,
+          name: String(clientName),
+          matriculeFiscal: clientMf ? String(clientMf) : undefined,
+          address: clientAddress ? String(clientAddress) : undefined,
+          city:    clientCity    ? String(clientCity)    : undefined,
+          email:   clientEmail   ? String(clientEmail)   : undefined,
+          phone:   clientPhone   ? String(clientPhone)   : undefined,
+        }
+      });
+    }
+
+    // ── Extract invoice lines ────────────────────────────────────────────
+    const rawLines = invoice?.['cac:InvoiceLine'];
+    const lineArray = Array.isArray(rawLines) ? rawLines : (rawLines ? [rawLines] : []);
+
+    if (lineArray.length === 0) {
+      return res.status(400).json({ message: 'Le XML ne contient aucune ligne de facture.' });
+    }
+
+    const parsedLines = lineArray.map((l: any) => {
+      const qty       = parseFloat(l?.['cbc:InvoicedQuantity']?.['#'] ?? l?.['cbc:InvoicedQuantity'] ?? '1');
+      const unitPrice = parseFloat(l?.['cac:Price']?.['cbc:PriceAmount']?.['#'] ?? '0');
+      const tvaRate   = parseFloat(
+        l?.['cac:Item']?.['cac:ClassifiedTaxCategory']?.['cbc:Percent']?.['#'] ??
+        l?.['cac:Item']?.['cac:ClassifiedTaxCategory']?.['cbc:Percent'] ?? '19'
+      );
+      const description = String(
+        l?.['cac:Item']?.['cbc:Description']?.['#'] ??
+        l?.['cac:Item']?.['cbc:Description'] ??
+        l?.['cac:Item']?.['cbc:Name']?.['#'] ??
+        l?.['cac:Item']?.['cbc:Name'] ?? 'Article importé'
+      );
+      const totalHT = parseFloat((qty * unitPrice).toFixed(3));
+      return { description, quantity: qty, unitPrice, tvaRate, totalHT };
+    });
+
+    // ── Compute totals ───────────────────────────────────────────────────
+    const totalHT  = parseFloat(parsedLines.reduce((s: number, l: any) => s + l.totalHT, 0).toFixed(3));
+    const totalTVA = parseFloat(parsedLines.reduce((s: number, l: any) => s + l.totalHT * (l.tvaRate / 100), 0).toFixed(3));
+    const stampDuty   = 1.000;
+    const totalTTC    = parseFloat((totalHT + totalTVA + stampDuty).toFixed(3));
+    const netToPay    = totalTTC;
+
+    // ── Create invoice ───────────────────────────────────────────────────
+    const created = await prisma.invoice.create({
+      data: {
+        companyId,
+        clientId:  client.id,
+        status:    'PENDING_VALIDATION',
+        totalHT,
+        totalTVA,
+        totalTTC,
+        stampDuty,
+        netToPay,
+        lines: {
+          create: parsedLines
+        }
+      },
+      include: { client: true, lines: true }
+    });
+
+    await createNotif(
+      companyId,
+      'Facture importée',
+      `Facture importée depuis XML avec succès (client: ${created.client?.name ?? 'inconnu'}).`,
+      'XML_IMPORTED'
+    );
+
+    res.status(201).json({
+      message: 'Facture importée avec succès.',
+      invoice: created
+    });
+  } catch (error: any) {
+    console.error('Error importing XML:', error);
+    res.status(500).json({ message: 'Erreur serveur lors de l\'import XML.' });
+  }
+};
+

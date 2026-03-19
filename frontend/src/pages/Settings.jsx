@@ -6,6 +6,13 @@ import api from '../services/api';
 const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState(null);
+
+  // Password change state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [isChangingPwd, setIsChangingPwd] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -62,15 +69,38 @@ const Settings = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    
+    setSaveMsg(null);
     try {
       await api.put('/settings', formData);
-      alert('Company settings updated successfully');
+      setSaveMsg({ type: 'success', text: 'Paramètres mis à jour avec succès.' });
     } catch (error) {
       console.error('Error saving settings', error);
-      alert('Failed to update settings');
+      setSaveMsg({ type: 'error', text: 'Impossible de mettre à jour les paramètres.' });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPwdMsg(null);
+    if (newPassword.length < 6) {
+      return setPwdMsg({ type: 'error', text: 'Le mot de passe doit contenir au moins 6 caractères.' });
+    }
+    if (newPassword !== confirmNewPassword) {
+      return setPwdMsg({ type: 'error', text: 'Les mots de passe ne correspondent pas.' });
+    }
+    setIsChangingPwd(true);
+    try {
+      await api.put('/settings', { newPassword });
+      setPwdMsg({ type: 'success', text: 'Mot de passe modifié avec succès.' });
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error) {
+      console.error('Error changing password', error);
+      setPwdMsg({ type: 'error', text: error.response?.data?.message || 'Erreur lors du changement de mot de passe.' });
+    } finally {
+      setIsChangingPwd(false);
     }
   };
 
@@ -264,6 +294,11 @@ const Settings = () => {
                 </div>
               </div>
 
+                {saveMsg && (
+                  <div className={`mt-4 text-sm text-center px-4 py-2 rounded-lg ${
+                    saveMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
+                  }`}>{saveMsg.text}</div>
+                )}
               <div className="pt-4 border-t border-gray-200 flex justify-end">
                 <button
                   type="submit"
@@ -275,6 +310,58 @@ const Settings = () => {
                 </button>
               </div>
               
+            </form>
+          </div>
+
+          {/* Password Change Section */}
+          <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden max-w-4xl mt-8">
+            <form onSubmit={handlePasswordChange} className="p-6 md:p-8 space-y-6">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2 mb-4">Changer le mot de passe</h3>
+              {pwdMsg && (
+                <div className={`text-sm px-4 py-2 rounded-lg ${
+                  pwdMsg.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'
+                }`}>{pwdMsg.text}</div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe *</label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min. 6 caractères"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirmer le mot de passe *</label>
+                  <input
+                    type="password"
+                    required
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className={`w-full px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${
+                      confirmNewPassword && newPassword !== confirmNewPassword ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                    }`}
+                  />
+                  {confirmNewPassword && newPassword !== confirmNewPassword && (
+                    <p className="mt-1 text-xs text-red-500">Les mots de passe ne correspondent pas.</p>
+                  )}
+                </div>
+              </div>
+              <div className="pt-4 border-t border-gray-200 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isChangingPwd}
+                  className="inline-flex items-center px-6 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 transition-colors disabled:bg-gray-400"
+                >
+                  {isChangingPwd ? <Loader className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                  Changer le mot de passe
+                </button>
+              </div>
             </form>
           </div>
 

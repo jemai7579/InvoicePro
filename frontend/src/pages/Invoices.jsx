@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { Plus, MoreVertical, Edit2, Trash2, X, Loader, PlusCircle, MinusCircle, Download, FileCode, CheckCircle, Send } from 'lucide-react';
+import { Plus, Trash2, X, Loader, PlusCircle, MinusCircle, Download, FileCode, CheckCircle, Send } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 
 const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchParams] = useSearchParams();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,6 +39,13 @@ const Invoices = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Auto-open modal if coming from Dashboard with ?new=true
+  useEffect(() => {
+    if (!loading && searchParams.get('new') === 'true') {
+      openModal();
+    }
+  }, [loading, searchParams]);
 
   const openModal = () => {
     setClientId('');
@@ -184,6 +193,18 @@ const Invoices = () => {
     }
   };
 
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await api.patch(`/invoices/${id}/status`, { status: newStatus });
+      setInvoices(prev =>
+        prev.map(inv => inv.id === id ? { ...inv, status: newStatus } : inv)
+      );
+    } catch (error) {
+      console.error('Error updating status', error);
+      alert(error.response?.data?.message || 'Impossible de mettre à jour le statut');
+    }
+  };
+
   const getStatusColor = (currentStatus) => {
     switch(currentStatus?.toLowerCase()) {
       case 'paid': return 'bg-green-100 text-green-800';
@@ -259,9 +280,20 @@ const Invoices = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
-                          {invoice.status.replace(/_/g, ' ')}
-                        </span>
+                        <select
+                          value={invoice.status}
+                          onChange={(e) => handleStatusChange(invoice.id, e.target.value)}
+                          className={`text-xs font-semibold rounded-full px-2.5 py-1 border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 outline-none ${
+                            getStatusColor(invoice.status)
+                          }`}
+                        >
+                          <option value="DRAFT">DRAFT</option>
+                          <option value="PENDING_VALIDATION">PENDING VALIDATION</option>
+                          <option value="SENT_TO_TTN">SENT TO TTN</option>
+                          <option value="VALIDATED">VALIDATED</option>
+                          <option value="PAID">PAID</option>
+                          <option value="REJECTED">REJECTED</option>
+                        </select>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
                         {invoice.netToPay.toLocaleString(undefined, { minimumFractionDigits: 3 })}

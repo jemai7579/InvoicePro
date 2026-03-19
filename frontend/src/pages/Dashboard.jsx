@@ -78,7 +78,7 @@ const Dashboard = () => {
         <>
           {/* Quick Actions */}
           <div className="mb-8 flex flex-wrap gap-4">
-            <Link to="/invoices" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-blue-700 transition-colors">
+            <Link to="/invoices?new=true" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-blue-700 transition-colors">
               <Plus className="h-4 w-4 mr-2" /> Nouvelle Facture
             </Link>
             <Link to="/clients" className="inline-flex items-center px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg shadow-sm border border-gray-300 hover:bg-gray-50 transition-colors">

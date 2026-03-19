@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma';
+import bcrypt from 'bcryptjs';
 
 export const getSettings = async (req: Request, res: Response) => {
   try {
@@ -35,22 +36,33 @@ export const getSettings = async (req: Request, res: Response) => {
 
 export const updateSettings = async (req: Request, res: Response) => {
   try {
-    const { name, matriculeFiscal, registreCommerce, address, city, zipCode, country, phone, rib, logo } = req.body;
+    const { name, matriculeFiscal, registreCommerce, address, city, zipCode, country, phone, rib, logo, newPassword } = req.body;
+
+    // Build update data — only include fields that were actually sent
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (matriculeFiscal !== undefined) updateData.matriculeFiscal = matriculeFiscal;
+    if (registreCommerce !== undefined) updateData.registreCommerce = registreCommerce;
+    if (address !== undefined) updateData.address = address;
+    if (city !== undefined) updateData.city = city;
+    if (zipCode !== undefined) updateData.zipCode = zipCode;
+    if (country !== undefined) updateData.country = country;
+    if (phone !== undefined) updateData.phone = phone;
+    if (rib !== undefined) updateData.rib = rib;
+    if (logo !== undefined) updateData.logo = logo;
+
+    // Password change
+    if (newPassword) {
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 6 caractères.' });
+      }
+      const salt = await bcrypt.genSalt(10);
+      updateData.password = await bcrypt.hash(newPassword, salt);
+    }
 
     const updatedCompany = await prisma.company.update({
       where: { id: (req as any).company.id },
-      data: {
-        name,
-        matriculeFiscal,
-        registreCommerce,
-        address,
-        city,
-        zipCode,
-        country,
-        phone,
-        rib,
-        logo
-      },
+      data: updateData,
       select: {
         id: true,
         email: true,

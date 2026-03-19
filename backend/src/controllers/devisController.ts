@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma';
+import { createNotif } from '../utils/notificationHelper';
 
 export const getDevis = async (req: Request, res: Response) => {
   try {
@@ -42,7 +43,7 @@ export const getDevisById = async (req: Request, res: Response) => {
 
 export const createDevis = async (req: Request, res: Response) => {
   try {
-    const { clientId, lines, status, stampDuty, withholdingTax } = req.body;
+    const { clientId, lines, status, stampDuty, withholdingTax, note } = req.body;
 
     if (!clientId || !lines || lines.length === 0) {
       return res.status(400).json({ message: 'Client ID and at least one line are required' });
@@ -75,6 +76,7 @@ export const createDevis = async (req: Request, res: Response) => {
         companyId: (req as any).company.id,
         clientId,
         status: status || 'PENDING',
+        note: note || null,
         totalHT,
         totalTVA,
         totalTTC,
@@ -89,6 +91,15 @@ export const createDevis = async (req: Request, res: Response) => {
         lines: true
       }
     });
+
+    // Notification
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    await createNotif(
+      (req as any).company.id,
+      'Demande envoyée',
+      `Demande envoyée au client ${client?.name ?? clientId}.`,
+      'DEMANDE_SENT'
+    );
 
     res.status(201).json(devis);
   } catch (error) {
@@ -108,7 +119,8 @@ export const updateDevisStatus = async (req: Request, res: Response) => {
       where: { 
         id: req.params.id as string,
         companyId: (req as any).company.id
-      }
+      },
+      include: { client: true }
     });
 
     if (!devis) {
@@ -119,6 +131,16 @@ export const updateDevisStatus = async (req: Request, res: Response) => {
       where: { id: req.params.id as string },
       data: { status }
     });
+
+    // Notification
+    const clientName = devis.client?.name ?? devis.clientId;
+    if (status === 'ACCEPTED') {
+      await createNotif((req as any).company.id, 'Demande acceptée',
+        `La demande pour ${clientName} a été acceptée.`, 'DEMANDE_ACCEPTED');
+    } else if (status === 'REJECTED') {
+      await createNotif((req as any).company.id, 'Demande rejetée',
+        `La demande pour ${clientName} a été rejetée.`, 'DEMANDE_REJECTED');
+    }
 
     res.status(200).json(updatedDevis);
   } catch (error) {

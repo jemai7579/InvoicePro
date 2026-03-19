@@ -16,6 +16,7 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     matriculeFiscal: '',
     registreCommerce: '',
     address: '',
@@ -28,11 +29,20 @@ const Register = () => {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
     setSuccess(null);
+
+    if (formData.password !== formData.confirmPassword) {
+      return setError('Les mots de passe ne correspondent pas.');
+    }
+    if (formData.password.length < 6) {
+      return setError('Le mot de passe doit contenir au moins 6 caractères.');
+    }
+
+    setLoading(true);
     try {
-      await register(formData);
+      const { confirmPassword, ...dataToSend } = formData;
+      await register(dataToSend);
       setSuccess('Compte créé avec succès !');
       setTimeout(() => {
         navigate('/login');
@@ -194,6 +204,26 @@ const Register = () => {
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                   placeholder="••••••••"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Confirmer le mot de passe *</label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm ${
+                    formData.confirmPassword && formData.password !== formData.confirmPassword
+                      ? 'border-red-400 bg-red-50'
+                      : 'border-gray-200'
+                  }`}
+                  placeholder="••••••••"
+                />
+                {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                  <p className="mt-1 text-xs text-red-500">Les mots de passe ne correspondent pas.</p>
+                )}
               </div>
 
               <button

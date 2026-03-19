@@ -1,70 +1,227 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import AIAssistant from './AIAssistant';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Receipt, 
-  Package, 
-  BarChart3, 
-  Settings, 
+import api from '../services/api';
+import {
+  LayoutDashboard,
+  Users,
+  Receipt,
+  Package,
+  BarChart3,
+  Settings,
   LogOut,
   Search,
   Bell,
-  HelpCircle
+  HelpCircle,
+  FileCode2,
+  ClipboardList,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  FileText,
+  X
 } from 'lucide-react';
 
 const navItems = [
   { id: 'dashboard', path: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
-  { id: 'clients', path: '/clients', label: 'Clients', icon: Users },
-  { id: 'invoices', path: '/invoices', label: 'Factures', icon: Receipt },
-  { id: 'products', path: '/products', label: 'Produits', icon: Package },
-  { id: 'reports', path: '/reports', label: 'Rapports', icon: BarChart3 },
-  { id: 'settings', path: '/settings', label: 'Paramètres', icon: Settings },
-  { id: 'help', path: '/help', label: "Centre d'aide", icon: HelpCircle },
+  { id: 'clients',   path: '/clients',   label: 'Clients',          icon: Users },
+  { id: 'invoices',  path: '/invoices',  label: 'Factures',         icon: Receipt },
+  { id: 'demandes',  path: '/demandes',  label: 'Demandes',         icon: ClipboardList },
+  { id: 'teif',      path: '/teif',      label: 'TEIF',             icon: FileCode2 },
+  { id: 'products',  path: '/products',  label: 'Produits',         icon: Package },
+  { id: 'reports',   path: '/reports',   label: 'Rapports',         icon: BarChart3 },
+  { id: 'settings',  path: '/settings',  label: 'Paramètres',       icon: Settings },
+  { id: 'help',      path: '/help',      label: "Centre d'aide",    icon: HelpCircle },
 ];
 
-const Layout = ({ children }) => {
-  const { user, logout } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const location = useLocation();
+// ── Language switcher ─────────────────────────────────────────────────────────
+const LANG_OPTIONS = [
+  { code: 'fr', label: 'FR', flag: '🇫🇷' },
+  { code: 'en', label: 'EN', flag: '🇬🇧' },
+  { code: 'ar', label: 'AR', flag: '🇸🇦' },
+];
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+const LangSwitcher = () => {
+  const { lang, setLang } = useLanguage();
+  return (
+    <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+      {LANG_OPTIONS.map(l => (
+        <button key={l.code} onClick={() => setLang(l.code)} title={l.label}
+          className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-colors ${
+            lang === l.code ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+          }`}>
+          <span>{l.flag}</span>
+          <span className="hidden sm:inline">{l.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+// ── Notif type → icon + color ────────────────────────────────────────────────
+const NOTIF_STYLE = {
+  DEMANDE_SENT:     { icon: ClipboardList, color: 'text-blue-500',   bg: 'bg-blue-50'   },
+  DEMANDE_ACCEPTED: { icon: CheckCircle2,  color: 'text-green-500',  bg: 'bg-green-50'  },
+  DEMANDE_REJECTED: { icon: XCircle,       color: 'text-red-500',    bg: 'bg-red-50'    },
+  TTN_ACCEPTED:     { icon: CheckCircle2,  color: 'text-emerald-500',bg: 'bg-emerald-50'},
+  TTN_REJECTED:     { icon: XCircle,       color: 'text-red-500',    bg: 'bg-red-50'    },
+  XML_IMPORTED:     { icon: FileCode2,     color: 'text-indigo-500', bg: 'bg-indigo-50' },
+  INFO:             { icon: Bell,          color: 'text-gray-500',   bg: 'bg-gray-50'   },
+};
+
+const timeAgo = (dateStr) => {
+  const diff = (Date.now() - new Date(dateStr)) / 1000;
+  if (diff < 60)   return 'À l\'instant';
+  if (diff < 3600) return `${Math.floor(diff / 60)} min`;
+  if (diff < 86400)return `${Math.floor(diff / 3600)} h`;
+  return new Date(dateStr).toLocaleDateString('fr-TN');
+};
+
+// ── Notification dropdown ─────────────────────────────────────────────────────
+const NotifDropdown = ({ onClose }) => {
+  const [notifs, setNotifs]   = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchNotifs = async () => {
+    try {
+      const res = await api.get('/notifications');
+      setNotifs(res.data);
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
   };
 
+  useEffect(() => { fetchNotifs(); }, []);
+
+  const markAll = async () => {
+    await api.patch('/notifications/read-all').catch(() => {});
+    setNotifs(n => n.map(x => ({ ...x, read: true })));
+  };
+
+  const markOne = async (id) => {
+    await api.patch(`/notifications/${id}/read`).catch(() => {});
+    setNotifs(n => n.map(x => x.id === id ? { ...x, read: true } : x));
+  };
+
+  const unread = notifs.filter(n => !n.read).length;
+
+  return (
+    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-blue-500" />
+          <span className="text-sm font-semibold text-gray-800">Notifications</span>
+          {unread > 0 && <span className="bg-blue-600 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">{unread}</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          {unread > 0 && (
+            <button onClick={markAll} className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+              Tout lire
+            </button>
+          )}
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-0.5 rounded">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
+        {loading ? (
+          <div className="py-8 text-center text-sm text-gray-400">Chargement…</div>
+        ) : notifs.length === 0 ? (
+          <div className="py-10 text-center">
+            <Bell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+            <p className="text-sm text-gray-400 font-medium">Aucune nouvelle notification</p>
+          </div>
+        ) : (
+          notifs.map(n => {
+            const style = NOTIF_STYLE[n.type] ?? NOTIF_STYLE.INFO;
+            const Icon  = style.icon;
+            return (
+              <button
+                key={n.id}
+                onClick={() => markOne(n.id)}
+                className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3 ${!n.read ? 'bg-blue-50/40' : ''}`}
+              >
+                <div className={`mt-0.5 p-1.5 rounded-lg ${style.bg} flex-shrink-0`}>
+                  <Icon className={`w-3.5 h-3.5 ${style.color}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className={`text-xs font-semibold truncate ${n.read ? 'text-gray-600' : 'text-gray-900'}`}>{n.title}</p>
+                    <span className="text-xs text-gray-400 flex-shrink-0">{timeAgo(n.createdAt)}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
+                </div>
+                {!n.read && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />}
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+const Layout = ({ children }) => {
+  const { user, logout } = useContext(AuthContext);
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [showNotifs, setShowNotifs]       = useState(false);
+  const [unreadCount, setUnreadCount]     = useState(0);
+  const notifRef = useRef(null);
+
+  const handleLogout = () => { logout(); navigate('/login'); };
   const currentNavItem = navItems.find(item => location.pathname.startsWith(item.path)) || navItems[0];
+
+  // Poll unread count every 30s
+  const fetchUnread = async () => {
+    try {
+      const res = await api.get('/notifications/unread-count');
+      setUnreadCount(res.data.count ?? 0);
+    } catch { /* ignore */ }
+  };
+  useEffect(() => {
+    fetchUnread();
+    const id = setInterval(fetchUnread, 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => { if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
-      
-      {/* Sidebar Navigation */}
+
+      {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex">
         <div className="h-16 flex items-center px-6 border-b border-gray-200">
           <div className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
             El Fatoora
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto py-4">
           <nav className="space-y-1 px-3">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname.startsWith(item.path);
               return (
-                <Link
-                  key={item.id}
-                  to={item.path}
+                <Link key={item.id} to={item.path}
                   className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-blue-50 text-blue-700' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
+                    isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}>
                   <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
-                  {item.label}
+                  {t(`nav.${item.id}`)}
                 </Link>
               );
             })}
@@ -89,37 +246,52 @@ const Layout = ({ children }) => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        
+
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex-1 flex text-xl font-semibold text-gray-800">
             {currentNavItem.label}
           </div>
           <div className="flex items-center space-x-4">
+            {/* Search */}
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3">
                 <Search className="h-4 w-4 text-gray-400" />
               </span>
-              <input 
-                type="text" 
-                placeholder="Rechercher..." 
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 w-64"
-              />
+              <input type="text" placeholder={t('search.placeholder')}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 w-48 md:w-64" />
             </div>
-            <button className="p-2 text-gray-400 hover:text-gray-600 relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500"></span>
-            </button>
+
+            {/* Language switcher */}
+            <LangSwitcher />
+
+            {/* Notification Bell */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => { setShowNotifs(v => !v); if (!showNotifs) fetchUnread(); }}
+                className="p-2 text-gray-400 hover:text-gray-600 relative rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              {showNotifs && (
+                <NotifDropdown onClose={() => { setShowNotifs(false); fetchUnread(); }} />
+              )}
+            </div>
           </div>
         </header>
 
-        {/* Scrollable Main Area */}
+        {/* Main Area */}
         <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
           {children}
         </main>
       </div>
 
-      {/* Floating AI Assistant */}
+      {/* Floating AI */}
       <AIAssistant />
     </div>
   );

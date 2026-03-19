@@ -10,6 +10,8 @@ import Products from './pages/Products';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
 import Help from './pages/Help';
+import Teif from './pages/Teif';
+import Demandes from './pages/Demandes';
 
 const PrivateRoute = ({ children }) => {
   const { user } = useContext(AuthContext);
@@ -55,6 +57,16 @@ function App() {
         <Route path="/help" element={
           <PrivateRoute>
             <Help />
+          </PrivateRoute>
+        } />
+        <Route path="/teif" element={
+          <PrivateRoute>
+            <Teif />
+          </PrivateRoute>
+        } />
+        <Route path="/demandes" element={
+          <PrivateRoute>
+            <Demandes />
           </PrivateRoute>
         } />
         <Route path="/" element={<Navigate to="/dashboard" />} />
