@@ -103,12 +103,38 @@ export const generateTeifXml = (invoice: any) => {
       },
 
       // Tax Totals
-      'cac:TaxTotal': {
-        'cbc:TaxAmount': {
-          '@currencyID': 'TND',
-          '#': invoice.totalTVA.toFixed(3)
+      'cac:TaxTotal': [
+        // VAT Total
+        {
+          'cbc:TaxAmount': {
+            '@currencyID': 'TND',
+            '#': invoice.totalTVA.toFixed(3)
+          },
+          'cac:TaxSubtotal': {
+            'cbc:TaxableAmount': { '@currencyID': 'TND', '#': invoice.totalHT.toFixed(3) },
+            'cbc:TaxAmount': { '@currencyID': 'TND', '#': invoice.totalTVA.toFixed(3) },
+            'cac:TaxCategory': {
+              'cbc:ID': 'S',
+              'cac:TaxScheme': { 'cbc:ID': 'VAT' }
+            }
+          }
+        },
+        // Stamp Duty (Droit de Timbre)
+        {
+          'cbc:TaxAmount': {
+            '@currencyID': 'TND',
+            '#': (invoice.stampDuty || 1.000).toFixed(3)
+          },
+          'cac:TaxSubtotal': {
+            'cbc:TaxableAmount': { '@currencyID': 'TND', '#': (invoice.stampDuty || 1.000).toFixed(3) },
+            'cbc:TaxAmount': { '@currencyID': 'TND', '#': (invoice.stampDuty || 1.000).toFixed(3) },
+            'cac:TaxCategory': {
+              'cbc:ID': 'OTH', // Other taxes for Stamp Duty
+              'cac:TaxScheme': { 'cbc:ID': 'STAMP' }
+            }
+          }
         }
-      },
+      ],
 
       // Legal Monetary Total
       'cac:LegalMonetaryTotal': {
@@ -122,7 +148,11 @@ export const generateTeifXml = (invoice: any) => {
         },
         'cbc:TaxInclusiveAmount': {
           '@currencyID': 'TND',
-          '#': invoice.totalTTC.toFixed(3)
+          '#': (invoice.totalTTC + (invoice.stampDuty || 1.000)).toFixed(3)
+        },
+        'cbc:PayableRoundingAmount': {
+          '@currencyID': 'TND',
+          '#': (invoice.stampDuty || 1.000).toFixed(3)
         },
         'cbc:PayableAmount': {
           '@currencyID': 'TND',

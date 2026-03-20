@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(helmet({ crossOriginResourcePolicy: false })); // Allow loading images cross-origin
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
+app.use('/uploads', express.static(path.resolve('uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);

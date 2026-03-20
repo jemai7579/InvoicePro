@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 import { Loader } from 'lucide-react';
 import api from '../services/api';
 import {
@@ -45,7 +44,7 @@ const Reports = () => {
   const formatCurrency = (value) => `${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
   return (
-    <Layout>
+    <>
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Analytique & Rapports</h1>
@@ -190,7 +189,7 @@ const Reports = () => {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
 };
 

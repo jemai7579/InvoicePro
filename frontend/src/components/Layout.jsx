@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AIAssistant from './AIAssistant';
@@ -169,17 +169,22 @@ const NotifDropdown = ({ onClose }) => {
 // ── Layout ────────────────────────────────────────────────────────────────────
 const Layout = ({ children }) => {
   const { user, logout } = useContext(AuthContext);
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [showNotifs, setShowNotifs]       = useState(false);
   const [unreadCount, setUnreadCount]     = useState(0);
+  const [searchQuery, setSearchQuery]     = useState('');
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const notifRef = useRef(null);
+  const searchRef = useRef(null);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  const isRtl = lang === 'ar';
+
+  const handleLogout = () => { logout(); navigate('/'); };
   const currentNavItem = navItems.find(item => location.pathname.startsWith(item.path)) || navItems[0];
 
-  // Poll unread count every 30s
+  // Poll unread count
   const fetchUnread = async () => {
     try {
       const res = await api.get('/notifications/unread-count');
@@ -194,21 +199,24 @@ const Layout = ({ children }) => {
 
   // Close on outside click
   useEffect(() => {
-    const handler = (e) => { if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false); };
+    const handler = (e) => { 
+      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false); 
+      if (searchRef.current && !searchRef.current.contains(e.target)) setShowSearchSuggestions(false);
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+    <div className={`flex h-screen bg-gray-50 overflow-hidden font-sans ${isRtl ? 'font-arabic' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
 
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex">
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
+        <Link to="/" className="h-16 flex items-center px-6 border-b border-gray-200 hover:bg-gray-50 transition-colors">
           <div className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
             El Fatoora
           </div>
-        </div>
+        </Link>
 
         <div className="flex-1 overflow-y-auto py-4">
           <nav className="space-y-1 px-3">
@@ -220,7 +228,7 @@ const Layout = ({ children }) => {
                   className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                     isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}>
-                  <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <Icon className={`${isActive ? 'text-blue-600' : 'text-gray-400'} h-5 w-5 ${isRtl ? 'ml-3' : 'mr-3'}`} />
                   {t(`nav.${item.id}`)}
                 </Link>
               );
@@ -250,16 +258,57 @@ const Layout = ({ children }) => {
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex-1 flex text-xl font-semibold text-gray-800">
-            {currentNavItem.label}
+            {t(`nav.${currentNavItem.id}`)}
           </div>
           <div className="flex items-center space-x-4">
-            {/* Search */}
-            <div className="relative">
+            {/* Smart Search / Command Bar */}
+            <div className="relative group">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search className="h-4 w-4 text-gray-400" />
+                <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
               </span>
-              <input type="text" placeholder={t('search.placeholder')}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 w-48 md:w-64" />
+              <input 
+                type="text" 
+                placeholder={t('search.placeholder') || "Rechercher une action..."}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSearchSuggestions(true);
+                }}
+                onFocus={() => setShowSearchSuggestions(true)}
+                className="pl-10 pr-4 py-2 border border-blue-100 bg-blue-50/30 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white w-48 md:w-64 transition-all" 
+              />
+              
+              {showSearchSuggestions && searchQuery.length > 0 && (
+                <div className="absolute top-full mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 z-[60] py-2 overflow-hidden">
+                   <div className="px-3 py-1 mb-1">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('search.suggestions')}</span>
+                   </div>
+                   {navItems.filter(item => 
+                     t(`nav.${item.id}`).toLowerCase().includes(searchQuery.toLowerCase()) || 
+                     item.id.includes(searchQuery.toLowerCase())
+                   ).map(item => (
+                     <button
+                       key={item.id}
+                       onClick={() => {
+                         navigate(item.path);
+                         setSearchQuery('');
+                         setShowSearchSuggestions(false);
+                       }}
+                       className="w-full flex items-center px-4 py-2.5 hover:bg-blue-50 text-sm text-gray-700 transition-colors gap-3"
+                     >
+                        <item.icon className={`w-4 h-4 text-gray-400 ${isRtl ? 'ml-3' : 'mr-3'}`} />
+                        <span>{t(`nav.${item.id}`)}</span>
+                     </button>
+                   ))}
+                   {navItems.filter(item => 
+                     t(`nav.${item.id}`).toLowerCase().includes(searchQuery.toLowerCase())
+                   ).length === 0 && (
+                     <div className="px-4 py-3 text-xs text-gray-400 text-center italic">
+                        {t('search.noResults')} "{searchQuery}"
+                     </div>
+                   )}
+                </div>
+              )}
             </div>
 
             {/* Language switcher */}
@@ -287,7 +336,7 @@ const Layout = ({ children }) => {
 
         {/* Main Area */}
         <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
-          {children}
+          <Outlet />
         </main>
       </div>
 

@@ -2,15 +2,16 @@ import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck, ArrowRight, Loader } from 'lucide-react';
-import { GoogleLogin } from '@react-oauth/google';
+import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 
 const Login = () => {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { login, setUserFromResponse } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -22,24 +23,9 @@ const Login = () => {
       navigate('/dashboard');
     } catch (err) {
       console.error('Failed to login', err);
-      setError(err.response?.data?.message || 'Email ou mot de passe incorrect');
+      setError(err.response?.data?.message || t('error.invalidCredentials') || 'Email ou mot de passe incorrect');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGoogleSuccess = async (credentialResponse) => {
-    setError(null);
-    try {
-      const res = await api.post('/auth/google', { credential: credentialResponse.credential });
-      setUserFromResponse(res.data);
-      if (res.data.isNewAccount) {
-        navigate('/settings');
-      } else {
-        navigate('/dashboard');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Connexion Google échouée');
     }
   };
 
@@ -47,13 +33,13 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="bg-blue-600 p-3 rounded-xl shadow-lg">
+          <Link to="/" className="flex justify-center mb-4 group">
+            <div className="bg-blue-600 p-3 rounded-xl shadow-lg group-hover:scale-110 transition-transform">
               <ShieldCheck className="w-8 h-8 text-white" />
             </div>
-          </div>
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-2">Bon retour !</h2>
-          <p className="text-gray-600 font-medium">Connectez-vous à El Fatoora</p>
+          </Link>
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-2">{t('auth.welcomeBack') || 'Bon retour !'}</h2>
+          <p className="text-gray-600 font-medium">{t('auth.loginSubtitle') || 'Connectez-vous à El Fatoura'}</p>
         </div>
 
         <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 overflow-hidden">
@@ -64,31 +50,9 @@ const Login = () => {
               </div>
             )}
 
-            {/* Google Sign In */}
-            <div className="mb-6 flex flex-col items-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setError('Connexion Google échouée. Veuillez réessayer.')}
-                text="signin_with"
-                shape="rectangular"
-                logo_alignment="left"
-                width="358"
-                locale="fr"
-              />
-            </div>
-
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-3 text-gray-400">ou continuer avec email</span>
-              </div>
-            </div>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Adresse Email</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('auth.email')}</label>
                 <input
                   type="email"
                   name="email"
@@ -101,7 +65,7 @@ const Login = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Mot de passe</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{t('auth.password')}</label>
                 <input
                   type="password"
                   name="password"
@@ -122,7 +86,7 @@ const Login = () => {
                   <Loader className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Se connecter
+                    {t('auth.login')}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </>
                 )}
@@ -130,9 +94,9 @@ const Login = () => {
             </form>
 
             <div className="mt-6 text-center text-sm">
-              <span className="text-gray-500">Pas encore de compte ? </span>
+              <span className="text-gray-500">{t('auth.noAccount') || 'Pas encore de compte ?'} </span>
               <Link to="/register" className="text-blue-600 font-semibold hover:text-blue-500 transition-colors">
-                Créer un compte
+                {t('auth.register')}
               </Link>
             </div>
           </div>

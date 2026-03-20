@@ -1,44 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../components/Layout';
 import { useLanguage } from '../context/LanguageContext';
 import {
   ClipboardList, Plus, X, CheckCircle2, XCircle, Clock,
   Loader, FileText, ChevronDown, ChevronUp, PlusCircle, MinusCircle,
-  AlertCircle, RefreshCw
+  AlertCircle, Zap, ExternalLink, Lightbulb
 } from 'lucide-react';
 import api from '../services/api';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
-  const meta = {
-    PENDING:  { label: 'En attente',  color: 'bg-yellow-100 text-yellow-700', icon: Clock },
-    ACCEPTED: { label: 'Acceptée',    color: 'bg-green-100 text-green-700',   icon: CheckCircle2 },
-    REJECTED: { label: 'Rejetée',     color: 'bg-red-100 text-red-600',       icon: XCircle },
-  }[status] ?? { label: status, color: 'bg-gray-100 text-gray-500', icon: Clock };
-  const Icon = meta.icon;
+  const statusConfig = {
+    PENDING: {
+      label: 'En attente',
+      color: 'bg-amber-50 text-amber-700 border-amber-100',
+      icon: <Clock className="w-3 h-3" />
+    },
+    ACCEPTED: {
+      label: 'Acceptée',
+      color: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+      icon: <CheckCircle2 className="w-3 h-3" />
+    },
+    REJECTED: {
+      label: 'Refusée',
+      color: 'bg-rose-50 text-rose-700 border-rose-100',
+      icon: <XCircle className="w-3 h-3" />
+    }
+  };
+  const meta = statusConfig[status] ?? { label: status, color: 'bg-gray-100 text-gray-500', icon: <Clock className="w-3 h-3" /> };
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${meta.color}`}>
-      <Icon className="w-3.5 h-3.5" /> {meta.label}
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${meta.color}`}>
+      {meta.icon} {meta.label.toUpperCase()}
     </span>
   );
 };
 
 // ── New Request Modal ─────────────────────────────────────────────────────────
-const RequestModal = ({ clients, onClose, onSaved, t }) => {
+const RequestModal = ({ clients, onClose, onSaved }) => {
   const [clientId, setClientId]   = useState('');
   const [product, setProduct]     = useState('');
   const [desc, setDesc]           = useState('');
-  const [note, setNote]           = useState('');
   const [lines, setLines]         = useState([{ description: '', quantity: 1, unitPrice: 0, tvaRate: 19 }]);
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState(null);
-
-  // Auto-fill first line description from product
-  const handleProductChange = (val) => {
-    setProduct(val);
-    setLines(l => l.map((ln, i) => i === 0 ? { ...ln, description: val } : ln));
-  };
 
   const addLine    = () => setLines(l => [...l, { description: '', quantity: 1, unitPrice: 0, tvaRate: 19 }]);
   const removeLine = (i) => setLines(l => l.filter((_, idx) => idx !== i));
@@ -46,14 +50,13 @@ const RequestModal = ({ clients, onClose, onSaved, t }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!clientId) return setError('Sélectionnez un client.');
-    if (!product)  return setError('Entrez le nom du produit / service.');
-    if (lines.some(l => !l.description)) return setError('Remplissez la désignation de chaque article.');
-    setLoading(true); setError(null);
+    if (!clientId) return setError('Veuillez sélectionner un client.');
+    if (!product)  return setError('Veuillez entrer l\'intitulé de la prestation.');
+    setLoading(true);
     try {
       await api.post('/devis', {
         clientId,
-        note: [product, desc, note].filter(Boolean).join(' — '),
+        note: `${product}${desc ? ` - ${desc}` : ''}`,
         lines,
         status: 'PENDING',
       });
@@ -64,397 +67,252 @@ const RequestModal = ({ clients, onClose, onSaved, t }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mb-8">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
-          <div className="flex items-center gap-2 font-semibold text-gray-800">
-            <ClipboardList className="w-5 h-5 text-blue-600" />
-            {t('demandes.new')}
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 animate-in fade-in zoom-in duration-200">
+        <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100 bg-slate-50/50">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Nouvelle Demande</h2>
+            <p className="text-sm text-slate-500 font-medium">Envoyez une demande de service à vore client.</p>
           </div>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Client */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('form.client')} *</label>
-            <select value={clientId} onChange={e => setClientId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-              <option value="">— Sélectionnez un client —</option>
-              {clients.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name}{c.matriculeFiscal ? ` — MF: ${c.matriculeFiscal}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Product */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('form.product')} *</label>
-            <input value={product} onChange={e => handleProductChange(e.target.value)}
-              placeholder="Ex : Développement application web, Consulting IT…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('form.desc')}</label>
-            <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2}
-              placeholder="Détails de la prestation, périmètre, livrables…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none" />
-          </div>
-
-          {/* Note */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('form.note')}</label>
-            <input value={note} onChange={e => setNote(e.target.value)}
-              placeholder="Ex : Paiement 30 jours, délai convenu le 15/03…"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-          </div>
-
-          {/* Lines */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">{t('form.lines')} *</label>
-              <button type="button" onClick={addLine}
-                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
-                <PlusCircle className="w-4 h-4" /> {t('form.add')}
-              </button>
+        <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Choisir le client *</label>
+              <select value={clientId} onChange={e => setClientId(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium">
+                <option value="">— Client —</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
             </div>
-            <div className="space-y-2">
-              {lines.map((ln, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 items-center bg-gray-50 rounded-lg p-2">
-                  <input value={ln.description} onChange={e => setLine(i, 'description', e.target.value)}
-                    placeholder="Désignation"
-                    className="col-span-5 border border-gray-300 rounded-md px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-400" />
-                  <div className="col-span-2 flex flex-col">
-                    <span className="text-[10px] text-gray-400 mb-0.5">{t('form.qte')}</span>
-                    <input type="number" value={ln.quantity} min="0" onChange={e => setLine(i, 'quantity', parseFloat(e.target.value) || 0)}
-                      className="border border-gray-300 rounded-md px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-400" />
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Prestation principale *</label>
+              <input value={product} onChange={e => setProduct(e.target.value)}
+                placeholder="Ex: Maintenance Annuelle"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium" />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+             <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Détails des articles</label>
+                <button type="button" onClick={addLine} className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline">
+                  <PlusCircle className="w-4 h-4" /> Ajouter
+                </button>
+             </div>
+             {lines.map((ln, i) => (
+                <div key={i} className="flex gap-2 items-start bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="flex-1">
+                    <input value={ln.description} onChange={e => setLine(i, 'description', e.target.value)}
+                      placeholder="Désignation" className="w-full bg-transparent border-b border-slate-200 py-1 text-sm outline-none focus:border-blue-500 font-medium" />
                   </div>
-                  <div className="col-span-2 flex flex-col">
-                    <span className="text-[10px] text-gray-400 mb-0.5">{t('form.pu')}</span>
-                    <input type="number" value={ln.unitPrice} min="0" step="0.001" onChange={e => setLine(i, 'unitPrice', parseFloat(e.target.value) || 0)}
-                      className="border border-gray-300 rounded-md px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-400" />
+                  <div className="w-16">
+                    <input type="number" value={ln.quantity} onChange={e => setLine(i, 'quantity', parseFloat(e.target.value))}
+                      className="w-full bg-transparent border-b border-slate-200 py-1 text-sm outline-none focus:border-blue-500 text-center font-mono" />
                   </div>
-                  <div className="col-span-2 flex flex-col">
-                    <span className="text-[10px] text-gray-400 mb-0.5">{t('form.tva')}</span>
-                    <input type="number" value={ln.tvaRate} min="0" max="100" onChange={e => setLine(i, 'tvaRate', parseFloat(e.target.value) || 0)}
-                      className="border border-gray-300 rounded-md px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-400" />
+                  <div className="w-24">
+                    <input type="number" value={ln.unitPrice} onChange={e => setLine(i, 'unitPrice', parseFloat(e.target.value))}
+                      className="w-full bg-transparent border-b border-slate-200 py-1 text-sm outline-none focus:border-blue-500 text-right font-mono" />
                   </div>
-                  <div className="col-span-1 flex items-end justify-center pb-0.5">
-                    {lines.length > 1 && (
-                      <button type="button" onClick={() => removeLine(i)} className="text-red-400 hover:text-red-600">
-                        <MinusCircle className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
+                  {lines.length > 1 && (
+                    <button type="button" onClick={() => removeLine(i)} className="text-rose-400 hover:text-rose-600 pt-1">
+                      <MinusCircle className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
-              ))}
-            </div>
+             ))}
           </div>
 
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
-            </p>
-          )}
-
-          <div className="flex justify-end gap-3 pt-1">
-            <button type="button" onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
-              {t('form.cancel')}
-            </button>
-            <button type="submit" disabled={loading}
-              className="inline-flex items-center gap-2 px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50">
-              {loading ? <Loader className="w-4 h-4 animate-spin" /> : <ClipboardList className="w-4 h-4" />}
-              {t('form.send')}
-            </button>
-          </div>
+          {error && <div className="text-xs font-bold text-rose-600 bg-rose-50 p-4 rounded-xl border border-rose-100">{error}</div>}
         </form>
+
+        <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-4">
+          <button type="button" onClick={onClose} className="px-6 py-3 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors">Annuler</button>
+          <button onClick={handleSubmit} disabled={loading} className="px-8 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2">
+            {loading ? <Loader className="w-5 h-5 animate-spin" /> : <ClipboardList className="w-5 h-5" />}
+            Envoyer la demande
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Main Page ─────────────────────────────────────────────────────────────────
 const Demandes = () => {
-  const { t }                         = useLanguage();
-  const navigate                      = useNavigate();
-  const [devis, setDevis]             = useState([]);
-  const [clients, setClients]         = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [showModal, setShowModal]     = useState(false);
-  const [expanded, setExpanded]       = useState({});
-  const [converting, setConverting]   = useState({});
-  const [recording, setRecording]     = useState({});   // per-row show "record response" panel
-  const [saving, setSaving]           = useState({});
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const [demandes, setDemandes] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [converting, setConverting] = useState(null);
+  const [recording, setRecording] = useState(null);
 
   const fetchData = async () => {
-    setLoading(true);
     try {
-      const [devisRes, clientsRes] = await Promise.all([api.get('/devis'), api.get('/clients')]);
-      setDevis(devisRes.data);
-      setClients(clientsRes.data);
+      const [demRes, cliRes] = await Promise.all([api.get('/devis'), api.get('/clients')]);
+      setDemandes(demRes.data);
+      setClients(cliRes.data);
     } catch (err) {
-      console.error('Demandes fetch error', err);
-    } finally { setLoading(false); }
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  // Record client response (prestataire enters what the client told them)
   const handleRecordResponse = async (id, status) => {
-    setSaving(p => ({ ...p, [id]: true }));
     try {
       await api.patch(`/devis/${id}/status`, { status });
-      setRecording(p => ({ ...p, [id]: false }));
-      await fetchData();
+      setRecording(null);
+      fetchData();
     } catch (err) {
-      alert(err.response?.data?.message ?? 'Erreur mise à jour.');
-    } finally { setSaving(p => ({ ...p, [id]: false })); }
+      console.error(err);
+    }
   };
 
   const handleConvert = async (id) => {
-    setConverting(p => ({ ...p, [id]: true }));
+    setConverting(id);
     try {
-      const res = await api.post(`/devis/${id}/convert`);
-      await fetchData();
-      // Redirect to the new invoice
-      navigate(`/invoices`);
+      await api.post(`/devis/${id}/convert`);
+      navigate('/invoices');
     } catch (err) {
-      alert(err.response?.data?.message ?? 'Erreur conversion.');
-    } finally { setConverting(p => ({ ...p, [id]: false })); }
-  };
-
-  const stats = {
-    total:    devis.length,
-    pending:  devis.filter(d => d.status === 'PENDING').length,
-    accepted: devis.filter(d => d.status === 'ACCEPTED').length,
-    rejected: devis.filter(d => d.status === 'REJECTED').length,
+      alert(err.response?.data?.message || 'Erreur conversion');
+    } finally {
+      setConverting(null);
+    }
   };
 
   return (
-    <Layout>
-      <div className="max-w-5xl mx-auto space-y-5 pb-10">
-
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <ClipboardList className="w-6 h-6 text-blue-600" />
-              {t('demandes.title')}
-            </h1>
-            <p className="text-sm text-gray-400 mt-0.5">{t('demandes.subtitle')}</p>
+    <>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 px-1">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Centre des Demandes</h1>
+            <p className="text-slate-500 font-medium">Suivez vos prestations de service et convertissez les accords en factures.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={fetchData}
-              className="p-2 text-gray-400 hover:text-gray-600 bg-white border border-gray-200 rounded-lg transition-colors">
-              <RefreshCw className="w-4 h-4" />
-            </button>
-            <button onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm">
-              <Plus className="w-4 h-4" /> {t('demandes.new')}
-            </button>
-          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center justify-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-95"
+          >
+            <Plus className="w-6 h-6" />
+            Nouvelle Demande
+          </button>
         </div>
 
-        {/* Role info banner */}
-        <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-5 py-3 text-sm text-blue-800">
-          <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
-          <span>
-            Vous êtes le <strong>prestataire</strong>. Envoyez une demande au client — il accepte ou refuse. Enregistrez sa réponse via le bouton <em>"Enregistrer la réponse"</em>.
-          </span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 text-center">En attente</p>
+              <p className="text-4xl font-black text-slate-900 text-center">{demandes.filter(d => d.status === 'PENDING').length}</p>
+           </div>
+           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm border-b-emerald-500 border-b-2">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 text-center font-bold">Acceptées</p>
+              <p className="text-4xl font-black text-emerald-600 text-center">{demandes.filter(d => d.status === 'ACCEPTED').length}</p>
+           </div>
+           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 text-center">Refusées</p>
+              <p className="text-4xl font-black text-slate-400 text-center">{demandes.filter(d => d.status === 'REJECTED').length}</p>
+           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: t('demandes.total'),    value: stats.total,    color: 'text-blue-700',   bg: 'bg-blue-50'   },
-            { label: t('demandes.pending'),  value: stats.pending,  color: 'text-yellow-700', bg: 'bg-yellow-50' },
-            { label: t('demandes.accepted'), value: stats.accepted, color: 'text-green-700',  bg: 'bg-green-50'  },
-            { label: t('demandes.rejected'), value: stats.rejected, color: 'text-red-700',    bg: 'bg-red-50'    },
-          ].map(s => (
-            <div key={s.label} className={`${s.bg} rounded-xl p-5 border border-white shadow-sm`}>
-              <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-xs text-gray-500 mt-1.5 font-medium">{s.label}</p>
-            </div>
-          ))}
+        {/* Guided Tip */}
+        <div className="mb-6 bg-blue-50 border border-blue-100 p-4 rounded-2xl flex items-center gap-4 text-blue-800">
+           <div className="bg-blue-100 p-2 rounded-lg">
+              <Lightbulb className="w-5 h-5" />
+           </div>
+           <p className="text-sm font-semibold">
+              {t('guide.demandes.tip')}
+           </p>
         </div>
 
-        {/* List */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-base font-semibold text-gray-800">
-              {t('demandes.all')}
-              <span className="ml-2 text-sm font-normal text-gray-400">({devis.length})</span>
-            </h2>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader className="w-6 h-6 animate-spin text-blue-500" />
-            </div>
-          ) : devis.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-20" />
-              <p className="text-sm font-medium">{t('demandes.none')}</p>
-              <p className="text-xs mt-1">{t('demandes.none.sub')}</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {devis.map(d => {
-                const open = expanded[d.id];
-                const hasInvoice = !!d.invoice;
-                const showRecord = recording[d.id];
-
-                return (
-                  <div key={d.id}>
-                    {/* Row */}
-                    <div className="flex items-center px-6 py-4 gap-3 hover:bg-gray-50 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">
-                          {d.client?.name ?? '—'}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5 truncate">
-                          {new Date(d.createdAt).toLocaleDateString('fr-TN')}
-                          {d.note && <span className="ml-2 italic">{d.note.split(' — ')[0]}</span>}
-                        </p>
-                      </div>
-
-                      <StatusBadge status={d.status} />
-
-                      <div className="hidden md:block text-right">
-                        <p className="text-sm font-bold text-gray-800">{d.netToPay?.toFixed(3)}</p>
-                        <p className="text-xs text-gray-400">TND TTC</p>
-                      </div>
-
-                      {/* Action buttons — role-aware */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
-
-                        {/* PENDING: prestataire waits — shows "Record response" toggle */}
-                        {d.status === 'PENDING' && (
+        <div className="bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.15em] border-b border-slate-100">
+                  <th className="px-8 py-5">Identifiant & Date</th>
+                  <th className="px-8 py-5">Client & Prestation</th>
+                  <th className="px-8 py-5 text-right">Montant (TND)</th>
+                  <th className="px-8 py-5 text-center">Statut</th>
+                  <th className="px-8 py-5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {loading ? (
+                  <tr><td colSpan="5" className="py-20 text-center"><Loader className="w-8 h-8 animate-spin mx-auto text-blue-500" /></td></tr>
+                ) : demandes.length === 0 ? (
+                  <tr><td colSpan="5" className="py-20 text-center font-bold text-slate-300">Aucune demande transmise.</td></tr>
+                ) : (
+                  demandes.map(d => (
+                    <tr key={d.id} className="hover:bg-slate-50/30 transition-all group">
+                      <td className="px-8 py-6">
+                        <p className="font-bold text-slate-900 text-sm">#DEM-{d.id.substring(0, 6)}</p>
+                        <p className="text-xs text-slate-400 font-medium">{new Date(d.createdAt).toLocaleDateString()}</p>
+                      </td>
+                      <td className="px-8 py-6">
+                        <p className="font-bold text-slate-900 text-sm">{d.client?.name}</p>
+                        <p className="text-xs text-slate-500 font-medium italic truncate max-w-[200px]">{d.note || 'Pas de description'}</p>
+                      </td>
+                      <td className="px-8 py-6 text-right font-mono font-black text-slate-900">
+                        {d.netToPay.toFixed(3)}
+                      </td>
+                      <td className="px-8 py-6 text-center">
+                        <StatusBadge status={d.status} />
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          {d.status === 'PENDING' && (
+                            <div className="relative">
+                              <button
+                                onClick={() => setRecording(recording === d.id ? null : d.id)}
+                                className="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-xl text-[11px] font-black hover:bg-blue-100 transition-all flex items-center gap-1"
+                              >
+                                RÉPONSE
+                              </button>
+                              {recording === d.id && (
+                                <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-10 flex flex-col gap-1 w-40">
+                                  <button onClick={() => handleRecordResponse(d.id, 'ACCEPTED')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all">
+                                    <CheckCircle2 className="w-4 h-4" /> ACCEPTER
+                                  </button>
+                                  <button onClick={() => handleRecordResponse(d.id, 'REJECTED')} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all">
+                                    <XCircle className="w-4 h-4" /> REJETER
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {d.status === 'ACCEPTED' && (
+                            <button
+                              onClick={() => handleConvert(d.id)}
+                              disabled={converting === d.id}
+                              className="bg-emerald-600 text-white px-5 py-2 rounded-xl text-[11px] font-black hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 flex items-center gap-1 active:scale-95"
+                            >
+                              {converting === d.id ? <Loader className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                              FACTURER
+                            </button>
+                          )}
                           <button
-                            onClick={() => setRecording(p => ({ ...p, [d.id]: !p[d.id] }))}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
-                              showRecord
-                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                            }`}
+                             onClick={() => window.open(`${api.defaults.baseURL}/devis/${d.id}/pdf`, '_blank')}
+                             className="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
                           >
-                            <ClipboardList className="w-3.5 h-3.5" />
-                            {t('demandes.record')}
+                             <FileText className="w-5 h-5" />
                           </button>
-                        )}
-
-                        {/* ACCEPTED: create invoice */}
-                        {d.status === 'ACCEPTED' && !hasInvoice && (
-                          <button
-                            onClick={() => handleConvert(d.id)}
-                            disabled={!!converting[d.id]}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50">
-                            {converting[d.id] ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-                            {t('demandes.createInvoice')}
-                          </button>
-                        )}
-                        {d.status === 'ACCEPTED' && hasInvoice && (
-                          <span className="inline-flex items-center gap-1 text-xs text-green-700 font-medium">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> {t('demandes.invoiceCreated')}
-                          </span>
-                        )}
-
-                        {/* REJECTED state */}
-                        {d.status === 'REJECTED' && (
-                          <span className="inline-flex items-center gap-1 text-xs text-red-500 font-medium">
-                            <XCircle className="w-3.5 h-3.5" /> {t('demandes.rejected.label')}
-                          </span>
-                        )}
-
-                        <button onClick={() => setExpanded(p => ({ ...p, [d.id]: !p[d.id] }))}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg transition-colors">
-                          {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Record client response panel */}
-                    {showRecord && d.status === 'PENDING' && (
-                      <div className="px-6 py-3 bg-indigo-50 border-t border-indigo-100 flex items-center gap-3">
-                        <p className="text-xs text-indigo-700 font-medium flex-1">
-                          📋 Le client vous a répondu ? Enregistrez sa décision :
-                        </p>
-                        <button
-                          onClick={() => handleRecordResponse(d.id, 'ACCEPTED')}
-                          disabled={!!saving[d.id]}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50">
-                          {saving[d.id] ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                          {t('demandes.recordAccept')}
-                        </button>
-                        <button
-                          onClick={() => handleRecordResponse(d.id, 'REJECTED')}
-                          disabled={!!saving[d.id]}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors disabled:opacity-50">
-                          <XCircle className="w-3.5 h-3.5" />
-                          {t('demandes.recordReject')}
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Expandable detail */}
-                    {open && (
-                      <div className="px-6 pb-4 pt-2 bg-gray-50 border-t border-gray-100">
-                        {d.note && (
-                          <p className="text-xs text-gray-500 mb-3 italic">
-                            <span className="font-medium text-gray-700">Note :</span> {d.note}
-                          </p>
-                        )}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
-                          <div><p className="text-xs text-gray-400 mb-1">Total HT</p><p className="font-semibold">{d.totalHT?.toFixed(3)} TND</p></div>
-                          <div><p className="text-xs text-gray-400 mb-1">Total TVA</p><p className="font-semibold">{d.totalTVA?.toFixed(3)} TND</p></div>
-                          <div><p className="text-xs text-gray-400 mb-1">Net à payer</p><p className="font-bold text-blue-700">{d.netToPay?.toFixed(3)} TND</p></div>
-                          <div><p className="text-xs text-gray-400 mb-1">Lignes</p><p className="text-gray-700">{d.lines?.length ?? '—'} article(s)</p></div>
                         </div>
-                        {d.lines?.length > 0 && (
-                          <div className="overflow-x-auto rounded-lg border border-gray-200">
-                            <table className="w-full text-xs border-collapse">
-                              <thead>
-                                <tr className="bg-gray-100 text-gray-500">
-                                  <th className="px-3 py-2 text-left font-medium">Désignation</th>
-                                  <th className="px-3 py-2 text-right font-medium">Qté</th>
-                                  <th className="px-3 py-2 text-right font-medium">P.U. HT</th>
-                                  <th className="px-3 py-2 text-right font-medium">TVA</th>
-                                  <th className="px-3 py-2 text-right font-medium">Total HT</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {d.lines.map(l => (
-                                  <tr key={l.id} className="border-t border-gray-200 hover:bg-gray-50">
-                                    <td className="px-3 py-2 text-gray-800">{l.description}</td>
-                                    <td className="px-3 py-2 text-right">{l.quantity}</td>
-                                    <td className="px-3 py-2 text-right">{l.unitPrice?.toFixed(3)}</td>
-                                    <td className="px-3 py-2 text-right">{l.tvaRate}%</td>
-                                    <td className="px-3 py-2 text-right font-semibold">{l.totalHT?.toFixed(3)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
-      {showModal && <RequestModal clients={clients} onClose={() => setShowModal(false)} onSaved={fetchData} t={t} />}
-    </Layout>
+      {showModal && <RequestModal clients={clients} onClose={() => setShowModal(false)} onSaved={fetchData} />}
+    </>
   );
 };
 

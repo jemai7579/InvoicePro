@@ -1,36 +1,55 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+
 import translations from '../i18n/translations';
 
-export const LanguageContext = createContext();
+const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
   const [lang, setLangState] = useState(() => {
-    return localStorage.getItem('el_fatoora_lang') || 'fr';
+    try {
+      const saved = localStorage.getItem('el_fatoora_lang');
+      return (saved === 'fr' || saved === 'en' || saved === 'ar') ? saved : 'fr';
+    } catch (e) {
+      return 'fr';
+    }
   });
 
   const setLang = useCallback((newLang) => {
-    setLangState(newLang);
-    localStorage.setItem('el_fatoora_lang', newLang);
-    // RTL support for Arabic
-    document.documentElement.dir = newLang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = newLang;
+    if (newLang === 'fr' || newLang === 'en' || newLang === 'ar') {
+      setLangState(newLang);
+      try {
+        localStorage.setItem('el_fatoora_lang', newLang);
+      } catch (e) {
+        console.warn('LocalStorage not available');
+      }
+    }
   }, []);
 
-  // Apply on mount
-  React.useEffect(() => {
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = lang;
+  const t = useCallback((key) => {
+    if (!key) return '';
+    const currentList = translations[lang] || translations['fr'] || {};
+    return currentList[key] || translations['fr'][key] || key;
   }, [lang]);
 
-  const t = useCallback((key) => {
-    return translations[lang]?.[key] ?? translations['fr']?.[key] ?? key;
-  }, [lang]);
+  const value = {
+    lang,
+    setLang,
+    t
+  };
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );
 };
 
-export const useLanguage = () => useContext(LanguageContext);
+export const useLanguage = () => {
+  const context = useContext(LanguageContext);
+  if (!context) {
+    throw new Error('useLanguage must be used within a LanguageProvider');
+  }
+  return context;
+};
+
+export default LanguageProvider;

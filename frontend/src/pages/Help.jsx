@@ -1,5 +1,4 @@
 import React from 'react';
-import Layout from '../components/Layout';
 import { HelpCircle, Mail, MessageSquare, FileText, ChevronRight } from 'lucide-react';
 
 const Help = () => {
@@ -23,7 +22,7 @@ const Help = () => {
   ];
 
   return (
-    <Layout>
+    <>
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Help Center</h1>
         <p className="text-gray-500">Find answers, get support, and learn how to use El Fatoora.</p>
@@ -89,7 +88,7 @@ const Help = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </>
   );
 };
 

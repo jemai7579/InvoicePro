@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 import { Plus, Edit2, Trash2, X, Loader, Search } from 'lucide-react';
 import api from '../services/api';
 
@@ -107,7 +106,7 @@ const Products = () => {
   );
 
   return (
-    <Layout>
+    <>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Produits & Services</h1>
@@ -318,7 +317,7 @@ const Products = () => {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
 };
 

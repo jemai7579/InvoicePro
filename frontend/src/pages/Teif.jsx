@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../components/Layout';
 import {
   FileCode2, Download, Send, CheckCircle2, Clock, XCircle,
   ChevronDown, ChevronUp, Loader, RefreshCw, ShieldCheck,
@@ -271,7 +270,7 @@ const Teif = () => {
     `F-${new Date(inv.createdAt).getFullYear()}${String(new Date(inv.createdAt).getMonth() + 1).padStart(2, '0')}-${inv.id.slice(0, 8).toUpperCase()}`;
 
   return (
-    <Layout>
+    <>
       <div className="max-w-6xl mx-auto space-y-5 pb-10">
 
         {/* ── Header ─────────────────────────────────────────────────── */}
@@ -492,7 +491,7 @@ const Teif = () => {
 
       {previewXml  && <XmlModal xml={previewXml} onClose={() => setPreviewXml(null)} />}
       {showImport  && <ImportModal onClose={() => setShowImport(false)} onSuccess={fetchData} />}
-    </Layout>
+    </>
   );
 };
 

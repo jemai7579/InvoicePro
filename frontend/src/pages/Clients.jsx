@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 import { Plus, MoreVertical, Edit2, Trash2, X, Loader } from 'lucide-react';
 import api from '../services/api';
 
@@ -105,7 +104,7 @@ const Clients = () => {
   );
 
   return (
-    <Layout>
+    <>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Clients</h1>
@@ -305,7 +304,7 @@ const Clients = () => {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
 };
 

@@ -36,12 +36,15 @@ export const getSettings = async (req: Request, res: Response) => {
 
 export const updateSettings = async (req: Request, res: Response) => {
   try {
-    const { name, matriculeFiscal, registreCommerce, address, city, zipCode, country, phone, rib, logo, newPassword } = req.body;
+    const { name, matriculeFiscal, registreCommerce, address, city, zipCode, country, phone, rib, logo, newPassword, currentPassword } = req.body;
+
+    const companyId = (req as any).company.id;
 
     // Build update data — only include fields that were actually sent
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (matriculeFiscal !== undefined) updateData.matriculeFiscal = matriculeFiscal;
+    // ... other fields ...
     if (registreCommerce !== undefined) updateData.registreCommerce = registreCommerce;
     if (address !== undefined) updateData.address = address;
     if (city !== undefined) updateData.city = city;
@@ -51,17 +54,38 @@ export const updateSettings = async (req: Request, res: Response) => {
     if (rib !== undefined) updateData.rib = rib;
     if (logo !== undefined) updateData.logo = logo;
 
-    // Password change
+    // Password change logic
     if (newPassword) {
-      if (newPassword.length < 6) {
-        return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 6 caractères.' });
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Le mot de passe actuel est requis pour changer votre mot de passe.' });
       }
+
+      // Fetch the actual current password hash
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { password: true }
+      });
+
+      if (!company) {
+        return res.status(404).json({ message: 'Company not found' });
+      }
+
+      // Compare
+      const isMatch = await bcrypt.compare(currentPassword, company.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Le mot de passe actuel est incorrect.' });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: 'Le nouveau mot de passe doit contenir au moins 6 caractères.' });
+      }
+
       const salt = await bcrypt.genSalt(10);
       updateData.password = await bcrypt.hash(newPassword, salt);
     }
 
     const updatedCompany = await prisma.company.update({
-      where: { id: (req as any).company.id },
+      where: { id: companyId },
       data: updateData,
       select: {
         id: true,
@@ -111,7 +135,7 @@ export const uploadCertificate = async (req: Request, res: Response) => {
     }
 
     const companyId = (req as any).company.id;
-    const uploadDir = path.join(__dirname, '../../uploads/certificates');
+    const uploadDir = path.resolve('uploads/certificates');
     
     await fs.ensureDir(uploadDir);
     
@@ -147,7 +171,7 @@ export const uploadLogo = async (req: Request, res: Response) => {
     }
 
     const companyId = (req as any).company.id;
-    const uploadDir = path.join(__dirname, '../../uploads/logos');
+    const uploadDir = path.resolve('uploads/logos');
     await fs.ensureDir(uploadDir);
 
     const ext = path.extname(file.originalname);

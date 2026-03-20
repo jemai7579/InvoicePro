@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
 import { Plus, Trash2, X, Loader, PlusCircle, MinusCircle, Download, FileCode, CheckCircle, Send } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
@@ -219,7 +218,7 @@ const Invoices = () => {
   };
 
   return (
-    <Layout>
+    <>
       <div className="flex justify-between items-center mb-6">
         <div>
           <p className="text-sm text-gray-500">Gérer vos factures électroniques</p>
@@ -552,7 +551,7 @@ const Invoices = () => {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   );
 };
 
