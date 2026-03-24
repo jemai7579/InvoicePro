@@ -1,311 +1,346 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, MoreVertical, Edit2, Trash2, X, Loader } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Loader, User, Mail, Phone, MapPin, FileText, Package, Users, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
+import Card from '../components/ui/Card';
+import Input from '../components/ui/Input';
 
 const Clients = () => {
+  const { t } = useLanguage();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState(null);
+  const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-
+  const [editingId, setEditingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState(null);
+  
+  // Form State
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     address: '',
-    matriculeFiscal: ''
+    mf: ''
   });
 
   const fetchClients = async () => {
     try {
-      const { data } = await api.get('/clients');
-      setClients(data);
-    } catch (error) {
-      console.error('Error fetching clients', error);
-      alert('Failed to load clients');
-    } finally {
-      setLoading(false);
+      setLoading(true);
+      const res = await api.get('/clients');
+      setClients(res.data);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchClients(); }, []);
+
+  const handleEdit = (c) => {
+    setEditingId(c.id);
+    setFormData({
+      name: c.name || '',
+      email: c.email || '',
+      phone: c.phone || '',
+      address: c.address || '',
+      mf: c.mf || ''
+    });
+    setErrors({});
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm(t('common.confirmDelete') || 'Voulez-vous supprimer ce client ?')) return;
+    try {
+      await api.delete(`/clients/${id}`);
+      fetchClients();
+    } catch (err) { console.error(err); }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = t('error.nameRequired') || 'Le nom est requis';
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = t('error.invalidEmail') || 'Email invalide';
     }
-  };
-
-  useEffect(() => {
-    fetchClients();
-  }, []);
-
-  const openModal = (client = null) => {
-    if (client) {
-      setEditingClient(client);
-      setFormData({
-        name: client.name || '',
-        email: client.email || '',
-        phone: client.phone || '',
-        address: client.address || '',
-        matriculeFiscal: client.matriculeFiscal || ''
-      });
-    } else {
-      setEditingClient(null);
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        address: '',
-        matriculeFiscal: ''
-      });
-    }
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditingClient(null);
-  };
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (!formData.mf.trim()) newErrors.mf = t('error.mfRequired') || 'Matricule Fiscal requis';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      if (editingClient) {
-        await api.put(`/clients/${editingClient.id}`, formData);
+      if (editingId) {
+        await api.put(`/clients/${editingId}`, formData);
       } else {
         await api.post('/clients', formData);
       }
+      setShowModal(false);
+      setEditingId(null);
+      setFormData({ name: '', email: '', phone: '', address: '', mf: '' });
       fetchClients();
-      closeModal();
-    } catch (error) {
-      console.error('Error saving client', error);
-      alert(error.response?.data?.message || 'Failed to save client');
+    } catch (err) { 
+      console.error(err);
+      setSubmitError(err.response?.data?.message || t('settings.error'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this client?')) {
-      try {
-        await api.delete(`/clients/${id}`);
-        fetchClients();
-      } catch (error) {
-        console.error('Error deleting client', error);
-        alert('Failed to delete client');
-      }
+  const handleInputChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+    if (errors[field]) {
+      setErrors(prev => {
+        const n = { ...prev };
+        delete n[field];
+        return n;
+      });
     }
   };
 
-  const filteredClients = clients.filter(client => 
-    (client.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (client.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (client.matriculeFiscal || '').toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = clients.filter(c => 
+    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.mf?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+    <div className="pb-20 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Clients</h1>
-          <p className="text-sm text-gray-500">Gérer les clients de votre entreprise</p>
+          <h2 className="text-2xl font-black text-slate-900 font-display tracking-tight uppercase">{t('clients.title')}</h2>
+          <p className="text-sm text-slate-500 font-medium">{t('clients.subtitle')}</p>
         </div>
-        <div className="flex w-full md:w-auto items-center gap-3">
+        <Button 
+          onClick={() => { setEditingId(null); setFormData({ name: '', email: '', phone: '', address: '', mf: '' }); setErrors({}); setShowModal(true); }}
+          icon={Plus}
+          className="!rounded-2xl shadow-lg shadow-indigo-100"
+        >
+          {t('clients.new')}
+        </Button>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
           <input 
-            type="text" 
-            placeholder="Rechercher des clients..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+            type="text"
+            placeholder={t('clients.search')}
+            className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium text-sm text-slate-700 placeholder:text-slate-300 shadow-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button 
-            onClick={() => openModal()}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors shrink-0"
-          >
-            <Plus className="h-4 w-4 mr-2" /> Nouveau Client
-          </button>
+        </div>
+        <div className="px-6 py-3 bg-indigo-50/50 rounded-2xl border border-indigo-100/30 flex items-center justify-center">
+          <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+            {filtered.length} {t('common.results')}
+          </span>
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
-      ) : (
-        <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+      <Card noPadding className="overflow-hidden border-slate-100">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('clients.table.name')}</th>
+                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('clients.table.email')}</th>
+                <th className="px-8 py-4 text-end text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('clients.table.mf')}</th>
+                <th className="px-8 py-4 text-end text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.actions')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {loading ? (
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nom du Client
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Téléphone
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Matricule Fiscal
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                   <td colSpan="4" className="py-20 text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <Loader className="w-8 h-8 animate-spin text-indigo-600" />
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Chargement des clients...</p>
+                      </div>
+                   </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredClients.length > 0 ? (
-                  filteredClients.map((client) => (
-                    <tr key={client.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{client.name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{client.email || '-'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{client.phone || '-'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{client.matriculeFiscal || '-'}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button 
-                            onClick={() => openModal(client)}
-                            className="text-gray-400 hover:text-blue-600 p-1 transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(client.id)}
-                            className="text-gray-400 hover:text-red-600 p-1 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="py-20 text-center text-slate-400 italic text-sm">
+                    {t('clients.empty')}
+                  </td>
+                </tr>
+              ) : (
+                filtered.map(c => (
+                  <tr key={c.id} className="hover:bg-slate-50/30 transition-colors group">
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-xs border border-indigo-100 shadow-sm shadow-indigo-50">
+                          {c.name?.slice(0, 2).toUpperCase()}
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center text-sm text-gray-500">
-                      Aucun client trouvé. Cliquez sur "Nouveau Client" pour en ajouter un.
+                        <span className="font-bold text-slate-900 tracking-tight">{c.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-sm font-medium text-slate-500">{c.email || '--'}</td>
+                    <td className="px-8 py-5 text-[11px] font-black text-slate-400 text-end font-mono uppercase tracking-tighter">{c.mf || '--'}</td>
+                    <td className="px-8 py-5 text-end">
+                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleEdit(c)}
+                          className="p-2 text-slate-400 hover:text-indigo-600 transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(c.id)}
+                          className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden p-4 space-y-4">
+          {filtered.map(c => (
+            <div key={c.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col gap-4">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-xs border border-indigo-100">
+                    {c.name?.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="text-base font-black text-slate-900 font-display">{c.name}</h4>
+                    <p className="text-xs text-slate-500 font-medium">{c.email || '--'}</p>
+                  </div>
+               </div>
+               <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('clients.table.mf')}</p>
+                    <p className="text-[11px] font-black text-slate-900 font-mono tracking-tighter">{c.mf || '--'}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEdit(c)} className="p-3 bg-slate-50 rounded-2xl text-slate-400">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDelete(c.id)} className="p-3 bg-slate-50 rounded-2xl text-slate-400">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+               </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Modal Section */}
+      {showModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card 
+            className="w-full max-w-lg animate-in zoom-in duration-300 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.15)]"
+            noPadding
+            title={editingId ? t('clients.form.title_edit') : t('clients.form.title_new')}
+            action={
+              <button 
+                onClick={() => setShowModal(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            }
+          >
+             <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                <Input 
+                   label={t('clients.form.name_label')}
+                   placeholder={t('clients.form.name_placeholder')}
+                   value={formData.name}
+                   onChange={(e) => handleInputChange('name', e.target.value)}
+                   error={errors.name}
+                   icon={User}
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <Input 
+                    type="email"
+                    label={t('form.email')}
+                    placeholder={t('clients.form.email_placeholder')}
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    error={errors.email}
+                    icon={Mail}
+                  />
+                  <Input 
+                    label={t('form.phone')}
+                    placeholder={t('clients.form.phone_placeholder')}
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    error={errors.phone}
+                    icon={Phone}
+                  />
+                </div>
+
+                <Input 
+                  label={t('clients.form.address_label')}
+                  placeholder={t('clients.form.address_placeholder')}
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  error={errors.address}
+                  icon={MapPin}
+                />
+
+                <Input 
+                  label={t('clients.form.mf_label')}
+                  placeholder={t('clients.form.mf_placeholder')}
+                  value={formData.mf}
+                  onChange={(e) => handleInputChange('mf', e.target.value)}
+                  error={errors.mf}
+                  icon={FileText}
+                  className="font-mono uppercase"
+                />
+
+                {submitError && (
+                  <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600 text-[11px] font-black uppercase tracking-widest animate-in slide-in-from-top-2">
+                    <AlertCircle className="w-5 h-5" />
+                    {submitError}
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
+
+                <div className="pt-6 flex gap-4">
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 !rounded-2xl"
+                  >
+                    {t('form.cancel')}
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    variant="primary" 
+                    loading={isSubmitting}
+                    className="flex-1 !rounded-2xl shadow-xl shadow-indigo-100"
+                    icon={CheckCircle2}
+                  >
+                    {t('common.save')}
+                  </Button>
+                </div>
+             </form>
+          </Card>
         </div>
       )}
-
-      {/* Modal Overlay */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true" onClick={closeModal}>
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-            <div className="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="text-lg leading-6 font-semibold text-gray-900">
-                  {editingClient ? 'Modifier le client' : 'Ajouter un nouveau client'}
-                </h3>
-                <button onClick={closeModal} className="text-gray-400 hover:text-gray-500">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              
-              <form onSubmit={handleSubmit}>
-                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Nom de l'entreprise/du client *</label>
-                    <input
-                      type="text"
-                      name="name"
-                      required
-                      value={formData.name}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Téléphone</label>
-                      <input
-                        type="text"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Adresse</label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Matricule Fiscal</label>
-                    <input
-                      type="text"
-                      name="matriculeFiscal"
-                      value={formData.matriculeFiscal}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
-                    />
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:bg-blue-400"
-                  >
-                    {isSubmitting ? <Loader className="w-5 h-5 animate-spin" /> : 'Enregistrer'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  >
-                    Annuler
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 };
 
 export default Clients;
+

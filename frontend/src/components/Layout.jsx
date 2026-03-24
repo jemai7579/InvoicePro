@@ -4,6 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AIAssistant from './AIAssistant';
 import api from '../services/api';
+import Button from './ui/Button';
+import Badge from './ui/Badge';
 import {
   LayoutDashboard,
   Users,
@@ -21,7 +23,8 @@ import {
   XCircle,
   Clock,
   FileText,
-  X
+  X,
+  Menu
 } from 'lucide-react';
 
 const navItems = [
@@ -46,14 +49,14 @@ const LANG_OPTIONS = [
 const LangSwitcher = () => {
   const { lang, setLang } = useLanguage();
   return (
-    <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+    <div className="flex items-center gap-0.5 bg-slate-100 rounded-xl p-0.5">
       {LANG_OPTIONS.map(l => (
         <button key={l.code} onClick={() => setLang(l.code)} title={l.label}
-          className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-colors ${
-            lang === l.code ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            lang === l.code ? 'bg-white text-premium-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
           }`}>
-          <span>{l.flag}</span>
-          <span className="hidden sm:inline">{l.label}</span>
+          <span className="text-sm">{l.flag}</span>
+          <span className="hidden sm:inline uppercase tracking-wider">{l.label}</span>
         </button>
       ))}
     </div>
@@ -111,9 +114,9 @@ const NotifDropdown = ({ onClose }) => {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <Bell className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-semibold text-gray-800">Notifications</span>
-          {unread > 0 && <span className="bg-blue-600 text-white text-xs rounded-full px-1.5 py-0.5 font-bold">{unread}</span>}
+          <Bell className="w-4 h-4 text-premium-500" />
+          <span className="text-sm font-bold text-slate-800 uppercase tracking-tight">Notifications</span>
+          {unread > 0 && <span className="bg-premium-600 text-white text-[10px] rounded-full px-1.5 py-0.5 font-black">{unread}</span>}
         </div>
         <div className="flex items-center gap-2">
           {unread > 0 && (
@@ -174,7 +177,8 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const [showNotifs, setShowNotifs]       = useState(false);
   const [unreadCount, setUnreadCount]     = useState(0);
-  const [searchQuery, setSearchQuery]     = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const notifRef = useRef(null);
   const searchRef = useRef(null);
@@ -210,25 +214,54 @@ const Layout = ({ children }) => {
   return (
     <div className={`flex h-screen bg-gray-50 overflow-hidden font-sans ${isRtl ? 'font-arabic' : ''}`} dir={isRtl ? 'rtl' : 'ltr'}>
 
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex">
-        <Link to="/" className="h-16 flex items-center px-6 border-b border-gray-200 hover:bg-gray-50 transition-colors">
-          <div className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-            El Fatoora
-          </div>
-        </Link>
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
-        <div className="flex-1 overflow-y-auto py-4">
-          <nav className="space-y-1 px-3">
+      {/* Sidebar */}
+      <aside className={`
+        fixed inset-y-0 start-0 z-50 w-72 bg-white border-slate-100 flex flex-col 
+        transition-transform duration-300 ease-in-out
+        ${isRtl ? 'border-l' : 'border-r'} 
+        ${isSidebarOpen 
+          ? 'translate-x-0' 
+          : isRtl ? 'translate-x-full' : '-translate-x-full'}
+        md:translate-x-0 md:static md:flex
+      `}>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-50">
+          <Link to="/" className="hover:opacity-80 transition-opacity">
+            <div className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-premium-600 to-premium-400 font-display">
+              El Fatoora
+            </div>
+          </Link>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="md:hidden p-2 text-slate-400 hover:text-slate-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-6">
+          <nav className="space-y-1.5 px-3">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname.startsWith(item.path);
               return (
-                <Link key={item.id} to={item.path}
-                  className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
-                    isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                <Link 
+                  key={item.id} 
+                  to={item.path}
+                  onClick={() => setIsSidebarOpen(false)}
+                   className={`w-full flex items-center px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-200 ${
+                    isActive 
+                      ? 'bg-premium-600 text-white shadow-lg shadow-premium-100' 
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 group'
                   }`}>
-                  <Icon className={`${isActive ? 'text-blue-600' : 'text-gray-400'} h-5 w-5 ${isRtl ? 'ml-3' : 'mr-3'}`} />
+                  <Icon className={`${isActive ? 'text-white' : 'text-slate-400 group-hover:text-premium-600'} h-5 w-5 me-3`} />
                   {t(`nav.${item.id}`)}
                 </Link>
               );
@@ -236,16 +269,16 @@ const Layout = ({ children }) => {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center">
-            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+        <div className="p-4 border-t border-slate-100">
+          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
+            <div className="h-10 w-10 rounded-xl bg-premium-100 flex items-center justify-center text-premium-700 font-bold shadow-sm flex-shrink-0">
               {user?.name?.charAt(0) || 'C'}
             </div>
-            <div className="ml-3 flex-1 overflow-hidden">
-              <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-slate-900 truncate font-display">{user?.name}</p>
+              <p className="text-[10px] text-slate-500 truncate font-medium">{user?.email}</p>
             </div>
-            <button onClick={handleLogout} className="p-1 text-gray-400 hover:text-gray-600 rounded-md">
+            <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 transition-all">
               <LogOut className="h-5 w-5" />
             </button>
           </div>
@@ -256,15 +289,23 @@ const Layout = ({ children }) => {
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
 
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex-1 flex text-xl font-semibold text-gray-800">
-            {t(`nav.${currentNavItem.id}`)}
+        <header className="h-16 fixed inset-x-0 top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-4 sm:px-6 lg:px-8 transition-all duration-300 md:ms-72">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="flex-1 flex text-xl font-black text-slate-900 font-display tracking-tight">
+              {t(`nav.${currentNavItem.id}`)}
+            </div>
           </div>
           <div className="flex items-center space-x-4">
             {/* Smart Search / Command Bar */}
             <div className="relative group">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+              <span className="absolute inset-y-0 start-0 ps-4 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-slate-400 group-focus-within:text-premium-600 transition-colors" />
               </span>
               <input 
                 type="text" 
@@ -275,7 +316,7 @@ const Layout = ({ children }) => {
                   setShowSearchSuggestions(true);
                 }}
                 onFocus={() => setShowSearchSuggestions(true)}
-                className="pl-10 pr-4 py-2 border border-blue-100 bg-blue-50/30 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white w-48 md:w-64 transition-all" 
+                className="ps-11 pe-4 py-2.5 border border-slate-100 bg-slate-50 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-premium-100 focus:border-premium-500 focus:bg-white w-48 md:w-64 transition-all" 
               />
               
               {showSearchSuggestions && searchQuery.length > 0 && (
@@ -296,7 +337,7 @@ const Layout = ({ children }) => {
                        }}
                        className="w-full flex items-center px-4 py-2.5 hover:bg-blue-50 text-sm text-gray-700 transition-colors gap-3"
                      >
-                        <item.icon className={`w-4 h-4 text-gray-400 ${isRtl ? 'ml-3' : 'mr-3'}`} />
+                        <item.icon className="w-4 h-4 text-gray-400 me-3" />
                         <span>{t(`nav.${item.id}`)}</span>
                      </button>
                    ))}
@@ -335,7 +376,7 @@ const Layout = ({ children }) => {
         </header>
 
         {/* Main Area */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-6 pt-20">
           <Outlet />
         </main>
       </div>
@@ -347,3 +388,4 @@ const Layout = ({ children }) => {
 };
 
 export default Layout;
+

@@ -105,7 +105,7 @@ const Contact = () => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700 ml-1 italic">Votre nom</label>
+                      <label className="text-sm font-bold text-slate-700 ms-1 italic">Votre nom</label>
                       <input 
                         required 
                         type="text" 
@@ -114,7 +114,7 @@ const Contact = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-sm font-bold text-slate-700 ml-1 italic">Votre email</label>
+                       <label className="text-sm font-bold text-slate-700 ms-1 italic">Votre email</label>
                       <input 
                         required 
                         type="email" 
@@ -124,7 +124,7 @@ const Contact = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 ml-1 italic">Sujet</label>
+                    <label className="text-sm font-bold text-slate-700 ms-1 italic">Sujet</label>
                     <select className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all font-medium appearance-none">
                       <option>Demande d'information</option>
                       <option>Support technique</option>
@@ -133,7 +133,7 @@ const Contact = () => {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-slate-700 ml-1 italic">Votre message</label>
+                    <label className="text-sm font-bold text-slate-700 ms-1 italic">Votre message</label>
                     <textarea 
                       required 
                       rows="5" 
@@ -159,3 +159,4 @@ const Contact = () => {
 };
 
 export default Contact;
+

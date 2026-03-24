@@ -5,7 +5,41 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        premium: {
+          50:  '#f5f7ff',
+          100: '#ebf0fe',
+          200: '#dae3fd',
+          300: '#bbccfb',
+          400: '#91a8f7',
+          500: '#667ceb',
+          600: '#4f61e0',
+          700: '#404ecb',
+          800: '#3842a5',
+          900: '#323a84',
+          950: '#1d214d',
+        },
+        corporate: {
+          50:  '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#020617',
+        }
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        display: ['Outfit', 'Inter', 'system-ui'],
+        arabic: ['IBM Plex Sans Arabic', 'system-ui'],
+      },
+    },
   },
   plugins: [],
 }

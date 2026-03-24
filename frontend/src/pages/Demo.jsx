@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Users, Receipt, Package, BarChart3, Settings, 
   Search, Bell, ShieldCheck, Zap, Activity, CheckCircle2, 
-  Plus, MoreVertical, Layout, CreditCard, ArrowRight
+  Plus, MoreVertical, Layout, CreditCard, ArrowRight, Menu, X
 } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 import { Link } from 'react-router-dom';
 
 const Demo = () => {
+  const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const isRtl = lang === 'ar';
   
   const mockStats = [
     { label: 'Revenu Total', value: '45,280 TND', change: '+12.5%', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -23,45 +27,72 @@ const Demo = () => {
       <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-4 py-2 text-center text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3">
         <Zap className="w-3.5 h-3.5 text-amber-400" />
         Environnement de Démo Interactif — Aucune donnée réelle n'est envoyée à TTN
-        <Link to="/register" className="ml-4 bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-[10px] transition-colors">
+        <Link to="/register" className="ms-4 bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-[10px] transition-colors">
           Créer un compte réel
         </Link>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Mobile Sidebar Overlay */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
         {/* Mock Sidebar */}
-        <aside className="w-64 bg-white border-r border-slate-200 hidden lg:flex flex-col">
-          <div className="h-16 flex items-center px-6 border-b border-slate-100">
-            <ShieldCheck className="w-6 h-6 text-blue-600 mr-2" />
-            <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">El Fatoura</span>
+        <aside className={`
+          fixed inset-y-0 start-0 z-50 w-72 bg-white border-slate-200 flex flex-col 
+          transition-transform duration-300 ease-in-out
+          ${isRtl ? 'border-l' : 'border-r'} 
+          ${isSidebarOpen 
+            ? 'translate-x-0' 
+            : isRtl ? 'translate-x-full' : '-translate-x-full'}
+          lg:translate-x-0 lg:static lg:flex
+        `}>
+          <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100">
+            <div className="flex items-center">
+              <ShieldCheck className="w-6 h-6 text-premium-600 me-2" />
+              <span className="font-black text-xl bg-clip-text text-transparent bg-gradient-to-r from-premium-600 to-premium-400 font-display tracking-tight">El Fatoora</span>
+            </div>
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="lg:hidden p-2 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
           <nav className="flex-1 p-4 space-y-1">
             {[
-              { id: 'dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
-              { id: 'clients', icon: Users, label: 'Clients' },
-              { id: 'invoices', icon: Receipt, label: 'Factures' },
-              { id: 'products', icon: Package, label: 'Produits' },
-              { id: 'reports', icon: BarChart3, label: 'Rapports' },
-              { id: 'settings', icon: Settings, label: 'Paramètres' },
+              { id: 'dashboard', icon: LayoutDashboard },
+              { id: 'clients', icon: Users },
+              { id: 'invoices', icon: Receipt },
+              { id: 'products', icon: Package },
+              { id: 'reports', icon: BarChart3 },
+              { id: 'settings', icon: Settings },
             ].map(item => (
               <button 
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all ${
-                  activeTab === item.id ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                onClick={() => {
+                  setActiveTab(item.id);
+                  setIsSidebarOpen(false);
+                }}
+                className={`w-full flex items-center px-4 py-3 text-sm font-bold rounded-2xl transition-all ${
+                  activeTab === item.id ? 'bg-premium-600 text-white shadow-lg shadow-premium-100' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                <item.icon className="w-5 h-5 mr-3 opacity-80" />
-                {item.label}
+                <item.icon className={`w-5 h-5 me-3 ${activeTab === item.id ? 'text-white' : 'text-slate-400 opacity-80'}`} />
+                {t(`nav.${item.id}`)}
               </button>
             ))}
           </nav>
           <div className="p-4 border-t border-slate-100">
-             <div className="bg-slate-50 rounded-2xl p-4">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Abonnement</p>
-                <p className="text-sm font-bold text-slate-800 mb-3">Démo Premium</p>
-                <Link to="/register" className="block text-center w-full py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors">
-                   Passer au Réel
+             <div className="bg-slate-50 rounded-3xl p-5 mt-auto mb-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('demo.subscription') || 'Abonnement'}</p>
+                <p className="text-sm font-black text-slate-800 mb-4">{t('demo.premium') || 'Démo Premium'}</p>
+                <Link to="/register" className="block text-center w-full py-2.5 bg-premium-600 text-white text-xs font-black rounded-xl hover:bg-premium-700 shadow-lg shadow-premium-100 transition-all active:scale-95">
+                   {t('demo.goReal') || 'Passer au Réel'}
                 </Link>
              </div>
           </div>
@@ -70,31 +101,39 @@ const Demo = () => {
         {/* Mock Main Content */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Header */}
-          <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8">
-            <h1 className="text-lg font-bold text-slate-800 capitalize">{activeTab.replace('-', ' ')}</h1>
+          <header className="h-16 fixed inset-x-0 top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-4 lg:px-8 transition-all duration-300 lg:ms-72">
             <div className="flex items-center gap-4">
-              <div className="relative group hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+              <h1 className="text-lg font-black text-slate-900 capitalize font-display tracking-tight">{t(`nav.${activeTab}`)}</h1>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="relative group hidden lg:block">
+                <Search className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none w-4 h-4 text-slate-400 group-focus-within:text-premium-600 transition-colors" />
                 <input 
                   type="text" 
                   placeholder="Rechercher..." 
-                  className="pl-10 pr-4 py-2 bg-slate-50 border-transparent focus:bg-white focus:border-blue-200 rounded-xl text-sm w-64 outline-none transition-all"
+                  className="ps-10 pe-4 py-2 bg-slate-50 border-slate-100 focus:bg-white focus:border-premium-200 focus:ring-4 focus:ring-premium-100 rounded-xl text-sm w-48 xl:w-64 outline-none transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <button className="relative p-2 text-slate-400 hover:bg-slate-50 rounded-lg">
+              <button className="relative p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-all">
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
+                <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 border-2 border-white rounded-full"></span>
               </button>
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs uppercase shadow-lg shadow-blue-100">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-premium-600 to-premium-400 flex items-center justify-center text-white font-black text-[10px] uppercase shadow-lg shadow-premium-100">
                 JD
               </div>
             </div>
           </header>
 
           {/* Page Content */}
-          <div className="flex-1 overflow-y-auto p-8">
+          <div className="flex-1 overflow-y-auto p-8 pt-24 min-w-0">
             {activeTab === 'dashboard' ? (
               <>
                 <div className="flex items-center justify-between mb-8">
@@ -203,3 +242,4 @@ const Demo = () => {
 };
 
 export default Demo;
+

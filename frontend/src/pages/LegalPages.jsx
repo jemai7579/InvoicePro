@@ -6,7 +6,7 @@ const LegalLayout = ({ title, children }) => (
   <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
     <div className="max-w-3xl mx-auto">
       <Link to="/" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-blue-600 mb-8 transition-colors">
-        <ChevronLeft className="w-4 h-4 mr-1" />
+        <ChevronLeft className="w-4 h-4 me-1" />
         Retour à l'accueil
       </Link>
       <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden p-8 md:p-12 font-sans">
@@ -70,3 +70,4 @@ export const Legal = () => (
     <p>Hébergement : [Serveur sécurisé en Tunisie]</p>
   </LegalLayout>
 );
+

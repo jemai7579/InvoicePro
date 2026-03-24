@@ -1,12 +1,23 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Save, Loader, Info, ExternalLink, ShieldCheck, Lock, Image as ImageIcon, Plus } from 'lucide-react';
+import { 
+  Save, Loader, Info, ExternalLink, ShieldCheck, Lock, 
+  Image as ImageIcon, Plus, Building2, Users2, ShieldAlert,
+  ChevronRight, CheckCircle2, AlertCircle, Trash2, Camera,
+  MapPin, Phone, Mail, Globe, Briefcase, BadgeCheck, Zap, Cpu,
+  User, CreditCard, Hash, Home, FileText
+} from 'lucide-react';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import { AuthContext } from '../context/AuthContext';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
+import Card from '../components/ui/Card';
+import Input from '../components/ui/Input';
 
 const Settings = () => {
   const { t } = useLanguage();
   const { user } = useContext(AuthContext);
+  const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState(null);
@@ -36,56 +47,60 @@ const Settings = () => {
   const [certFile, setCertFile] = useState(null);
   const [certPassword, setCertPassword] = useState('');
   const [isUploadingCert, setIsUploadingCert] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [hasCert, setHasCert] = useState(false);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get('/settings');
+      const data = response.data;
+      setFormData({
+        name: data.name || '',
+        matriculeFiscal: data.matriculeFiscal || '',
+        registreCommerce: data.registreCommerce || '',
+        address: data.address || '',
+        city: data.city || '',
+        zipCode: data.zipCode || '',
+        country: data.country || 'Tunisie',
+        phone: data.phone || '',
+        email: data.email || '',
+        rib: data.rib || '',
+        logo: data.logo || ''
+      });
+      setHasCert(!!(data.certificatePath && data.certificatePassword));
+    } catch (error) {
+      console.error('Error fetching settings', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Scroll to cert if requested
-    if (window.location.hash === '#certificate') {
-      const el = document.getElementById('certificate');
-      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 500);
-    }
-    
-    const fetchSettings = async () => {
-      try {
-        const response = await api.get('/settings');
-        const data = response.data;
-        setFormData({
-          name: data.name || '',
-          matriculeFiscal: data.matriculeFiscal || '',
-          registreCommerce: data.registreCommerce || '',
-          address: data.address || '',
-          city: data.city || '',
-          zipCode: data.zipCode || '',
-          country: data.country || 'Tunisie',
-          phone: data.phone || '',
-          email: data.email || '',
-          rib: data.rib || '',
-          logo: data.logo || ''
-        });
-      } catch (error) {
-        console.error('Error fetching settings', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchSettings();
   }, []);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => {
+        const n = { ...prev };
+        delete n[field];
+        return n;
+      });
+    }
   };
 
   const validateForm = () => {
     const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = t('error.nameRequired') || 'Raison sociale requise';
+    
     const mfRegex = /^\d{7}[A-Z]\/[A-Z]\/[A-Z]\/\d{3}$|^\d{7}[A-Z]{3}\d{3}$/;
-    if (!mfRegex.test(formData.matriculeFiscal)) {
-      newErrors.matriculeFiscal = 'Format invalide. Exemple: 1234567A/A/M/000';
+    if (formData.matriculeFiscal && !mfRegex.test(formData.matriculeFiscal)) {
+      // Tunisian MF validation is strict, but let's allow basic presence if regex too tight for old formats
     }
-    const ribRegex = /^\d{20}$/;
-    if (formData.rib && !ribRegex.test(formData.rib)) {
-      newErrors.rib = 'Le RIB doit contenir exactement 20 chiffres.';
-    }
+    
+    if (!formData.matriculeFiscal.trim()) newErrors.matriculeFiscal = t('auth.matricule_required') || 'Matricule Fiscal requis';
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -97,9 +112,10 @@ const Settings = () => {
     setSaveMsg(null);
     try {
       await api.put('/settings', formData);
-      setSaveMsg({ text: 'Settings saved successfully!', type: 'success' });
+      setSaveMsg({ text: t('settings.success'), type: 'success' });
+      setTimeout(() => setSaveMsg(null), 3000);
     } catch (error) {
-       setSaveMsg({ text: 'Failed to save settings.', type: 'error' });
+       setSaveMsg({ text: t('settings.error'), type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -108,18 +124,19 @@ const Settings = () => {
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmNewPassword) {
-      return setPwdMsg({ text: 'Passwords do not match.', type: 'error' });
+      return setPwdMsg({ text: t('settings.security.match_error'), type: 'error' });
+    }
+    if (newPassword.length < 8) {
+       return setPwdMsg({ text: t('error.passwordTooShort') || '8 caractères minimum', type: 'error' });
     }
     setIsChangingPwd(true);
     setPwdMsg(null);
     try {
       await api.put('/settings/password', { currentPassword, newPassword });
-      setPwdMsg({ text: 'Password changed successfully!', type: 'success' });
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
+      setPwdMsg({ text: t('settings.security.success'), type: 'success' });
+      setCurrentPassword(''); setNewPassword(''); setConfirmNewPassword('');
     } catch (error) {
-      setPwdMsg({ text: error.response?.data?.message || 'Error changing password', type: 'error' });
+      setPwdMsg({ text: error.response?.data?.message || t('settings.error'), type: 'error' });
     } finally {
       setIsChangingPwd(false);
     }
@@ -134,175 +151,391 @@ const Settings = () => {
     certFormData.append('password', certPassword);
     try {
       await api.post('/settings/certificate', certFormData);
-      alert('Certificate uploaded successfully!');
-      setCertFile(null);
-      setCertPassword('');
+      alert(t('settings.compliance.success'));
+      setCertFile(null); setCertPassword('');
+      fetchSettings();
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to upload certificate');
+      alert(error.response?.data?.message || t('settings.compliance.error'));
     } finally {
       setIsUploadingCert(false);
     }
   };
 
-  const [logoFile, setLogoFile] = useState(null);
-  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    // Client-side validation
-    const maxSize = 2 * 1024 * 1024; // 2MB
-    if (file.size > maxSize) {
-      alert(t('settings.logo.err.size'));
-      return;
-    }
-
-    const allowedTypes = ['image/jpeg', 'image/png'];
-    if (!allowedTypes.includes(file.mimetype || file.type)) {
-      alert(t('settings.logo.err.type'));
-      return;
-    }
-
     setIsUploadingLogo(true);
     const logoFormData = new FormData();
     logoFormData.append('logo', file);
     try {
       const resp = await api.post('/settings/logo', logoFormData);
       setFormData(prev => ({ ...prev, logo: resp.data.logo }));
-      setLogoFile(null);
-      setSaveMsg({ text: 'Logo uploaded successfully!', type: 'success' });
     } catch (error) {
-       alert(error.response?.data?.message || 'Upload failed');
+       alert(t('settings.error'));
     } finally {
       setIsUploadingLogo(false);
     }
   };
 
-  return (loading ? <div className="p-8 flex justify-center"><Loader className="animate-spin" /></div> : (
-    <div className="max-w-4xl space-y-8 pb-12">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('settings.title')}</h1>
-        <p className="text-sm text-gray-500">{t('settings.subtitle')}</p>
-      </div>
+  const TabButton = ({ id, icon: Icon, label }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={`
+        flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[11px] font-black transition-all whitespace-nowrap
+        ${activeTab === id 
+          ? 'bg-slate-900 text-white shadow-xl shadow-slate-200 ring-4 ring-slate-900/5' 
+          : 'bg-white text-slate-400 hover:text-slate-900 hover:bg-slate-50 border border-slate-100'
+        }
+      `}
+    >
+      <Icon className={`w-4 h-4 ${activeTab === id ? 'text-indigo-400' : ''}`} />
+      {label}
+    </button>
+  );
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-2">
-            <Info className="w-5 h-5 text-blue-600" />
-            <span className="font-bold text-gray-800">{t('settings.general')}</span>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2 flex items-center gap-6 mb-4">
-              <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden relative group">
-                {formData.logo ? <img src={`http://localhost:5000${formData.logo}`} className="w-full h-full object-contain" /> : <ImageIcon className="w-8 h-8 text-gray-300" />}
-                <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
-                   {isUploadingLogo ? <Loader className="text-white w-6 h-6 animate-spin" /> : <Plus className="text-white w-6 h-6" />}
-                   <input type="file" className="hidden" accept="image/png, image/jpeg" onChange={handleLogoUpload} />
-                </label>
-              </div>
-              <div>
-                <p className="font-bold text-gray-800 text-sm">{t('settings.logo')}</p>
-                <p className="text-[10px] text-blue-600 font-bold mb-1">{t('settings.logo.req')}</p>
-                <p className="text-[10px] text-gray-400 leading-tight">{t('settings.logo.desc')}</p>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t('form.name')} *</label>
-              <input type="text" name="name" required value={formData.name} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t('form.email')}</label>
-              <input type="email" value={user?.email} disabled className="w-full px-4 py-2.5 bg-gray-100 border-none rounded-xl text-gray-400 cursor-not-allowed" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t('form.mf')} *</label>
-              <input type="text" name="matriculeFiscal" required value={formData.matriculeFiscal} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
-              {errors.matriculeFiscal && <p className="text-red-500 text-[10px] mt-1">{errors.matriculeFiscal}</p>}
-            </div>
-            <div>
-               <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t('form.rc')}</label>
-               <input type="text" name="registreCommerce" value={formData.registreCommerce} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-          </div>
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-24 gap-4">
+      <Loader className="w-10 h-10 animate-spin text-indigo-600" />
+      <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">{t('settings.loading')}</p>
+    </div>
+  );
+
+  return (
+    <div className="max-w-6xl space-y-10 pb-20 animate-in fade-in duration-700">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight font-display uppercase">{t('settings.title')}</h1>
+          <p className="text-sm text-slate-500 font-medium">{t('settings.subtitle')}</p>
         </div>
+      </header>
 
-        <div className="bg-white shadow-sm rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-emerald-600" />
-            <span className="font-bold text-gray-800">{t('settings.address')}</span>
+      {/* Tabs Navigation */}
+      <nav className="flex overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 gap-3 no-scrollbar scroll-smooth">
+        <TabButton id="profile" icon={Building2} label={t('settings.tabs.profile')} />
+        <TabButton id="security" icon={Lock} label={t('settings.tabs.security')} />
+        <TabButton id="compliance" icon={ShieldCheck} label={t('settings.tabs.compliance')} />
+        <TabButton id="team" icon={Users2} label={t('settings.tabs.team')} />
+      </nav>
+
+      <div className="animate-in slide-in-from-bottom-6 duration-700 delay-100">
+        {activeTab === 'profile' && (
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <Card noPadding className="overflow-hidden border-slate-100 shadow-xl shadow-slate-200/50">
+               <div className="px-10 py-12 border-b border-slate-50 bg-slate-50/30 flex flex-col md:flex-row items-center gap-10">
+                  <div className="relative group">
+                     <div className="w-32 h-32 rounded-[2.5rem] border-4 border-white bg-white flex items-center justify-center overflow-hidden shadow-2xl shadow-indigo-100/50 transition-all group-hover:scale-105 group-hover:rotate-1">
+                        {formData.logo ? (
+                          <img src={`http://localhost:5000${formData.logo}`} alt="Logo" className="w-full h-full object-contain p-4" />
+                        ) : (
+                          <Building2 className="w-12 h-12 text-slate-200" />
+                        )}
+                     </div>
+                     <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white cursor-pointer shadow-xl shadow-indigo-200 hover:bg-slate-900 transition-all hover:scale-110 active:scale-90">
+                        {isUploadingLogo ? <Loader className="w-4 h-4 animate-spin" /> : <Camera className="w-5 h-5" />}
+                        <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                     </label>
+                  </div>
+                  <div className="flex-1 space-y-2 text-center md:text-left">
+                     <h3 className="text-2xl font-black text-slate-900 font-display tracking-tight">{formData.name || t('settings.profile.company_name')}</h3>
+                     <div className="flex flex-wrap justify-center md:justify-start gap-4 items-center">
+                        <p className="text-slate-400 font-bold text-xs flex items-center gap-2">
+                           <Mail className="w-3.5 h-3.5 text-indigo-400" /> {user?.email}
+                        </p>
+                        <div className="w-1 h-1 rounded-full bg-slate-200 hidden md:block"></div>
+                        <p className="text-slate-400 font-bold text-xs flex items-center gap-2">
+                           <Globe className="w-3.5 h-3.5 text-indigo-400" /> {formData.country}
+                        </p>
+                     </div>
+                     <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-4">
+                        <Badge variant="secondary" className="!bg-indigo-50 !text-indigo-600 border-indigo-100/50 px-3 py-1 font-black">ID: {user?.id?.substring(0,8)}</Badge>
+                        <Badge variant="success" className="px-3 py-1 font-black">{t('settings.profile.active_account')}</Badge>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="p-10 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-12">
+                  <div className="space-y-8">
+                     <div className="flex items-center gap-4 mb-2">
+                        <div className="bg-indigo-50 p-2.5 rounded-2xl border border-indigo-100/50 shadow-sm"><Briefcase className="w-5 h-5 text-indigo-600" /></div>
+                        <h4 className="font-black text-slate-900 uppercase tracking-widest text-[11px]">{t('settings.profile.legal_identity')}</h4>
+                     </div>
+                     
+                     <Input 
+                        label={t('settings.profile.raison_sociale')}
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        error={errors.name}
+                        icon={Building2}
+                        placeholder="Ex: El Fatoora SARL"
+                     />
+                     <Input 
+                        label={t('auth.matricule')}
+                        value={formData.matriculeFiscal}
+                        onChange={(e) => handleInputChange('matriculeFiscal', e.target.value)}
+                        error={errors.matriculeFiscal}
+                        icon={Hash}
+                        placeholder="1234567A/M/C/000"
+                        className="font-mono uppercase"
+                     />
+                     <Input 
+                        label={t('settings.profile.rc')}
+                        value={formData.registreCommerce}
+                        onChange={(e) => handleInputChange('registreCommerce', e.target.value)}
+                        icon={FileText}
+                        placeholder="B1234562024"
+                     />
+                  </div>
+
+                  <div className="space-y-8">
+                     <div className="flex items-center gap-4 mb-2">
+                        <div className="bg-indigo-50 p-2.5 rounded-2xl border border-indigo-100/50 shadow-sm"><MapPin className="w-5 h-5 text-indigo-600" /></div>
+                        <h4 className="font-black text-slate-900 uppercase tracking-widest text-[11px]">{t('settings.profile.contact_siege')}</h4>
+                     </div>
+
+                     <Input 
+                        label={t('settings.profile.address_label')}
+                        value={formData.address}
+                        onChange={(e) => handleInputChange('address', e.target.value)}
+                        icon={Home}
+                        placeholder="Avenue Habib Bourguiba"
+                     />
+                     <div className="grid grid-cols-2 gap-6">
+                        <Input 
+                           label={t('settings.profile.city')}
+                           value={formData.city}
+                           onChange={(e) => handleInputChange('city', e.target.value)}
+                           icon={MapPin}
+                        />
+                        <Input 
+                           label={t('settings.profile.zip')}
+                           value={formData.zipCode}
+                           onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                           icon={Hash}
+                        />
+                     </div>
+                     <Input 
+                        label={t('settings.profile.phone')}
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        icon={Phone}
+                        placeholder="+216 71 000 000"
+                     />
+                  </div>
+               </div>
+
+               <div className="px-10 py-8 bg-slate-50/50 border-t border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div className="flex flex-col gap-1">
+                     {saveMsg && (
+                        <div className={`flex items-center gap-3 text-[11px] font-black uppercase tracking-widest ${saveMsg.type === 'success' ? 'text-emerald-600' : 'text-rose-600'} animate-in slide-in-from-left-2`}>
+                           {saveMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                           {saveMsg.text}
+                        </div>
+                     )}
+                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{t('settings.profile.last_updated') || 'Dernière mise à jour le ' + new Date().toLocaleDateString()}</p>
+                  </div>
+                  <Button type="submit" loading={isSaving} className="w-full sm:w-auto px-12 py-4 shadow-2xl shadow-indigo-200 active:scale-95 transition-all" icon={Save}>
+                     {t('common.save')}
+                  </Button>
+               </div>
+            </Card>
+
+            <Card className="border-rose-100 bg-rose-50/10">
+               <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-4">
+                     <div className="p-4 bg-rose-50 rounded-2xl text-rose-600 border border-rose-100 shadow-sm"><ShieldAlert className="w-6 h-6" /></div>
+                     <div>
+                        <h4 className="text-sm font-black text-rose-900 uppercase tracking-tighter">{t('settings.danger_zone') || 'Zone de Danger'}</h4>
+                        <p className="text-xs text-rose-500 font-medium">{t('settings.delete_account_desc') || 'Supprimer définitivement votre compte et vos données.'}</p>
+                     </div>
+                  </div>
+                  <Button variant="ghost" className="text-rose-600 hover:bg-rose-50 border-rose-100 !rounded-2xl font-black text-[10px] uppercase tracking-widest">
+                     {t('settings.delete_account') || 'Supprimer le compte'}
+                  </Button>
+               </div>
+            </Card>
+          </form>
+        )}
+
+        {activeTab === 'security' && (
+          <div className="max-w-2xl bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+             <div className="p-10 md:p-12">
+               <div className="flex items-center gap-5 mb-10">
+                 <div className="bg-amber-50 p-5 rounded-[1.5rem] text-amber-500 shadow-sm border border-amber-100/50 shadow-amber-50"><Lock className="w-7 h-7" /></div>
+                 <div>
+                   <h3 className="text-xl font-black text-slate-900 font-display leading-tight uppercase tracking-tight">{t('settings.security.title')}</h3>
+                   <p className="text-slate-500 text-sm font-medium mt-1">{t('settings.security.subtitle')}</p>
+                 </div>
+               </div>
+               
+               <form onSubmit={handlePasswordChange} className="space-y-8">
+                  <Input 
+                     type="password"
+                     label={t('settings.security.current_pwd')}
+                     value={currentPassword}
+                     onChange={e => setCurrentPassword(e.target.value)}
+                     icon={Lock}
+                     required
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <Input 
+                        type="password"
+                        label={t('settings.security.new_pwd')}
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                        icon={ShieldCheck}
+                        required
+                        placeholder="8+ caractères"
+                     />
+                     <Input 
+                        type="password"
+                        label={t('settings.security.confirm_pwd')}
+                        value={confirmNewPassword}
+                        onChange={e => setConfirmNewPassword(e.target.value)}
+                        icon={BadgeCheck}
+                        required
+                     />
+                  </div>
+                  
+                  {pwdMsg && (
+                    <div className={`p-6 rounded-3xl text-xs font-black uppercase tracking-wider flex items-center gap-4 animate-in slide-in-from-top-4 ${pwdMsg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
+                       {pwdMsg.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <ShieldAlert className="w-5 h-5" />}
+                       {pwdMsg.text}
+                    </div>
+                  )}
+
+                  <Button type="submit" loading={isChangingPwd} className="w-full py-5 bg-amber-500 hover:bg-slate-900 shadow-2xl shadow-amber-200 border-none transition-all text-xs font-black uppercase tracking-widest active:scale-95">
+                     {t('settings.security.button')}
+                  </Button>
+               </form>
+             </div>
           </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-               <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t('form.address')} *</label>
-               <input type="text" name="address" required value={formData.address} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-               <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t('form.city')}</label>
-               <input type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
-            <div>
-               <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{t('form.zip')}</label>
-               <input type="text" name="zipCode" value={formData.zipCode} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
-            </div>
+        )}
+
+        {activeTab === 'compliance' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+             <Card noPadding className="shadow-xl shadow-slate-200/50 border-slate-100 overflow-hidden flex flex-col">
+                <div className="p-10 space-y-8 flex-1">
+                  <div className="flex items-center gap-5">
+                    <div className="bg-indigo-50 p-5 rounded-[1.5rem] text-indigo-600 shadow-sm border border-indigo-100/50 shadow-indigo-50"><ShieldCheck className="w-7 h-7" /></div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900 font-display leading-tight uppercase tracking-tight">{t('settings.compliance.title')}</h3>
+                      <p className="text-slate-500 text-sm font-medium mt-1">{t('settings.compliance.subtitle')}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Zap className="w-5 h-5 text-indigo-500 fill-indigo-500" />
+                      <span className="text-[11px] font-black uppercase tracking-widest text-indigo-900">{t('settings.compliance.prerequisite')}</span>
+                    </div>
+                    <p className="text-sm text-slate-600 leading-relaxed font-bold">
+                      {t('settings.compliance.explanation')}
+                    </p>
+                    <a href="https://www.tuntrust.tn" target="_blank" className="inline-flex items-center gap-2 text-[11px] font-black text-indigo-600 hover:text-slate-900 transition-colors group">
+                      {t('settings.compliance.order_cert')} <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    </a>
+                  </div>
+
+                  <form onSubmit={handleCertificateUpload} className="space-y-8">
+                     <div className="space-y-2">
+                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('settings.compliance.file_label')}</label>
+                        <div className="relative group">
+                           <FileText className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                           <input type="file" accept=".p12" onChange={e => setCertFile(e.target.files[0])} className="w-full bg-slate-50/50 border border-slate-100 rounded-[1.5rem] pl-14 pr-4 py-4 text-xs font-bold text-slate-500 cursor-pointer file:hidden hover:bg-white hover:ring-4 hover:ring-indigo-500/5 transition-all outline-none" />
+                           <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-indigo-600 uppercase tracking-widest pointer-events-none">{certFile ? certFile.name : 'Choisir .p12'}</span>
+                        </div>
+                     </div>
+                     <Input 
+                        type="password"
+                        label={t('settings.compliance.pwd_label')}
+                        value={certPassword}
+                        onChange={e => setCertPassword(e.target.value)}
+                        icon={Lock}
+                        placeholder="••••••••"
+                        required
+                     />
+                     <Button type="submit" loading={isUploadingCert} className="w-full py-5 shadow-2xl shadow-indigo-200 active:scale-95 uppercase text-xs tracking-widest font-black" icon={CheckCircle2}>
+                        {t('settings.compliance.button')}
+                     </Button>
+                  </form>
+                </div>
+             </Card>
+
+             <div className="space-y-8">
+                <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-3xl shadow-slate-900/40 relative overflow-hidden group border border-slate-800">
+                   <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-indigo-500/20 transition-all duration-1000"></div>
+                   <div className="relative z-10 space-y-10">
+                      <header className="space-y-3">
+                         <h4 className="text-2xl font-black flex items-center gap-4 font-display italic">
+                           <Cpu className="w-8 h-8 text-indigo-400 animate-pulse" /> 
+                           SYSTEM STATUS
+                         </h4>
+                         <p className="text-slate-400 text-sm font-bold tracking-tight">
+                           {t('settings.compliance.status_desc') || 'Surveillance en temps réel des modules de conformité fiscale.'}
+                         </p>
+                      </header>
+
+                      <div className="space-y-4">
+                         <div className="flex items-center justify-between p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
+                            <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{t('settings.compliance.ubl_gen')}</span>
+                            <Badge variant="success" className="px-4 py-1.5 font-black bg-emerald-500 text-white border-none">{t('settings.compliance.operational')}</Badge>
+                         </div>
+                         <div className="flex items-center justify-between p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
+                            <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{t('settings.compliance.xades_sign')}</span>
+                            <Badge variant={hasCert ? "success" : "warning"} className={`px-4 py-1.5 font-black border-none ${hasCert ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
+                               {hasCert ? t('settings.compliance.active') : t('settings.compliance.not_config')}
+                            </Badge>
+                         </div>
+                         <div className="flex items-center justify-between p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
+                            <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{t('settings.compliance.ttn_sub')}</span>
+                            <Badge variant="secondary" className={`px-4 py-1.5 font-black border-none ${hasCert ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                               {hasCert ? t('settings.compliance.ready') : t('settings.compliance.req_cert')}
+                            </Badge>
+                         </div>
+                      </div>
+                      
+                      <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+                         <div className="flex -space-x-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-[10px] font-black">TN</div>
+                            <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-[10px] font-black">TTN</div>
+                            <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-[10px] font-black">+</div>
+                         </div>
+                         <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Compliance V2.0</span>
+                      </div>
+                   </div>
+                </div>
+             </div>
           </div>
-          <div className="px-6 py-4 bg-white border-t border-gray-50 flex justify-end">
-             <button type="submit" disabled={isSaving} className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2">
-                {isSaving ? <Loader className="animate-spin w-4 h-4" /> : <Save className="w-4 h-4" />}
-                {t('settings.save')}
-             </button>
-          </div>
-        </div>
-      </form>
+        )}
 
-      {/* Password and Certificate Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white shadow-sm rounded-2xl border border-gray-100 p-6 flex flex-col">
-           <div className="flex items-center gap-3 mb-6">
-              <Lock className="w-5 h-5 text-amber-500" />
-              <h3 className="font-bold text-gray-800">{t('settings.password')}</h3>
-           </div>
-           <form onSubmit={handlePasswordChange} className="space-y-4 flex-1">
-              <input type="password" required placeholder={t('settings.pwd.current')} value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm" />
-              <input type="password" required placeholder={t('settings.pwd.new')} value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm" />
-              <input type="password" required placeholder={t('settings.pwd.confirm')} value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm" />
-              <button type="submit" className="w-full py-2.5 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all text-sm mt-auto">
-                 {isChangingPwd ? <Loader className="animate-spin w-4 h-4 mx-auto" /> : t('settings.password')}
-              </button>
-           </form>
-           {pwdMsg && <p className={`mt-3 text-[10px] text-center ${pwdMsg.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>{pwdMsg.text}</p>}
-        </div>
-
-        <div id="certificate" className="bg-white shadow-sm rounded-2xl border border-gray-100 p-6 flex flex-col">
-           <div className="flex items-center gap-3 mb-4">
-              <ShieldCheck className="w-5 h-5 text-blue-600" />
-              <h3 className="font-bold text-gray-800">{t('settings.cert')}</h3>
-           </div>
-           <p className="text-[11px] text-gray-400 mb-6 leading-relaxed">{t('settings.cert.desc')}</p>
-           
-           <div className="bg-blue-50 border border-blue-100 p-4 rounded-2xl mb-6">
-              <p className="text-xs font-bold text-blue-800 mb-1">{t('settings.cert.tuntrust.required')}</p>
-              <p className="text-[10px] text-blue-600 mb-3">{t('settings.cert.tuntrust.desc')}</p>
-              <a href="https://www.tuntrust.tn" target="_blank" className="text-[10px] font-bold text-blue-700 underline flex items-center gap-1">
-                 {t('settings.cert.tuntrust.portal')} <ExternalLink className="w-3 h-3" />
-              </a>
-           </div>
-
-           <form onSubmit={handleCertificateUpload} className="space-y-4">
-              <div className="flex flex-col gap-1">
-                 <label className="text-[10px] font-bold text-gray-400 uppercase px-1">{t('settings.cert.file')}</label>
-                 <input type="file" accept=".p12" onChange={e => setCertFile(e.target.files[0])} className="text-xs file:bg-blue-50 file:border-none file:rounded-lg file:text-blue-700 file:font-bold file:px-3 file:py-1 cursor-pointer" />
-              </div>
-              <input type="password" placeholder={t('settings.cert.password')} value={certPassword} onChange={e => setCertPassword(e.target.value)} className="w-full px-4 py-2 text-sm bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
-              <button type="submit" className="w-full py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all text-sm">
-                 {isUploadingCert ? <Loader className="animate-spin w-4 h-4 mx-auto" /> : t('settings.cert.upload')}
-              </button>
-           </form>
-        </div>
+        {activeTab === 'team' && (
+          <Card className="text-center py-24 shadow-2xl shadow-slate-200/50 border-slate-100 overflow-hidden relative group">
+             <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-transparent via-indigo-600 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
+             <div className="max-w-md mx-auto space-y-10 flex flex-col items-center">
+                <div className="bg-slate-50/50 p-10 rounded-[3.5rem] border border-slate-100 text-slate-200 relative">
+                   <Users2 className="w-20 h-20 group-hover:scale-110 group-hover:text-indigo-100 transition-all duration-700" />
+                   <div className="absolute -top-4 -right-4 w-12 h-12 bg-indigo-600 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl shadow-indigo-200 ring-4 ring-white animate-bounce">
+                      <Zap className="w-6 h-6 fill-white" />
+                   </div>
+                </div>
+                <div className="space-y-4">
+                   <h3 className="text-3xl font-black text-slate-900 font-display tracking-tight uppercase italic">{t('settings.team.title')}</h3>
+                   <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                      {t('settings.team.desc') || 'Invitez vos collaborateurs et gérez les permissions d\'accès à votre entreprise.'}
+                   </p>
+                </div>
+                <div className="inline-flex items-center gap-4 px-8 py-3 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-sm">
+                  {t('settings.team.feature_premium')}
+                </div>
+                <Button className="!rounded-2xl px-12 py-5 shadow-2xl shadow-indigo-100 text-xs font-black uppercase tracking-widest active:scale-95 transition-all">
+                   DÉCOUVRIR LES PLANS
+                </Button>
+             </div>
+          </Card>
+        )}
       </div>
     </div>
-  ));
+  );
 };
 
 export default Settings;

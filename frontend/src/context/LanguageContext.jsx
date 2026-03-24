@@ -27,8 +27,18 @@ export const LanguageProvider = ({ children }) => {
 
   const t = useCallback((key) => {
     if (!key) return '';
+    
+    const getVal = (obj, path) => {
+      return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+    };
+
     const currentList = translations[lang] || translations['fr'] || {};
-    return currentList[key] || translations['fr'][key] || key;
+    const val = getVal(currentList, key);
+    
+    if (val !== undefined) return val;
+    
+    const fallbackVal = getVal(translations['fr'], key);
+    return fallbackVal !== undefined ? fallbackVal : key;
   }, [lang]);
 
   const value = {
@@ -53,3 +63,4 @@ export const useLanguage = () => {
 };
 
 export default LanguageProvider;
+

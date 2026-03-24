@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Loader } from 'lucide-react';
+import { Loader, Calendar, FileText, TrendingUp, DollarSign, PieChart as PieIcon, BarChart3, Filter, Download } from 'lucide-react';
 import api from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, Legend
+  LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const Reports = () => {
+  const { t, lang } = useLanguage();
+  const isRtl = lang === 'ar';
   const [loading, setLoading] = useState(true);
   const [reportsData, setReportsData] = useState(null);
   
@@ -26,7 +29,7 @@ const Reports = () => {
       setReportsData(res.data);
     } catch (error) {
       console.error('Error fetching reports', error);
-      alert('Failed to load reports');
+      alert(t('error.failedLoadReports') || 'Failed to load reports');
     } finally {
       setLoading(false);
     }
@@ -41,156 +44,272 @@ const Reports = () => {
     fetchReports();
   };
 
-  const formatCurrency = (value) => `${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const formatCurrency = (value) => `${value.toLocaleString(undefined, { maximumFractionDigits: 0 })} TND`;
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-2xl text-white animate-in fade-in zoom-in-95 duration-200">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{label}</p>
+          {payload.map((entry, index) => (
+            <div key={index} className="flex items-center gap-3 mt-1">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }}></div>
+              <p className="text-sm font-bold">
+                <span className="text-slate-400 font-medium">{entry.name}: </span>
+                {typeof entry.value === 'number' ? formatCurrency(entry.value) : entry.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  if (loading || !reportsData) return (
+    <div className="flex flex-col items-center justify-center py-32 gap-4">
+      <div className="w-12 h-12 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin"></div>
+      <p className="text-slate-400 font-black uppercase tracking-widest text-[10px] animate-pulse">Analyse des données en cours...</p>
+    </div>
+  );
 
   return (
-    <>
-      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-7xl space-y-8 pb-20 animate-in fade-in duration-500">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Analytique & Rapports</h1>
-          <p className="text-sm text-gray-500">Indicateurs clés et statistiques de votre entreprise</p>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight font-display">{t('reports.title') || 'Analytique & Rapports'}</h1>
+          <p className="text-sm text-slate-500 font-medium">{t('reports.subtitle') || 'Indicateurs clés et statistiques de performance'}</p>
         </div>
         
-        <form onSubmit={handleFilter} className="flex flex-wrap items-end gap-3 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Date de début</label>
-            <input 
-              type="date" 
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-            />
+        <form onSubmit={handleFilter} className="flex flex-wrap items-end gap-3 w-full lg:w-auto">
+          <div className="flex-1 lg:flex-initial space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('reports.startDate') || 'Début'}</label>
+            <div className="relative group">
+               <Calendar className="absolute inset-y-0 left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+               <input 
+                type="date" 
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm" 
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Date de fin</label>
-            <input 
-              type="date" 
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-            />
+          <div className="flex-1 lg:flex-initial space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('reports.endDate') || 'Fin'}</label>
+            <div className="relative group">
+               <Calendar className="absolute inset-y-0 left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+               <input 
+                type="date" 
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-sm" 
+              />
+            </div>
           </div>
           <button 
             type="submit"
-            className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition"
+            className="h-[42px] px-6 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all flex items-center gap-2 shadow-lg shadow-slate-100 active:scale-95"
           >
-            Filtrer
+            <Filter className="w-3.5 h-3.5" />
+            {t('common.filter') || 'Filtrer'}
           </button>
         </form>
       </div>
 
-      {loading || !reportsData ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="space-y-8">
+        
+        {/* Top KPIs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { label: 'Revenu HT', val: reportsData.totalKPIs.revenueHT, icon: TrendingUp, color: 'text-indigo-600' },
+            { label: 'Revenu TTC', val: reportsData.totalKPIs.revenueTTC, icon: DollarSign, color: 'text-emerald-600', accent: 'border-b-4 border-b-emerald-500' },
+            { label: 'TVA Collectée', val: reportsData.totalKPIs.tva, icon: BarChart3, color: 'text-amber-600' },
+            { label: 'Total Factures', val: `${reportsData.totalKPIs.invoiceCount} Unités`, icon: FileText, color: 'text-slate-600', accent: 'border-b-4 border-b-indigo-500' }
+          ].map((kpi, i) => (
+            <div key={i} className={`bg-white p-6 rounded-[1.8rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow ${kpi.accent || ''}`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-2.5 rounded-xl bg-slate-50 group-hover:scale-110 transition-transform ${kpi.color}`}>
+                  <kpi.icon className="w-5 h-5" />
+                </div>
+                <div className="h-1 w-8 bg-slate-100 rounded-full" />
+              </div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{kpi.label}</p>
+              <h3 className={`text-2xl font-black text-slate-900 leading-none font-display`}>
+                {typeof kpi.val === 'number' ? formatCurrency(kpi.val) : kpi.val}
+              </h3>
+            </div>
+          ))}
         </div>
-      ) : (
-        <div className="space-y-6">
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Top KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-              <p className="text-sm font-medium text-gray-500 mb-1">Revenu Total HT</p>
-              <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(reportsData.totalKPIs.revenueHT)}</h3>
+          {/* Monthly Revenue Chart */}
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 group">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-lg font-black text-slate-900 font-display leading-none">Croissance du Revenu</h2>
+                <p className="text-xs text-slate-400 font-medium mt-1.5">Analyse mensuelle comparative HT/TTC</p>
+              </div>
+              <div className="p-2 bg-slate-50 rounded-xl group-hover:rotate-12 transition-transform"><BarChart3 className="w-5 h-5 text-indigo-600" /></div>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-green-500">
-              <p className="text-sm font-medium text-gray-500 mb-1">Revenu Total TTC</p>
-              <h3 className="text-2xl font-bold text-green-600">{formatCurrency(reportsData.totalKPIs.revenueTTC)}</h3>
-            </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-              <p className="text-sm font-medium text-gray-500 mb-1">TVA Collectée</p>
-              <h3 className="text-2xl font-bold text-amber-500">{formatCurrency(reportsData.totalKPIs.tva)}</h3>
-            </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-indigo-500">
-              <p className="text-sm font-medium text-gray-500 mb-1">Nombre de Factures</p>
-              <h3 className="text-2xl font-bold text-indigo-600">{reportsData.totalKPIs.invoiceCount} Générées</h3>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={reportsData.monthlyRevenue}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                    dy={10}
+                  />
+                  <YAxis 
+                    tickFormatter={(val) => `${val/1000}k`} 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                    dx={-10}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{fill: '#f8fafc'}}/>
+                  <Legend iconType="circle" wrapperStyle={{paddingTop: 20, fontSize: 12, fontWeight: 700}} />
+                  <Bar dataKey="RevenueHT" name="Revenu HT" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={20} />
+                  <Bar dataKey="RevenueTTC" name="Revenu TTC" fill="#10b981" radius={[6, 6, 0, 0]} barSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* Monthly Revenue Chart */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenu Mensuel (6 Derniers Mois)</h2>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={reportsData.monthlyRevenue}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                    <YAxis tickFormatter={(val) => `${val/1000}k`} axisLine={false} tickLine={false} />
-                    <Tooltip formatter={(value) => formatCurrency(value)} cursor={{fill: 'transparent'}}/>
-                    <Legend />
-                    <Bar dataKey="RevenueHT" name="Revenu HT" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="RevenueTTC" name="Revenu TTC" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+          {/* Volume of Invoices - Area Chart */}
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 group">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-lg font-black text-slate-900 font-display leading-none">Volume d'Activité</h2>
+                <p className="text-xs text-slate-400 font-medium mt-1.5">Nombre total de factures générées</p>
               </div>
+              <div className="p-2 bg-slate-50 rounded-xl group-hover:rotate-12 transition-transform"><FileText className="w-5 h-5 text-indigo-600" /></div>
             </div>
-
-            {/* Invoices per Month */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Volume de Factures</h2>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={reportsData.invoicesPerMonth}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                    <YAxis axisLine={false} tickLine={false} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="Count" name="Factures Créées" stroke="#6366F1" strokeWidth={3} dot={{r: 4}} activeDot={{r: 6}} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={reportsData.invoicesPerMonth}>
+                  <defs>
+                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                    dy={10}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                    dx={-10}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="Count" 
+                    name="Factures" 
+                    stroke="#6366f1" 
+                    strokeWidth={4} 
+                    fillOpacity={1} 
+                    fill="url(#colorCount)" 
+                    activeDot={{r: 8, stroke: '#fff', strokeWidth: 4, shadow: '0 4px 6px rgba(0,0,0,0.1)'}} 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-
-            {/* Top 5 Clients Pie Chart */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Meilleurs Clients par Revenu</h2>
-              <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={reportsData.topClients}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="Revenue"
-                      nameKey="name"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {reportsData.topClients.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* TVA Collected Area */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">TVA Collectée</h2>
-              <div className="h-72">
-                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={reportsData.tvaCollected}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                    <YAxis tickFormatter={(val) => `${val/1000}k`} axisLine={false} tickLine={false} />
-                    <Tooltip formatter={(value) => formatCurrency(value)} cursor={{fill: '#f3f4f6'}}/>
-                    <Bar dataKey="TVA" name="Taxe Collectée (TVA)" fill="#F59E0B" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
           </div>
+
+          {/* Top 5 Clients */}
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 group">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-lg font-black text-slate-900 font-display leading-none">Meilleurs Clients</h2>
+                <p className="text-xs text-slate-400 font-medium mt-1.5">Répartition du revenu par client</p>
+              </div>
+              <div className="p-2 bg-slate-50 rounded-xl group-hover:rotate-12 transition-transform"><PieIcon className="w-5 h-5 text-indigo-600" /></div>
+            </div>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={reportsData.topClients}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="Revenue"
+                    nameKey="name"
+                  >
+                    {reportsData.topClients.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(255,255,255,0.2)" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend iconType="circle" layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{fontSize: 12, fontWeight: 700}} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* TVA Collected Area */}
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 group">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-lg font-black text-slate-900 font-display leading-none">Fiscalité (TVA)</h2>
+                <p className="text-xs text-slate-400 font-medium mt-1.5">Historique de la taxe collectée</p>
+              </div>
+              <div className="p-2 bg-slate-50 rounded-xl group-hover:rotate-12 transition-transform"><BarChart3 className="w-5 h-5 text-amber-500" /></div>
+            </div>
+            <div className="h-72">
+               <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={reportsData.tvaCollected}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                    dy={10}
+                  />
+                  <YAxis 
+                    tickFormatter={(val) => `${val/1000}k`} 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}}
+                    dx={-10}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{fill: '#fefce8'}}/>
+                  <Bar dataKey="TVA" name="Taxe (TVA)" fill="#f59e0b" radius={[6, 6, 0, 0]} barSize={30} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
         </div>
-      )}
-    </>
+        
+        {/* Export Action */}
+        <div className="flex justify-center pt-4">
+           <button className="flex items-center gap-3 px-10 py-5 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-indigo-100 hover:-translate-y-1 transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform"><Download className="w-5 h-5" /></div>
+              <div className="text-left">
+                 <p className="text-xs font-black uppercase tracking-widest text-slate-900">Exporter les Données</p>
+                 <p className="text-[10px] font-medium text-slate-400">Générer un rapport PDF ou Excel détaillé</p>
+              </div>
+           </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
 export default Reports;
+

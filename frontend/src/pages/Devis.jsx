@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import Layout from '../components/Layout';
-import { Plus, Trash2, X, Loader, PlusCircle, MinusCircle, FileText, CheckCircle, Send, Download } from 'lucide-react';
+import { Plus, Trash2, X, Loader, PlusCircle, MinusCircle, FileText, CheckCircle2, Send, Download, Search } from 'lucide-react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
 
 const Devis = () => {
+  const { t } = useLanguage();
   const [devisList, setDevisList] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -155,101 +158,107 @@ const Devis = () => {
     }
   };
 
-  const getStatusColor = (currentStatus) => {
-    switch(currentStatus?.toLowerCase()) {
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredDevis = devisList.filter(d => 
+    d.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    d.client?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <Layout>
-      <div className="flex justify-between items-center mb-6">
+    <div className="pb-12 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Devis</h1>
-          <p className="text-sm text-gray-500">Gérer les devis et estimations clients</p>
+          <h2 className="text-2xl font-black text-slate-900 font-display tracking-tight">{t('nav.devis') || 'Devis'}</h2>
+          <p className="text-sm text-slate-500 font-medium">Gérer les devis et estimations clients</p>
         </div>
         <button 
           onClick={openModal}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          className="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-2xl shadow-lg shadow-indigo-100 transition-all active:scale-95 group w-full md:w-auto justify-center"
         >
-          <Plus className="h-4 w-4 mr-2" /> Nouveau Devis
+          <Plus className="h-4 w-4 me-2 group-hover:rotate-90 transition-transform" />
+          Nouveau Devis
         </button>
       </div>
 
+      {/* Search & Filters */}
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+          <input 
+            type="text" 
+            placeholder={t('common.search') || "Rechercher..."} 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm placeholder:text-slate-300"
+          />
+        </div>
+        <div className="px-5 py-3 bg-indigo-50/50 rounded-2xl border border-indigo-100/30 flex items-center justify-center">
+          <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest leading-none">
+            {filteredDevis.length} {t('common.results') || 'Items'}
+          </span>
+        </div>
+      </div>
+
+      {/* Devis Display */}
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="flex flex-col items-center justify-center h-64 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
+          <div className="w-10 h-10 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-400 text-xs font-black uppercase tracking-widest">{t('common.loading')}</p>
         </div>
       ) : (
-        <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+        <Card noPadding className="border-none shadow-sm bg-transparent md:bg-white overflow-hidden">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-100 text-left">
+              <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-black tracking-widest uppercase">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Devis</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-8 py-5">ID Devis</th>
+                  <th className="px-8 py-5">Client</th>
+                  <th className="px-8 py-5">Date</th>
+                  <th className="px-8 py-5">Statut</th>
+                  <th className="px-8 py-5 text-end">Total</th>
+                  <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {devisList.length > 0 ? (
-                  devisList.map((devis) => (
-                    <tr key={devis.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {devis.id.slice(0, 8).toUpperCase()}
-                        </div>
+              <tbody className="bg-white divide-y divide-slate-50">
+                {filteredDevis.length > 0 ? (
+                  filteredDevis.map((devis) => (
+                    <tr key={devis.id} className="hover:bg-slate-50/50 transition-all group">
+                      <td className="px-8 py-6">
+                        <span className="text-sm font-bold text-slate-900">{devis.id.slice(0, 8).toUpperCase()}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{devis.client?.name || 'Client Inconnu'}</div>
+                      <td className="px-8 py-6">
+                        <div className="text-sm font-bold text-slate-700">{devis.client?.name || 'Client Inconnu'}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">
+                      <td className="px-8 py-6">
+                        <div className="text-xs font-medium text-slate-400">
                           {new Date(devis.createdAt).toLocaleDateString()}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(devis.status)}`}>
+                      <td className="px-8 py-6">
+                        <Badge variant={devis.status.toLowerCase() === 'accepted' ? 'success' : devis.status.toLowerCase() === 'rejected' ? 'rejected' : 'pending'}>
                           {devis.status}
-                        </span>
+                        </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                        {devis.netToPay.toLocaleString(undefined, { minimumFractionDigits: 3 })}
+                      <td className="px-8 py-6 text-end">
+                        <div className="text-sm font-black text-slate-900">
+                          {devis.netToPay.toLocaleString(undefined, { minimumFractionDigits: 3 })}
+                          <span className="text-[10px] text-slate-400 ms-1 font-bold">TND</span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button 
-                            onClick={() => handleSendEmail(devis.id)}
-                            className="text-gray-400 hover:text-purple-600 p-1 transition-colors"
-                            title="Send via Email"
-                          >
+                      <td className="px-8 py-6 text-right">
+                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleSendEmail(devis.id)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-slate-100" title="Send Email">
                             <Send className="w-4 h-4" />
                           </button>
-                          <button 
-                            onClick={() => handleDownloadPdf(devis.id)}
-                            className="text-gray-400 hover:text-blue-600 p-1 transition-colors"
-                            title="Download PDF"
-                          >
+                          <button onClick={() => handleDownloadPdf(devis.id)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-slate-100" title="Download PDF">
                             <Download className="w-4 h-4" />
                           </button>
-                          <button 
-                            onClick={() => handleConvertToInvoice(devis.id)}
-                            className="text-gray-400 hover:text-green-600 p-1 transition-colors"
-                            title="Convert to Invoice"
-                          >
+                          <button onClick={() => handleConvertToInvoice(devis.id)} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-slate-100" title="Convert to Invoice">
                             <FileText className="w-4 h-4" />
                           </button>
-                          <button 
-                            onClick={() => handleDelete(devis.id)}
-                            className="text-gray-400 hover:text-red-600 p-1 transition-colors"
-                            title="Delete"
-                          >
+                          <button onClick={() => handleDelete(devis.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-white rounded-xl shadow-sm transition-all border border-transparent hover:border-slate-100" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -258,15 +267,66 @@ const Devis = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center text-sm text-gray-500">
-                      Aucun devis trouvé. Cliquez sur "Nouveau Devis" pour générer des estimations.
+                    <td colSpan="6" className="px-8 py-20 text-center">
+                       <div className="flex flex-col items-center max-w-xs mx-auto text-center">
+                        <div className="h-20 w-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mb-6 border border-slate-100">
+                          <FileText className="w-10 h-10 text-slate-200" />
+                        </div>
+                        <h3 className="text-slate-400 font-black uppercase text-xs tracking-widest">Aucun devis trouvé</h3>
+                      </div>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4 px-4 pb-4">
+            {filteredDevis.length > 0 ? (
+              filteredDevis.map((devis) => (
+                <div key={devis.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col gap-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ID DEVIS</p>
+                      <h4 className="text-sm font-bold text-slate-900">{devis.id.slice(0, 8).toUpperCase()}</h4>
+                    </div>
+                    <Badge variant={devis.status.toLowerCase() === 'accepted' ? 'success' : devis.status.toLowerCase() === 'rejected' ? 'rejected' : 'pending'}>
+                      {devis.status}
+                    </Badge>
+                  </div>
+                  
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">CLIENT</p>
+                    <p className="text-sm font-bold text-slate-700">{devis.client?.name || 'Client Inconnu'}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">{new Date(devis.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  
+                  <div className="flex justify-between items-end pt-4 border-t border-slate-50">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">TOTAL</p>
+                      <p className="text-lg font-black text-slate-900 font-display">
+                        {devis.netToPay.toLocaleString(undefined, { minimumFractionDigits: 3 })} <span className="text-xs">TND</span>
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                       <button onClick={() => handleDownloadPdf(devis.id)} className="p-2.5 bg-slate-50 rounded-xl text-slate-500 hover:bg-premium-50 hover:text-premium-600 transition-all">
+                          <Download className="w-4 h-4" />
+                       </button>
+                       <button onClick={() => handleConvertToInvoice(devis.id)} className="p-2.5 bg-slate-50 rounded-xl text-slate-500 hover:bg-premium-50 hover:text-premium-600 transition-all">
+                          <FileText className="w-4 h-4" />
+                       </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-12 text-center text-slate-400 text-sm font-medium italic bg-white rounded-3xl border border-dashed border-slate-200">
+                Aucun devis trouvé.
+              </div>
+            )}
+          </div>
+        </Card>
       )}
 
       {/* Full Screen Modal Overlay for Devis Creation */}
@@ -397,7 +457,7 @@ const Devis = () => {
                     onClick={handleAddLine}
                     className="mt-4 inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                   >
-                    <PlusCircle className="h-4 w-4 mr-2 text-gray-400" />
+                    <PlusCircle className="h-4 w-4 me-2 text-gray-400" />
                     Ajouter un Produit
                   </button>
                 </div>
@@ -434,7 +494,7 @@ const Devis = () => {
                   disabled={isSubmitting}
                   className="flex-1 md:flex-none inline-flex justify-center items-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 disabled:bg-blue-400"
                 >
-                  {isSubmitting ? <Loader className="w-4 h-4 animate-spin mr-2" /> : null}
+                  {isSubmitting ? <Loader className="w-4 h-4 animate-spin me-2" /> : null}
                   Enregistrer
                 </button>
               </div>
@@ -443,8 +503,9 @@ const Devis = () => {
           </div>
         </div>
       )}
-    </Layout>
+    </div>
   );
 };
 
 export default Devis;
+

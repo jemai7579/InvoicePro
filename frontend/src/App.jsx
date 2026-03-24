@@ -22,6 +22,7 @@ import Terms from './pages/Terms';
 import Legal from './pages/Legal';
 
 function App() {
+  console.log('App.jsx: Rendering App');
   return (
     <Router>
       <Routes>
@@ -57,3 +58,4 @@ function App() {
 }
 
 export default App;
+

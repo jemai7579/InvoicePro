@@ -33,7 +33,7 @@ const Help = () => {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-              <HelpCircle className="w-5 h-5 mr-2 text-blue-600" />
+              <HelpCircle className="w-5 h-5 me-2 text-blue-600" />
               Frequently Asked Questions
             </h2>
             <div className="space-y-4">
@@ -58,7 +58,7 @@ const Help = () => {
               onClick={() => window.dispatchEvent(new CustomEvent('open-ai-assistant'))}
               className="w-full bg-white text-blue-700 py-2 rounded-lg font-medium text-sm flex items-center justify-center hover:bg-blue-50 transition-colors"
             >
-              <MessageSquare className="w-4 h-4 mr-2" />
+              <MessageSquare className="w-4 h-4 me-2" />
               Open AI Assistant
             </button>
           </div>
@@ -67,7 +67,7 @@ const Help = () => {
             <h3 className="font-bold text-gray-900 mb-4">Contact Support</h3>
             <div className="space-y-4">
               <a href="mailto:support@elfatoora.tn" className="flex items-center p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors group">
-                <div className="bg-blue-100 p-2 rounded-full mr-3 group-hover:bg-blue-200 transition-colors">
+                <div className="bg-blue-100 p-2 rounded-full me-3 group-hover:bg-blue-200 transition-colors">
                   <Mail className="w-4 h-4 text-blue-700" />
                 </div>
                 <div>
@@ -76,7 +76,7 @@ const Help = () => {
                 </div>
               </a>
               <a href="#" className="flex items-center p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors group">
-                <div className="bg-green-100 p-2 rounded-full mr-3 group-hover:bg-green-200 transition-colors">
+                <div className="bg-green-100 p-2 rounded-full me-3 group-hover:bg-green-200 transition-colors">
                   <FileText className="w-4 h-4 text-green-700" />
                 </div>
                 <div>
@@ -93,3 +93,4 @@ const Help = () => {
 };
 
 export default Help;
+

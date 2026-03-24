@@ -1,17 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, MoreVertical, Loader, CheckCircle2, Lightbulb } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Plus, MoreVertical, Loader, CheckCircle2, Lightbulb, AlertTriangle, Clock, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Stepper from '../components/ui/Stepper';
+import MiniChart from '../components/ui/MiniChart';
 
 const Dashboard = () => {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalClients: 0,
     totalInvoices: 0,
     pendingInvoices: 0,
     paidInvoices: 0,
     totalRevenue: 0,
+    overdueInvoices: [],
     recentInvoices: [],
     recentClients: []
   });
@@ -19,7 +26,8 @@ const Dashboard = () => {
     profileComplete: false,
     hasClients: false,
     hasCertificate: false,
-    percent: 0
+    percent: 0,
+    currentStep: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -39,18 +47,20 @@ const Dashboard = () => {
         // Onboarding logic
         const profileComplete = !!(settings.name && settings.matriculeFiscal && settings.address);
         const hasClients = clients.length > 0;
-        const hasCertificate = !!settings.certificateId || !!settings.hasCertificate; // assuming backend returns this
+        const hasCertificate = !!settings.certificateId || !!settings.hasCertificate;
         
         let count = 0;
-        if (profileComplete) count++;
-        if (hasClients) count++;
-        if (hasCertificate) count++;
+        let currentStep = 0;
+        if (profileComplete) { count++; currentStep = 1; }
+        if (hasClients) { count++; currentStep = 2; }
+        if (hasCertificate) { count++; currentStep = 3; }
         
         setOnboarding({
           profileComplete,
           hasClients,
           hasCertificate,
-          percent: Math.round((count / 3) * 100)
+          percent: Math.round((count / 3) * 100),
+          currentStep
         });
 
         const currentMonth = new Date().getMonth();
@@ -65,12 +75,20 @@ const Dashboard = () => {
           .filter(inv => inv.status === 'VALIDATED' || inv.status === 'PAID')
           .reduce((sum, inv) => sum + inv.netToPay, 0);
 
+        const today = new Date();
+        const overdue = invoices.filter(inv => 
+          inv.status !== 'PAID' && 
+          inv.status !== 'VALIDATED' && 
+          inv.dueDate && new Date(inv.dueDate) < today
+        );
+
         setStats({
           totalClients: clients.length,
           totalInvoices: invoicesThisMonth.length,
           pendingInvoices: invoices.filter(inv => inv.status === 'PENDING_VALIDATION' || inv.status === 'DRAFT').length,
           paidInvoices: invoices.filter(inv => inv.status === 'VALIDATED' || inv.status === 'PAID').length,
           totalRevenue: revenue,
+          overdueInvoices: overdue,
           recentInvoices: invoices.slice(0, 5),
           recentClients: clients.slice(0, 5)
         });
@@ -85,15 +103,23 @@ const Dashboard = () => {
   }, []);
   
 
-  const getStatusColor = (status) => {
+  const getStatusVariant = (status) => {
     switch(status.toLowerCase()) {
-      case 'paid': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'sent to ttn': return 'bg-blue-100 text-blue-800';
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'paid': 
+      case 'validated': return 'success';
+      case 'pending': 
+      case 'pending_validation': return 'pending';
+      case 'rejected': return 'rejected';
+      case 'sent to ttn': return 'info';
+      default: return 'neutral';
     }
   };
+
+  const onboardingSteps = [
+    { label: t('onboarding.step1'), link: '/settings' },
+    { label: t('onboarding.step2'), link: '/clients' },
+    { label: t('onboarding.step3'), link: '/settings#certificate' },
+  ];
 
   return (
     <>
@@ -103,164 +129,221 @@ const Dashboard = () => {
         </div>
       ) : (
         <>
-          {/* Quick Actions */}
-          <div className="mb-8 flex flex-wrap gap-4">
-            <Link to="/invoices?new=true" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-blue-700 transition-colors">
-              <Plus className="h-4 w-4 mr-2" /> {t('dashboard.newInvoice')}
-            </Link>
-            <Link to="/clients" className="inline-flex items-center px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg shadow-sm border border-gray-300 hover:bg-gray-50 transition-colors">
-              <Plus className="h-4 w-4 mr-2" /> {t('dashboard.newClient')}
-            </Link>
+          {/* Quick Actions & Header */}
+          <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 font-display tracking-tight">{t('dashboard.title')}</h1>
+              <p className="text-slate-500 text-sm font-medium">{t('dashboard.welcome')}</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button 
+                onClick={() => navigate('/invoices?new=true')}
+                icon={Plus}
+                size="sm"
+              >
+                {t('dashboard.newInvoice')}
+              </Button>
+              <Button 
+                variant="secondary"
+                onClick={() => navigate('/clients')}
+                icon={Plus}
+                size="sm"
+              >
+                {t('dashboard.newClient')}
+              </Button>
+            </div>
           </div>
 
-          {/* Onboarding Checklist */}
-          {onboarding.percent < 100 ? (
-            <div className="mb-8 bg-blue-600 rounded-2xl p-6 text-white shadow-xl shadow-blue-100 relative overflow-hidden">
-              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="max-w-md">
-                  <h2 className="text-xl font-bold mb-2">{t('onboarding.welcome')}</h2>
-                  <p className="text-blue-100 text-sm">{t('onboarding.subtitle')}</p>
-                  <div className="mt-4 h-2 w-full bg-blue-400/30 rounded-full">
-                    <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${onboarding.percent}%` }}></div>
+          {/* Stepper Onboarding */}
+          {onboarding.percent < 100 && (
+            <div className="mb-10 bg-white border border-slate-100 rounded-[2.5rem] p-10 shadow-sm relative overflow-hidden">
+               <div className="max-w-3xl mx-auto">
+                  <div className="text-center mb-10">
+                    <h2 className="text-xl font-black mb-2 text-slate-900 font-display">{t('onboarding.welcome')}</h2>
+                    <p className="text-slate-500 text-sm font-medium">{t('onboarding.subtitle')}</p>
                   </div>
-                  <p className="mt-2 text-xs font-bold">{onboarding.percent}% {t('onboarding.complete')}</p>
+                  <Stepper 
+                    steps={onboardingSteps} 
+                    currentStep={onboarding.currentStep} 
+                    onStepClick={(i) => navigate(onboardingSteps[i].link)}
+                  />
+               </div>
+               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 blur-3xl -me-32 -mt-32"></div>
+               <div className="absolute bottom-0 left-0 w-48 h-48 bg-slate-50/50 blur-3xl -ms-24 -mb-24"></div>
+            </div>
+          )}
+
+          {/* Urgencies Section */}
+          {stats.overdueInvoices.length > 0 && (
+            <div className="mb-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 flex items-start gap-4">
+                <div className="bg-rose-100 p-3 rounded-2xl text-rose-600">
+                  <AlertTriangle className="w-6 h-6" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-                  {[
-                    { label: t('onboarding.step1'), done: onboarding.profileComplete, link: '/settings' },
-                    { label: t('onboarding.step2'), done: onboarding.hasClients, link: '/clients' },
-                    { label: t('onboarding.step3'), done: onboarding.hasCertificate, link: '/settings#certificate' },
-                  ].map((step, i) => (
-                    <Link 
-                      key={i} 
-                      to={step.link}
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                        step.done 
-                        ? 'bg-blue-500/20 border-blue-400/30 text-blue-100 opacity-60' 
-                        : 'bg-white/10 border-white/20 hover:bg-white/20'
-                      }`}
-                    >
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${step.done ? 'bg-green-400 text-white' : 'bg-white/20'}`}>
-                        {step.done ? <CheckCircle2 className="w-3 h-3" /> : i + 1}
-                      </div>
-                      <span className="text-sm font-medium">{step.label}</span>
-                    </Link>
-                  ))}
+                <div>
+                  <h3 className="text-sm font-black text-rose-900 uppercase tracking-widest mb-1">{t('dashboard.urgencies.overdue')}</h3>
+                  <p className="text-rose-700/70 text-xs font-bold mb-3">{stats.overdueInvoices.length} {t('dashboard.urgencies.pendingAction')}</p>
+                  <Button variant="secondary" size="sm" className="bg-white border-rose-200 text-rose-600 hover:bg-rose-100" onClick={() => navigate('/invoices?status=overdue')}>
+                    {t('dashboard.viewAll')}
+                  </Button>
                 </div>
               </div>
-              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 blur-3xl -mr-20 -mt-20"></div>
-            </div>
-          ) : (
-             <div className="mb-8 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex items-center gap-4 text-emerald-800">
-                <div className="bg-emerald-100 p-2 rounded-lg">
-                   <Lightbulb className="w-5 h-5" />
+              <div className="bg-amber-50 border border-amber-100 rounded-3xl p-6 flex items-start gap-4">
+                <div className="bg-amber-100 p-3 rounded-2xl text-amber-600">
+                  <Clock className="w-6 h-6" />
                 </div>
-                <p className="text-sm font-medium">
-                   {t('dashboard.onboarding.success')}
-                </p>
-             </div>
+                <div>
+                  <h3 className="text-sm font-black text-amber-900 uppercase tracking-widest mb-1">{t('dashboard.urgencies.drafts')}</h3>
+                  <p className="text-amber-700/70 text-xs font-bold mb-3">{stats.pendingInvoices} {t('dashboard.urgencies.needValidation')}</p>
+                  <Button variant="secondary" size="sm" className="bg-white border-amber-200 text-amber-600 hover:bg-amber-100" onClick={() => navigate('/invoices?status=draft')}>
+                    {t('dashboard.viewAll')}
+                  </Button>
+                </div>
+              </div>
+            </div>
           )}
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-          <div className="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">{t('dashboard.stats.revenue')}</dt>
-            <dd className="mt-2 text-3xl font-bold text-gray-900">
-              {stats.totalRevenue.toLocaleString()}
-            </dd>
-          </div>
-          <div className="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">{t('dashboard.stats.monthly')}</dt>
-            <dd className="mt-2 text-3xl font-bold text-gray-900">{stats.totalInvoices}</dd>
-          </div>
-          <div className="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">{t('dashboard.stats.pending')}</dt>
-            <dd className="mt-2 text-3xl font-bold text-gray-900">{stats.pendingInvoices}</dd>
-            <div className="mt-2 text-sm text-yellow-600 font-medium">{t('dashboard.needsFollowUp')}</div>
-          </div>
-          <div className="bg-white overflow-hidden shadow-sm rounded-xl border border-gray-100 p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">{t('dashboard.stats.paid')}</dt>
-            <dd className="mt-2 text-3xl font-bold text-gray-900">{stats.paidInvoices}</dd>
-            <div className="mt-2 text-sm text-green-600 font-medium">{t('dashboard.onTrack')}</div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <Card variant="premium" className="relative group overflow-hidden pt-6 pb-2">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{t('dashboard.stats.revenue')}</dt>
+                <dd className="text-2xl font-black text-slate-900 font-display">
+                  {stats.totalRevenue.toLocaleString()} <span className="text-xs text-slate-400 font-bold ms-1">{t('common.tnd')}</span>
+                </dd>
+              </div>
+              <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+                <ArrowUpRight className="w-4 h-4" />
+              </div>
+            </div>
+            <MiniChart color="#10b981" />
+          </Card>
+          
+          <Card className="relative group overflow-hidden pt-6 pb-2">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{t('dashboard.stats.monthly')}</dt>
+                <dd className="text-2xl font-black text-slate-900 font-display">{stats.totalInvoices}</dd>
+              </div>
+              <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600">
+                <ArrowUpRight className="w-4 h-4" />
+              </div>
+            </div>
+            <MiniChart color="#6366f1" />
+          </Card>
+
+          <Card className="relative group overflow-hidden pt-6 pb-2">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{t('dashboard.stats.pending')}</dt>
+                <dd className="text-2xl font-black text-slate-900 font-display">{stats.pendingInvoices}</dd>
+              </div>
+              <div className="p-2 bg-amber-50 rounded-xl text-amber-600">
+                <Clock className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-2 min-h-[48px] flex items-end">
+               <Badge variant="pending" size="sm">{t('dashboard.needsFollowUp')}</Badge>
+            </div>
+          </Card>
+
+          <Card className="relative group overflow-hidden pt-6 pb-2">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{t('dashboard.stats.paid')}</dt>
+                <dd className="text-2xl font-black text-slate-900 font-display">{stats.paidInvoices}</dd>
+              </div>
+              <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-2 min-h-[48px] flex items-end">
+               <Badge variant="success" size="sm">{t('dashboard.onTrack')}</Badge>
+            </div>
+          </Card>
         </div>
 
         {/* Tables Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Recent Invoices Table */}
-          <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900">{t('dashboard.recent.invoices')}</h3>
-              <Link to="/invoices" className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+          <Card 
+            title={t('dashboard.recent.invoices')} 
+            noPadding 
+            action={
+              <Link to="/invoices" className="text-xs text-premium-600 hover:text-premium-800 font-bold uppercase tracking-wider transition-colors">
                 {t('dashboard.viewAll')}
               </Link>
-            </div>
+            }
+          >
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-100">
+                <thead className="bg-slate-50/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('form.client')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('dashboard.table.status')}</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('dashboard.table.amount')}</th>
+                    <th className="px-6 py-4 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('invoices.table.id')}</th>
+                    <th className="px-6 py-4 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('form.client')}</th>
+                    <th className="px-6 py-4 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.table.status')}</th>
+                    <th className="px-6 py-4 text-end text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.table.amount')}</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-slate-50">
                   {stats.recentInvoices.map((invoice) => (
-                    <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{invoice.id.slice(0, 8).toUpperCase()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{invoice.client?.name || 'N/A'}</td>
+                    <tr key={invoice.id} className="hover:bg-premium-50/30 transition-colors group">
+                      <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-900">{invoice.id.slice(0, 8).toUpperCase()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{invoice.client?.name || '-'}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
-                          {invoice.status.replace(/_/g, ' ')}
-                        </span>
+                        <Badge variant={getStatusVariant(invoice.status)}>
+                          {t(`status.${invoice.status.toLowerCase()}`) || invoice.status}
+                        </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                        {invoice.netToPay.toLocaleString()}
+                      <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-black text-slate-900 group-hover:text-premium-600 transition-colors">
+                        {invoice.netToPay.toLocaleString()} <span className="text-[10px] text-slate-400 font-bold">{t('common.tnd')}</span>
                       </td>
                     </tr>
                   ))}
                   {stats.recentInvoices.length === 0 && (
-                    <tr><td colSpan="4" className="text-center py-8 text-gray-500 text-sm">{t('dashboard.noData')}</td></tr>
+                    <tr><td colSpan="4" className="text-center py-12 text-slate-400 text-xs font-medium italic">{t('dashboard.noData')}</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
 
           {/* Recent Clients Table */}
-          <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-gray-900">{t('dashboard.recent.clients')}</h3>
-              <Link to="/clients" className="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+          <Card 
+            title={t('dashboard.recent.clients')} 
+            noPadding 
+            action={
+              <Link to="/clients" className="text-xs text-premium-600 hover:text-premium-800 font-bold uppercase tracking-wider transition-colors">
                 {t('dashboard.viewAll')}
               </Link>
-            </div>
+            }
+          >
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-100">
+                <thead className="bg-slate-50/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('dashboard.table.name')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('auth.email')}</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('form.mf')}</th>
+                    <th className="px-6 py-4 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.table.name')}</th>
+                    <th className="px-6 py-4 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('auth.email')}</th>
+                    <th className="px-6 py-4 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('form.mf')}</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-slate-50">
                   {stats.recentClients.map((client) => (
-                    <tr key={client.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{client.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.email || '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.matriculeFiscal || '-'}</td>
+                    <tr key={client.id} className="hover:bg-premium-50/30 transition-colors group">
+                      <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-900 group-hover:text-premium-600 transition-colors">{client.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-slate-500">{client.email || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-slate-500">{client.matriculeFiscal || '-'}</td>
                     </tr>
                   ))}
                   {stats.recentClients.length === 0 && (
-                    <tr><td colSpan="3" className="text-center py-8 text-gray-500 text-sm">{t('dashboard.noData')}</td></tr>
+                    <tr><td colSpan="3" className="text-center py-12 text-slate-400 text-xs font-medium italic">{t('dashboard.noData')}</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
           
         </div>
         </>
@@ -270,3 +353,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

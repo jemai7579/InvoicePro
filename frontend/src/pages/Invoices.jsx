@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, X, Loader, PlusCircle, MinusCircle, Download, FileCode, CheckCircle, Send } from 'lucide-react';
+import { Plus, Trash2, X, Loader, PlusCircle, MinusCircle, Download, FileCode, CheckCircle2, Send, AlertCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import { useLanguage } from '../context/LanguageContext';
 
 const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
+  const { t } = useLanguage();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   // Form State
   const [clientId, setClientId] = useState('');
@@ -29,7 +37,7 @@ const Invoices = () => {
       setClients(clientsRes.data);
     } catch (error) {
       console.error('Error fetching data', error);
-      alert('Failed to load invoices and clients');
+      alert(t('common.error_load'));
     } finally {
       setLoading(false);
     }
@@ -50,6 +58,7 @@ const Invoices = () => {
     setClientId('');
     setStatus('DRAFT');
     setLines([{ description: '', quantity: 1, unitPrice: 0, tvaRate: 19 }]);
+    setErrors({});
     setIsModalOpen(true);
   };
 
@@ -71,6 +80,27 @@ const Invoices = () => {
     const newLines = [...lines];
     newLines[index][field] = value;
     setLines(newLines);
+    
+    // Clear error for this field if it exists
+    if (errors[`line_${index}_${field}`]) {
+      const newErrors = { ...errors };
+      delete newErrors[`line_${index}_${field}`];
+      setErrors(newErrors);
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!clientId) newErrors.clientId = t('error.clientRequired') || 'Veuillez sélectionner un client';
+    
+    lines.forEach((line, index) => {
+      if (!line.description) newErrors[`line_${index}_description`] = t('error.descriptionRequired') || 'Description requise';
+      if (line.quantity <= 0) newErrors[`line_${index}_quantity`] = t('error.invalidQuantity') || 'Qté > 0';
+      if (line.unitPrice < 0) newErrors[`line_${index}_unitPrice`] = t('error.invalidPrice') || 'Prix >= 0';
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // Calculate Totals for Modal Preview
@@ -80,12 +110,7 @@ const Invoices = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!clientId) {
-      return alert('Please select a client');
-    }
-    if (lines.length === 0 || lines.some(l => !l.description)) {
-      return alert('Please add at least one valid product line');
-    }
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
     try {
@@ -100,20 +125,72 @@ const Invoices = () => {
       closeModal();
     } catch (error) {
       console.error('Error saving invoice', error);
-      alert(error.response?.data?.message || 'Failed to save invoice');
+      alert(error.response?.data?.message || t('settings.error'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case 'PAID':
+      case 'VALIDATED': return 'success';
+      case 'REJECTED': return 'danger';
+      case 'SENT_TO_TTN': return 'primary';
+      case 'PENDING_VALIDATION': return 'warning';
+      default: return 'secondary';
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      setLoading(true);
+      await api.patch(`/invoices/${id}/status`, { status: newStatus });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert('Error updating status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitTTN = async (id) => {
+    try {
+      if (!window.confirm(t('common.confirm_submit'))) return;
+      await api.post(`/invoices/${id}/submit-ttn`);
+      alert(t('common.success_submit'));
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Error submitting to TTN');
+    }
+  };
+
+  const handleDownloadXml = async (id) => {
+    try {
+      const response = await api.get(`/invoices/${id}/xml`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `invoice-${id.slice(0, 8)}.xml`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading XML', error);
+      alert(t('common.error_download'));
+    }
+  };
+
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this invoice?')) {
+    if (window.confirm(t('invoices.form.confirm_delete'))) {
       try {
         await api.delete(`/invoices/${id}`);
         fetchData();
       } catch (error) {
         console.error('Error deleting invoice', error);
-        alert('Failed to delete invoice');
+        alert(t('common.error_delete'));
       }
     }
   };
@@ -130,210 +207,116 @@ const Invoices = () => {
       link.parentNode.removeChild(link);
     } catch (error) {
       console.error('Error downloading PDF', error);
-      alert('Failed to download PDF');
+      alert(t('common.error_download'));
     }
   };
 
   const handleSendEmail = async (id) => {
     try {
-      if (!window.confirm('Send this invoice to the client?')) return;
+      if (!window.confirm(t('invoices.form.send_email_confirm'))) return;
       const res = await api.post(`/invoices/${id}/send-email`);
       if (res.data.previewUrl) {
-          alert('Email sent successfully! Preview URL (Ethereal): ' + res.data.previewUrl);
+          alert(t('invoices.form.success_email') + ' (Preview: ' + res.data.previewUrl + ')');
       } else {
-          alert('Email sent successfully!');
+          alert(t('invoices.form.success_email'));
       }
-      fetchData(); // to update status if any
     } catch (error) {
       console.error('Error sending email', error);
-      alert(error.response?.data?.message || 'Failed to send email');
+      alert(t('common.error_send'));
     }
   };
 
-  const handleDownloadXml = async (id) => {
-    try {
-      const response = await api.get(`/invoices/${id}/xml`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `TEIF_${id}.xml`);
-      document.body.appendChild(link);
-      link.click();
-    } catch (error) {
-      console.error('Error downloading XML', error);
-      
-      // Attempt to read the error message from the blob if validation failed
-      if (error.response && error.response.data instanceof Blob) {
-        const textPromise = error.response.data.text();
-        textPromise.then(text => {
-            try {
-              const err = JSON.parse(text);
-              alert(err.message || 'Validation failed. Check company settings and client info.');
-            } catch(e) {
-              alert('Failed to generate TEIF XML');
-            }
-        });
-      } else {
-        alert(error.response?.data?.message || 'Failed to download TEIF XML');
-      }
-    }
-  };
-
-  const handleSubmitTTN = async (id) => {
-    try {
-      if (!window.confirm('Are you sure you want to submit this invoice to TTN for validation?')) return;
-      
-      const response = await api.post(`/invoices/${id}/submit-ttn`);
-      alert(response.data.message);
-      fetchData();
-    } catch (error) {
-      console.error('Error submitting to TTN', error);
-      alert(error.response?.data?.message || 'Failed to submit to TTN');
-    }
-  };
-
-  const handleStatusChange = async (id, newStatus) => {
-    try {
-      await api.patch(`/invoices/${id}/status`, { status: newStatus });
-      setInvoices(prev =>
-        prev.map(inv => inv.id === id ? { ...inv, status: newStatus } : inv)
-      );
-    } catch (error) {
-      console.error('Error updating status', error);
-      alert(error.response?.data?.message || 'Impossible de mettre à jour le statut');
-    }
-  };
-
-  const getStatusColor = (currentStatus) => {
-    switch(currentStatus?.toLowerCase()) {
-      case 'paid': return 'bg-green-100 text-green-800';
-      case 'validated': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'pending_validation': return 'bg-yellow-100 text-yellow-800';
-      case 'sent_to_ttn': return 'bg-blue-100 text-blue-800';
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const filteredInvoices = invoices;
 
   return (
-    <>
-      <div className="flex justify-between items-center mb-6">
+    <div className="animate-in fade-in duration-500 pb-20">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
-          <p className="text-sm text-gray-500">Gérer vos factures électroniques</p>
+          <h2 className="text-2xl font-black text-slate-900 font-display tracking-tight uppercase">{t('invoices.title')}</h2>
+          <p className="text-sm text-slate-500 font-medium">{t('invoices.subtitle')}</p>
         </div>
-        <button 
-          onClick={openModal}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-        >
-          <Plus className="h-4 w-4 mr-2" /> Nouvelle Facture
-        </button>
+        <Button onClick={openModal} icon={Plus} className="!rounded-2xl shadow-lg shadow-premium-100">
+          {t('invoices.new')}
+        </Button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader className="w-8 h-8 animate-spin text-blue-600" />
+      {loading && !invoices.length ? (
+        <div className="py-20 flex flex-col items-center gap-4">
+          <Loader className="w-10 h-10 animate-spin text-premium-600" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Synchronisation des factures...</p>
         </div>
       ) : (
-        <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID Facture
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Statut
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+        <Card noPadding className="overflow-hidden border-slate-100">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('invoices.table.id')}</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('invoices.table.client')}</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('invoices.table.date')}</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('invoices.table.status')}</th>
+                  <th className="px-6 py-4 text-end text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('invoices.table.total')}</th>
+                  <th className="px-6 py-4 text-end text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('common.actions')}</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {invoices.length > 0 ? (
-                  invoices.map((invoice) => (
-                    <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
+              <tbody className="divide-y divide-slate-50">
+                {filteredInvoices.length > 0 ? (
+                  filteredInvoices.map((invoice) => (
+                    <tr key={invoice.id} className="hover:bg-slate-50/30 transition-colors group">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {invoice.id.slice(0, 8).toUpperCase()}
-                        </div>
+                        <div className="text-sm font-black text-slate-900 font-display uppercase tracking-tight">#{invoice.id.slice(0, 8)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{invoice.client?.name || 'Client Inconnu'}</div>
+                        <div className="text-sm text-slate-900 font-bold">{invoice.client?.name || t('invoices.table.unknownClient')}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">
+                        <div className="text-[11px] text-slate-500 font-black">
                           {new Date(invoice.createdAt).toLocaleDateString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <select
-                          value={invoice.status}
-                          onChange={(e) => handleStatusChange(invoice.id, e.target.value)}
-                          className={`text-xs font-semibold rounded-full px-2.5 py-1 border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 outline-none ${
-                            getStatusColor(invoice.status)
-                          }`}
-                        >
-                          <option value="DRAFT">DRAFT</option>
-                          <option value="PENDING_VALIDATION">PENDING VALIDATION</option>
-                          <option value="SENT_TO_TTN">SENT TO TTN</option>
-                          <option value="VALIDATED">VALIDATED</option>
-                          <option value="PAID">PAID</option>
-                          <option value="REJECTED">REJECTED</option>
-                        </select>
+                         <div className="relative group max-w-[140px]">
+                           <select
+                             value={invoice.status}
+                             onChange={(e) => handleStatusChange(invoice.id, e.target.value)}
+                             className={`w-full rounded-xl px-3 py-1.5 border appearance-none cursor-pointer transition-all focus:ring-4 focus:ring-premium-100 outline-none text-[10px] font-black ${
+                                 invoice.status === 'PAID' || invoice.status === 'VALIDATED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                 invoice.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                                 invoice.status === 'SENT_TO_TTN' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+                                 invoice.status === 'PENDING_VALIDATION' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                 'bg-slate-100 text-slate-600 border-slate-200'
+                             }`}
+                           >
+                             <option value="DRAFT">{t('status.draft')}</option>
+                             <option value="PENDING_VALIDATION">{t('status.pending_validation')}</option>
+                             <option value="SENT_TO_TTN">{t('status.sent_to_ttn')}</option>
+                             <option value="VALIDATED">{t('status.validated')}</option>
+                             <option value="PAID">{t('status.paid')}</option>
+                             <option value="REJECTED">{t('status.rejected')}</option>
+                           </select>
+                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                        {invoice.netToPay.toLocaleString(undefined, { minimumFractionDigits: 3 })}
+                      <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-black text-slate-900 font-display">
+                        {invoice.netToPay.toLocaleString(undefined, { minimumFractionDigits: 3 })} <span className="text-[10px] text-slate-400 font-bold ms-1">{t('common.tnd')}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-end">
+                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {invoice.status !== 'VALIDATED' && (
-                            <button 
-                              onClick={() => handleSubmitTTN(invoice.id)}
-                              className="text-gray-400 hover:text-orange-500 p-1 transition-colors"
-                              title="Submit to TTN"
-                            >
-                              <CheckCircle className="w-4 h-4" />
+                            <button onClick={() => handleSubmitTTN(invoice.id)} className="p-2 text-slate-400 hover:text-orange-500 transition-colors" title={t('common.submit')}>
+                              <CheckCircle2 className="w-4 h-4" />
                             </button>
                           )}
-                          <button 
-                            onClick={() => handleSendEmail(invoice.id)}
-                            className="text-gray-400 hover:text-purple-600 p-1 transition-colors"
-                            title="Send via Email"
-                          >
+                          <button onClick={() => handleSendEmail(invoice.id)} className="p-2 text-slate-400 hover:text-purple-600 transition-colors" title={t('invoices.form.send_email_confirm')}>
                             <Send className="w-4 h-4" />
                           </button>
-                          <button 
-                            onClick={() => handleDownloadXml(invoice.id)}
-                            className="text-gray-400 hover:text-green-600 p-1 transition-colors"
-                            title="Download TEIF XML"
-                          >
+                          <button onClick={() => handleDownloadXml(invoice.id)} className="p-2 text-slate-400 hover:text-emerald-600 transition-colors" title={t('teif.table.tooltip_download')}>
                             <FileCode className="w-4 h-4" />
                           </button>
-                          <button 
-                            onClick={() => handleDownloadPdf(invoice.id)}
-                            className="text-gray-400 hover:text-blue-600 p-1 transition-colors"
-                            title="Download PDF"
-                          >
+                          <button onClick={() => handleDownloadPdf(invoice.id)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors" title="Download PDF">
                             <Download className="w-4 h-4" />
                           </button>
-                          <button 
-                            onClick={() => handleDelete(invoice.id)}
-                            className="text-gray-400 hover:text-red-600 p-1 transition-colors"
-                            title="Delete"
-                          >
+                          <button onClick={() => handleDelete(invoice.id)} className="p-2 text-slate-400 hover:text-rose-600 transition-colors" title={t('common.delete')}>
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -342,216 +325,263 @@ const Invoices = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center text-sm text-gray-500">
-                      Aucune facture trouvée. Cliquez sur "Nouvelle Facture" pour en créer une.
+                    <td colSpan="6" className="px-6 py-12 text-center text-sm text-slate-400 italic">
+                      {t('invoices.empty')}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden p-4 space-y-4">
+            {filteredInvoices.length > 0 ? (
+              filteredInvoices.map((invoice) => (
+                <div key={invoice.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col gap-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('invoices.table.id')}</p>
+                      <h4 className="text-sm font-black text-slate-900 uppercase">#{invoice.id.slice(0, 8)}</h4>
+                    </div>
+                    <Badge variant={getStatusVariant(invoice.status)}>
+                      {t(`status.${invoice.status.toLowerCase()}`) || invoice.status}
+                    </Badge>
+                  </div>
+                  
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('invoices.table.client')}</p>
+                    <p className="text-sm font-bold text-slate-700">{invoice.client?.name || t('invoices.table.unknownClient')}</p>
+                  </div>
+                  
+                  <div className="flex justify-between items-end pt-4 border-t border-slate-50">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('invoices.table.total')}</p>
+                      <p className="text-lg font-black text-slate-900 font-display">
+                        {invoice.netToPay.toLocaleString(undefined, { minimumFractionDigits: 3 })} <span className="text-xs">{t('common.tnd')}</span>
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                       <button onClick={() => handleDownloadPdf(invoice.id)} className="p-3 bg-slate-50 rounded-2xl text-slate-600">
+                          <Download className="w-5 h-5" />
+                       </button>
+                       <button onClick={() => handleSendEmail(invoice.id)} className="p-3 bg-slate-50 rounded-2xl text-slate-600">
+                          <Send className="w-5 h-5" />
+                       </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-12 text-center text-slate-400 text-sm font-medium italic">
+                {t('invoices.empty')}
+              </div>
+            )}
+          </div>
+        </Card>
       )}
 
-      {/* Full Screen Modal Overlay for Invoice Creation */}
+      {/* Modal Overlay */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75 flex justify-center py-10 px-4 sm:px-6">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh]">
-            
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Créer une Nouvelle Facture</h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-500">
-                <X className="h-6 w-6" />
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-sm flex justify-center py-10 px-4 sm:px-6">
+          <Card 
+            className="w-full max-w-4xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.15)]"
+            noPadding
+            title={t('invoices.form.title')}
+            action={
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-xl transition-all">
+                <X className="h-5 w-5" />
               </button>
-            </div>
-            
-            {/* Body */}
-            <div className="p-6 flex-1 overflow-y-auto">
-              <form id="invoice-form" className="space-y-6" onSubmit={handleSubmit}>
+            }
+          >
+            <div className="p-8 flex-1 overflow-y-auto custom-scrollbar">
+              <form id="invoice-form" className="space-y-10" onSubmit={handleSubmit}>
                 
-                {/* Top Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Sélectionner un Client *</label>
-                    <select
-                      required
-                      value={clientId}
-                      onChange={(e) => setClientId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm bg-white"
-                    >
-                      <option value="" disabled>-- Sélectionner un client --</option>
-                      {clients.map(client => (
-                        <option key={client.id} value={client.id}>{client.name}</option>
-                      ))}
-                    </select>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-xs shadow-sm shadow-indigo-100">01</div>
+                    <div>
+                       <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">{t('invoices.form.detailsTitle')}</h3>
+                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Configuration du document</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-                    <select
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 ps-14">
+                    <Select
+                      label={t('invoices.form.selectClient')}
+                      value={clientId}
+                      onChange={(e) => {
+                        setClientId(e.target.value);
+                        if (errors.clientId) setErrors(prev => {
+                          const n = {...prev};
+                          delete n.clientId;
+                          return n;
+                        });
+                      }}
+                      error={errors.clientId}
+                      options={[
+                        { value: '', label: t('invoices.form.selectClientPlaceholder'), disabled: true },
+                        ...clients.map(c => ({ value: c.id, label: c.name }))
+                      ]}
+                    />
+                    <Select
+                      label={t('invoices.form.initialStatus')}
                       value={status}
                       onChange={(e) => setStatus(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm bg-white"
-                    >
-                      <option value="DRAFT">Brouillon</option>
-                      <option value="SENT_TO_TTN">Envoyé à TTN</option>
-                      <option value="PENDING_VALIDATION">En attente de validation</option>
-                      <option value="VALIDATED">Validée</option>
-                    </select>
+                      options={[
+                        { value: 'DRAFT', label: t('status.draft') },
+                        { value: 'SENT_TO_TTN', label: t('status.sent_to_ttn') },
+                        { value: 'PENDING_VALIDATION', label: t('status.pending_validation') },
+                        { value: 'VALIDATED', label: t('status.validated') }
+                      ]}
+                    />
                   </div>
                 </div>
 
-                {/* Lines Section */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4 border-b pb-2">Lignes de Facture</h3>
-                  
-                  {/* Table Header Hidden on Mobile, Shown on Desktop */}
-                  <div className="hidden md:grid grid-cols-12 gap-4 mb-2 text-xs font-medium text-gray-500 uppercase">
-                    <div className="col-span-1"></div>
-                    <div className="col-span-4">Produit / Description</div>
-                    <div className="col-span-2">Quantité</div>
-                    <div className="col-span-2">Prix Unitaire HT</div>
-                    <div className="col-span-2">TVA (%)</div>
-                    <div className="col-span-1 text-right">Total</div>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-xs shadow-sm shadow-indigo-100">02</div>
+                      <div>
+                         <h3 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">{t('invoices.form.linesTitle')}</h3>
+                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Éléments de facturation</p>
+                      </div>
+                    </div>
+                    <Button 
+                      type="button" 
+                      variant="secondary" 
+                      onClick={handleAddLine} 
+                      size="sm"
+                      icon={PlusCircle}
+                      className="!rounded-2xl border-indigo-100 text-indigo-600 hover:bg-indigo-50"
+                    >
+                      {t('invoices.form.addLine')}
+                    </Button>
                   </div>
-
-                  <div className="space-y-3">
+                  
+                  <div className="space-y-4 ps-14">
                     {lines.map((line, index) => (
-                      <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-white p-3 md:p-0 rounded-lg border border-gray-200 md:border-none shadow-sm md:shadow-none">
-                        
-                        <div className="col-span-1 flex justify-center md:justify-start">
-                          <button 
-                            type="button" 
-                            onClick={() => handleRemoveLine(index)}
-                            className="text-red-400 hover:text-red-600 focus:outline-none"
-                            disabled={lines.length === 1}
-                          >
-                            <MinusCircle className="w-5 h-5" />
-                          </button>
-                        </div>
-                        
-                        <div className="col-span-4">
-                          <label className="md:hidden block text-xs font-medium text-gray-500 mb-1">Description</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="Description de l'article"
-                            value={line.description}
-                            onChange={(e) => handleLineChange(index, 'description', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                          />
-                        </div>
-                        
-                        <div className="col-span-2">
-                          <label className="md:hidden block text-xs font-medium text-gray-500 mb-1">Quantity</label>
-                          <input
-                            type="number"
-                            min="1"
-                            step="0.01"
-                            required
-                            value={line.quantity}
-                            onChange={(e) => handleLineChange(index, 'quantity', parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                          />
-                        </div>
+                      <div key={index} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100 relative group hover:bg-white hover:shadow-xl hover:border-indigo-100/50 transition-all">
+                          
+                          <div className="md:col-span-1 pt-8 flex justify-center">
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveLine(index)}
+                              className="text-slate-300 hover:text-rose-500 p-2 lg:-ms-2 rounded-xl hover:bg-rose-50 transition-all disabled:opacity-20"
+                              disabled={lines.length === 1}
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                          
+                          <div className="md:col-span-4">
+                            <Input
+                              label={t('invoices.form.desc')}
+                              placeholder={t('invoices.form.placeholder_desc')}
+                              value={line.description}
+                              onChange={(e) => handleLineChange(index, 'description', e.target.value)}
+                              error={errors[`line_${index}_description`]}
+                            />
+                          </div>
+                          
+                          <div className="md:col-span-2">
+                            <Input
+                              type="number"
+                              label={t('invoices.form.qte')}
+                              value={line.quantity}
+                              onChange={(e) => handleLineChange(index, 'quantity', parseFloat(e.target.value) || 0)}
+                              error={errors[`line_${index}_quantity`]}
+                            />
+                          </div>
 
-                        <div className="col-span-2">
-                          <label className="md:hidden block text-xs font-medium text-gray-500 mb-1">Unit Price HT</label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.001"
-                            required
-                            value={line.unitPrice}
-                            onChange={(e) => handleLineChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                          />
-                        </div>
+                          <div className="md:col-span-2">
+                            <Input
+                              type="number"
+                              label={t('invoices.form.pu')}
+                              value={line.unitPrice}
+                              onChange={(e) => handleLineChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                              error={errors[`line_${index}_unitPrice`]}
+                            />
+                          </div>
 
-                        <div className="col-span-2">
-                          <label className="md:hidden block text-xs font-medium text-gray-500 mb-1">TVA Rate (%)</label>
-                          <select
-                            value={line.tvaRate}
-                            onChange={(e) => handleLineChange(index, 'tvaRate', parseFloat(e.target.value))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
-                          >
-                            <option value={19}>19%</option>
-                            <option value={13}>13%</option>
-                            <option value={7}>7%</option>
-                            <option value={0}>0%</option>
-                          </select>
-                        </div>
+                          <div className="md:col-span-2">
+                            <Select
+                              label={t('invoices.form.tva')}
+                              value={line.tvaRate}
+                              onChange={(e) => handleLineChange(index, 'tvaRate', parseFloat(e.target.value))}
+                              options={[
+                                { value: 19, label: '19%' },
+                                { value: 13, label: '13%' },
+                                { value: 7, label: '7%' },
+                                { value: 0, label: '0%' }
+                              ]}
+                            />
+                          </div>
 
-                        <div className="col-span-1 text-right font-medium text-gray-900 text-sm">
-                          <label className="md:hidden block text-xs font-medium text-gray-500 mb-1 text-left">Line Total</label>
-                          {(line.quantity * line.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 3 })}
+                          <div className="md:col-span-1 text-end pt-8">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('invoices.form.total')}</p>
+                            <p className="text-sm font-black text-slate-900 font-display">
+                              {(line.quantity * line.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 3 })}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     ))}
+                    
+                    {Object.keys(errors).some(k => k.startsWith('line_')) && (
+                       <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-100 rounded-2xl text-rose-600 animate-in fade-in slide-in-from-top-2">
+                          <AlertCircle className="w-4 h-4" />
+                          <p className="text-[10px] font-black uppercase tracking-widest">{t('error.fixBellowLines') || "Veuillez corriger les erreurs dans les lignes ci-dessus"}</p>
+                       </div>
+                    )}
                   </div>
-                  
-                  <button 
-                    type="button" 
-                    onClick={handleAddLine}
-                    className="mt-4 inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                  >
-                    <PlusCircle className="h-4 w-4 mr-2 text-gray-400" />
-                    Ajouter un Produit
-                  </button>
                 </div>
               </form>
             </div>
             
-            {/* Footer Summary & Actions */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-              <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-                
-                {/* Total Summary */}
-                <div className="w-full md:w-64 bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Sous-total HT :</span>
-                    <span className="font-medium">{subtotalHT.toLocaleString(undefined, { minimumFractionDigits: 3 })}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Total TVA :</span>
-                    <span className="font-medium">{totalTVA.toLocaleString(undefined, { minimumFractionDigits: 3 })}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Droit de Timbre :</span>
-                    <span className="font-medium">1.000</span>
-                  </div>
-                  <div className="border-t border-gray-100 pt-2 mt-2 flex justify-between items-center">
-                    <span className="font-semibold text-gray-900">Total TTC :</span>
-                    <span className="text-lg font-bold text-blue-600">{totalTTC.toLocaleString(undefined, { minimumFractionDigits: 3 })}</span>
-                  </div>
+            <div className="bg-slate-50 p-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-8 rounded-b-[2.5rem]">
+              <div className="w-full md:w-80 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-3 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 group-hover:bg-indigo-500/10 transition-colors"></div>
+                <div className="flex justify-between text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                  <span>{t('invoices.form.subtotal')}</span>
+                  <span className="text-slate-900">{subtotalHT.toLocaleString(undefined, { minimumFractionDigits: 3 })}</span>
                 </div>
-
-                {/* Actions */}
-                <div className="flex gap-3 w-full md:w-auto">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="flex-1 md:flex-none justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="submit"
-                    form="invoice-form"
-                    disabled={isSubmitting}
-                    className="flex-1 md:flex-none inline-flex justify-center items-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm disabled:bg-blue-400"
-                  >
-                    {isSubmitting ? <Loader className="w-4 h-4 animate-spin mr-2" /> : null}
-                    Enregistrer
-                  </button>
+                <div className="flex justify-between text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                  <span>{t('invoices.form.totalTva')}</span>
+                  <span className="text-slate-900">{totalTVA.toLocaleString(undefined, { minimumFractionDigits: 3 })}</span>
+                </div>
+                <div className="flex justify-between text-[11px] font-black text-slate-400 uppercase tracking-widest underline decoration-dotted decoration-slate-200 cursor-help" title="Timbre fiscal fixe">
+                  <span>{t('invoices.form.stampDuty')}</span>
+                  <span className="text-slate-900">1.000</span>
+                </div>
+                <div className="border-t border-slate-100 pt-4 flex justify-between items-center relative z-10">
+                  <span className="font-black text-slate-900 text-sm uppercase tracking-tight">{t('invoices.form.totalTtc')}</span>
+                  <span className="text-2xl font-black text-indigo-600 font-display">
+                    {totalTTC.toLocaleString(undefined, { minimumFractionDigits: 3 })} <span className="text-xs">{t('common.tnd')}</span>
+                  </span>
                 </div>
               </div>
-            </div>
 
-          </div>
+              <div className="flex gap-4 w-full md:w-auto">
+                <Button variant="ghost" onClick={closeModal} className="flex-1 md:flex-none !rounded-2xl">
+                  {t('form.cancel')}
+                </Button>
+                <Button 
+                  type="submit" 
+                  form="invoice-form" 
+                  loading={isSubmitting} 
+                  className="flex-1 md:flex-none shadow-xl shadow-indigo-200 !rounded-2xl h-14 px-10" 
+                  icon={CheckCircle2}
+                >
+                  {t('invoices.form.generate')}
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
