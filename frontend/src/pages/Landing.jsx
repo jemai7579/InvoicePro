@@ -97,7 +97,7 @@ const Landing = () => {
                 {i < arr.length - 1 && (
                   <span className="relative inline-block mt-2">
                     <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600">
-                      {lang === 'ar' ? 'الفوترة الإلكترونية' : 'Facturation Électronique'}
+                      {lang === 'ar' ? 'الفاتورة الإلكترونية' : 'Facturation Électronique'}
                     </span>
                     <span className="absolute bottom-4 left-0 w-full h-4 bg-indigo-100/50 -rotate-1 z-0" />
                   </span>
@@ -280,8 +280,8 @@ const Landing = () => {
                     <div key={step} className="flex gap-8 relative hover:translate-x-2 transition-transform duration-300 group/item">
                       <div className="w-12 h-12 rounded-full bg-slate-800 border-4 border-slate-950 flex items-center justify-center font-black text-xs relative z-10 shrink-0 group-hover/item:border-blue-600 transition-colors">0{step}</div>
                       <div>
-                        <p className="text-slate-200 font-black text-lg mb-2">{t(`landing.tuntrust.step${step}`).split(':')[0]}</p>
-                        <p className="text-slate-500 text-sm font-medium">{t(`landing.tuntrust.step${step}`).split(':')[1] || 'Processus automatisé et hautement sécurisé pour votre entreprise.'}</p>
+                        <p className="text-slate-200 font-black text-lg mb-2">{t(`landing.tuntrust.steps.step${step}`).split('.')[0]}</p>
+                        <p className="text-slate-500 text-sm font-medium">{t(`landing.tuntrust.steps.step${step}`).split('.')[1] || 'Processus automatisé et hautement sécurisé pour votre entreprise.'}</p>
                       </div>
                     </div>
                   ))}
@@ -355,7 +355,7 @@ const Landing = () => {
                 <h4 className="text-2xl font-black text-slate-900 mb-6 relative z-10">{feature.title}</h4>
                 <p className="text-slate-500 font-semibold leading-relaxed relative z-10 group-hover:text-slate-600">{feature.desc}</p>
                 <div className="mt-8 pt-8 border-t border-slate-100 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-indigo-600 transition-colors">
-                  Détails <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+                  {t('common.details')} <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
                 </div>
               </div>
             ))}
@@ -369,7 +369,7 @@ const Landing = () => {
           <div className="text-center mb-24 max-w-3xl mx-auto">
             <h2 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.4em] mb-6">{t('landing.pricing.badge')}</h2>
             <h3 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[0.95] mb-8">{t('landing.pricing.title')}</h3>
-            <p className="text-slate-500 text-lg font-bold">Investissez dans la conformité et la croissance de votre entreprise avec des tarifs adaptés.</p>
+            <p className="text-slate-500 text-lg font-bold">{t('landing.pricing.subtitle')}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch pt-12">
             {[
@@ -377,20 +377,20 @@ const Landing = () => {
                 name: "Starter", 
                 price: "49", 
                 feat: [t('landing.pricing.starter.feat1'), t('landing.pricing.starter.feat2'), t('landing.pricing.starter.feat3')],
-                desc: "Pour les micro-entreprises individuelles."
+                desc: t('landing.pricing.starter.desc')
               },
               { 
                 name: "Professional", 
                 price: "99", 
                 feat: [t('landing.pricing.pro.feat1'), t('landing.pricing.pro.feat2'), t('landing.pricing.pro.feat3'), t('landing.pricing.pro.feat4')], 
                 popular: true,
-                desc: "Parfait pour les PME en pleine croissance."
+                desc: t('landing.pricing.pro.desc')
               },
               { 
                 name: "Enterprise", 
                 price: "199", 
                 feat: [t('landing.pricing.enterprise.feat1'), t('landing.pricing.enterprise.feat2'), t('landing.pricing.enterprise.feat3'), t('landing.pricing.enterprise.feat4')],
-                desc: "Solution robuste pour les grandes structures."
+                desc: t('landing.pricing.enterprise.desc')
               },
             ].map((plan, i) => (
               <div key={i} className={`p-12 rounded-[4rem] flex flex-col transition-all duration-700 relative group ${plan.popular ? 'bg-indigo-600 text-white shadow-[0_40px_100px_-20px_rgba(79,70,229,0.4)] md:scale-105 z-10' : 'bg-white border border-slate-100 hover:shadow-2xl'}`}>
@@ -404,7 +404,7 @@ const Landing = () => {
                 <div className="flex items-baseline gap-2 mb-12">
                   <span className={`text-6xl font-black ${plan.popular ? 'text-white' : 'text-slate-900'}`}>{plan.price}</span>
                   <span className={`text-lg font-bold uppercase tracking-widest ${plan.popular ? 'text-indigo-200' : 'text-slate-400'}`}>{t('landing.pricing.currency')}</span>
-                  <span className={`text-sm font-bold opacity-40 ${plan.popular ? 'text-indigo-100' : 'text-slate-400'}`}>/mois</span>
+                  <span className={`text-sm font-bold opacity-40 ${plan.popular ? 'text-indigo-100' : 'text-slate-400'}`}>/{t('landing.pricing.month')}</span>
                 </div>
 
                 <ul className="space-y-6 mb-12 flex-1">
@@ -442,7 +442,7 @@ const Landing = () => {
               <span className="text-3xl font-black tracking-tighter text-slate-900">El Fatoura</span>
             </Link>
             <p className="text-slate-500 font-semibold leading-relaxed max-w-xs">
-               La plateforme SaaS leader pour la facturation électronique conforme en Tunisie.
+               {t('landing.footer.desc')}
             </p>
             <div className="flex gap-4">
               {[1,2,3,4].map(i => (
@@ -454,12 +454,12 @@ const Landing = () => {
           </div>
           
           <div>
-            <h4 className="font-black text-slate-900 uppercase tracking-widest text-xs mb-8">Solution</h4>
+            <h4 className="font-black text-slate-900 uppercase tracking-widest text-xs mb-8">{t('landing.nav.features')}</h4>
             <ul className="space-y-4 text-slate-500 font-bold">
-               <li><a href="#" className="hover:text-indigo-600 transition-colors">Fonctionnalités</a></li>
-               <li><a href="#" className="hover:text-indigo-600 transition-colors">Conformité</a></li>
-               <li><a href="#" className="hover:text-indigo-600 transition-colors">Tarifs</a></li>
-               <li><a href="#" className="hover:text-indigo-600 transition-colors">Sécurité</a></li>
+               <li><a href="#features" className="hover:text-indigo-600 transition-colors">{t('landing.nav.features')}</a></li>
+               <li><a href="#compliance" className="hover:text-indigo-600 transition-colors">{t('landing.nav.compliance')}</a></li>
+               <li><a href="#pricing" className="hover:text-indigo-600 transition-colors">{t('landing.nav.pricing')}</a></li>
+               <li><a href="#" className="hover:text-indigo-600 transition-colors">Digital Signature</a></li>
             </ul>
           </div>
           

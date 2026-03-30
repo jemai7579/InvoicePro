@@ -79,7 +79,7 @@ const Register = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-white flex ${isRtl ? 'flex-row-reverse' : 'flex-row'} overflow-hidden font-sans`} dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className={`min-h-screen bg-white flex flex-col lg:flex-row ${isRtl ? 'lg:flex-row-reverse' : ''} font-sans`} dir={isRtl ? 'rtl' : 'ltr'}>
       
       {/* Left Side: Illustration / Brand Content (Hidden on mobile) */}
       <div className="hidden lg:flex lg:w-5/12 bg-slate-900 relative overflow-hidden items-center justify-center p-12">
@@ -132,8 +132,10 @@ const Register = () => {
       </div>
 
       {/* Right Side: Register Form */}
-      <div className="w-full lg:w-7/12 flex items-center justify-center p-6 sm:p-12 bg-slate-50/50 overflow-y-auto max-h-screen custom-scrollbar">
-        <div className="w-full max-w-2xl space-y-8 py-10 animate-in slide-in-from-bottom-4 duration-700">
+      <div className="w-full lg:w-7/12 bg-slate-50/50 flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-start p-5 sm:p-8 py-8">
+        <div className="w-full max-w-lg space-y-5 animate-in slide-in-from-bottom-4 duration-700">
+
           
           <div className="lg:hidden text-center mb-6">
             <Link to="/" className="inline-flex items-center gap-3 mb-4">
@@ -153,7 +155,7 @@ const Register = () => {
             </p>
           </div>
 
-          <div className="bg-white p-8 sm:p-12 rounded-[2.5rem] border border-slate-200 shadow-2xl shadow-slate-200/50">
+          <div className="bg-white p-6 sm:p-10 rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/40">
             {error && (
               <div className="mb-8 p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 text-sm font-semibold flex items-center gap-3 animate-in fade-in zoom-in-95 duration-200">
                 <div className="h-2 w-2 rounded-full bg-rose-600 animate-pulse shrink-0" />
@@ -161,7 +163,7 @@ const Register = () => {
               </div>
             )}
 
-            <form onSubmit={handleRegisterSubmit} className="space-y-8">
+            <form onSubmit={handleRegisterSubmit} className="space-y-6">
               {/* Step 1: Personal Info */}
               <div className="space-y-5">
                 <div className="flex items-center gap-3 mb-2">
@@ -361,7 +363,7 @@ const Register = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center py-4.5 px-6 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] group"
+                className="w-full flex items-center justify-center py-4 px-6 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] group"
               >
                 {loading ? (
                   <Loader className="w-5 h-5 animate-spin" />
@@ -385,6 +387,7 @@ const Register = () => {
           <p className="text-center text-xs text-slate-400 font-medium">
             © 2024 El Fatoura. {t('landing.footer.madeIn')}
           </p>
+        </div>
         </div>
       </div>
     </div>

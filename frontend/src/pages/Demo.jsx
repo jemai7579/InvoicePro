@@ -15,20 +15,19 @@ const Demo = () => {
   const isRtl = lang === 'ar';
   
   const mockStats = [
-    { label: 'Revenu Total', value: '45,280 TND', change: '+12.5%', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Factures Payées', value: '128', change: '+8%', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Nouveaux Clients', value: '12', change: '+15%', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Soumissions TTN', value: '98%', change: 'Stable', icon: Activity, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: t('dashboard.stats.revenue'), value: '45,280 TND', change: '+12.5%', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: t('dashboard.stats.paid'), value: '128', change: '+8%', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: t('dashboard.client'), value: '12', change: '+15%', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: t('landing.nav.compliance'), value: '98%', change: 'Stable', icon: Activity, color: 'text-amber-600', bg: 'bg-amber-50' },
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
       {/* Demo Banner */}
-      <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-4 py-2 text-center text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3">
-        <Zap className="w-3.5 h-3.5 text-amber-400" />
-        Environnement de Démo Interactif — Aucune donnée réelle n'est envoyée à TTN
+      <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-4 py-2 text-center text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-3">
+        {t('demo.banner')} — {lang === 'ar' ? 'لا يتم إرسال بيانات حقيقية لـ TTN' : (lang === 'en' ? 'No real data is sent to TTN' : "Aucune donnée réelle n'est envoyée à TTN")}
         <Link to="/register" className="ms-4 bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-[10px] transition-colors">
-          Créer un compte réel
+          {t('demo.real_account_btn')}
         </Link>
       </div>
 
@@ -51,11 +50,11 @@ const Demo = () => {
             : isRtl ? 'translate-x-full' : '-translate-x-full'}
           lg:translate-x-0 lg:static lg:flex
         `}>
-          <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100">
-            <div className="flex items-center">
+          <div className="h-14 flex items-center justify-between px-5 border-b border-slate-100">
+            <Link to="/" className="flex items-center group transition-transform hover:scale-[1.02]">
               <ShieldCheck className="w-6 h-6 text-premium-600 me-2" />
               <span className="font-black text-xl bg-clip-text text-transparent bg-gradient-to-r from-premium-600 to-premium-400 font-display tracking-tight">El Fatoora</span>
-            </div>
+            </Link>
             <button 
               onClick={() => setIsSidebarOpen(false)}
               className="lg:hidden p-2 text-slate-400 hover:text-slate-600"
@@ -63,7 +62,7 @@ const Demo = () => {
               <X className="w-5 h-5" />
             </button>
           </div>
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 p-3 space-y-0.5">
             {[
               { id: 'dashboard', icon: LayoutDashboard },
               { id: 'clients', icon: Users },
@@ -101,7 +100,7 @@ const Demo = () => {
         {/* Mock Main Content */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Header */}
-          <header className="h-16 fixed inset-x-0 top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-4 lg:px-8 transition-all duration-300 lg:ms-72">
+          <header className="h-14 fixed inset-x-0 top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-4 lg:px-6 transition-all duration-300 lg:ms-72">
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => setIsSidebarOpen(true)}
@@ -133,17 +132,20 @@ const Demo = () => {
           </header>
 
           {/* Page Content */}
-          <div className="flex-1 overflow-y-auto p-8 pt-24 min-w-0">
+          <div className="flex-1 overflow-y-auto p-6 pt-20 min-w-0">
             {activeTab === 'dashboard' ? (
               <>
                 <div className="flex items-center justify-between mb-8">
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Bienvenue, Jean !</h2>
-                    <p className="text-slate-500 text-sm">Voici un aperçu de vos activités de démonstration aujourd'hui.</p>
+                    <h2 className="text-2xl font-bold text-slate-900">{t('demo.welcome_user').replace('{name}', 'Jean')}</h2>
+                    <p className="text-slate-500 text-sm">{t('demo.dashboard_subtitle')}</p>
                   </div>
-                  <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                  <button 
+                    onClick={() => setActiveTab('reports')}
+                    className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 text-sm"
+                  >
                     <Plus className="w-4 h-4" />
-                    Action Démo
+                    {t('demo.action_btn')}
                   </button>
                 </div>
 
@@ -167,8 +169,8 @@ const Demo = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                    <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                       <div className="px-6 py-5 border-b border-slate-50 flex items-center justify-between">
-                         <h3 className="font-bold text-slate-800">Recettes sur 7 jours</h3>
-                         <span className="text-xs font-bold text-blue-600">Export PDF</span>
+                         <h3 className="font-bold text-slate-800">{t('demo.revenue_7d')}</h3>
+                         <span className="text-xs font-bold text-blue-600">{lang === 'ar' ? 'تصدير PDF' : 'Export PDF'}</span>
                       </div>
                       <div className="p-8 flex-1 flex items-end gap-3 h-64">
                         {[30, 45, 60, 40, 85, 55, 70].map((h, i) => (
@@ -190,7 +192,7 @@ const Demo = () => {
 
                    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                       <div className="px-6 py-5 border-b border-slate-50">
-                         <h3 className="font-bold text-slate-800">Activités Récentes</h3>
+                         <h3 className="font-bold text-slate-800">{t('demo.activities')}</h3>
                       </div>
                       <div className="p-4 space-y-2">
                          {[1,2,3,4,5].map(i => (
@@ -199,8 +201,8 @@ const Demo = () => {
                                  {i % 2 === 0 ? <Zap className="w-5 h-5 text-amber-500" /> : <Receipt className="w-5 h-5 text-emerald-500" />}
                               </div>
                               <div className="flex-1 min-w-0">
-                                 <p className="text-xs font-bold text-slate-800 truncate">Facture #{2400 + i} générée</p>
-                                 <p className="text-[10px] text-slate-400">Il y a {i * 2} heures</p>
+                                 <p className="text-xs font-bold text-slate-800 truncate">{t('dashboard.facture')} #{2400 + i} {lang === 'ar' ? 'تم إنشاؤها' : (lang === 'en' ? 'generated' : 'générée')}</p>
+                                 <p className="text-[10px] text-slate-400">{lang === 'ar' ? `منذ ${i * 2} ساعة` : (lang === 'en' ? `${i * 2}h ago` : `Il y a ${i * 2} heures`)}</p>
                               </div>
                               <Link to="/register" className="text-slate-400 hover:text-blue-600">
                                  <ArrowRight className="w-4 h-4" />
@@ -234,7 +236,7 @@ const Demo = () => {
          <p className="text-xs text-slate-400 font-medium">© 2026 El Fatoura Demo. Optimisé pour la conformité tunisienne.</p>
          <div className="flex items-center gap-6">
             <Link to="/" className="text-xs font-bold text-slate-500 hover:text-blue-600 uppercase tracking-widest">Quitter la démo</Link>
-            <Link to="/register" className="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-black transition-colors">Démarrer Gratuitement</Link>
+            <Link to="/register" className="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-black transition-colors">{t('landing.nav.register')}</Link>
          </div>
       </footer>
     </div>

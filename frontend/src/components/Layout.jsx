@@ -24,7 +24,8 @@ import {
   Clock,
   FileText,
   X,
-  Menu
+  Menu,
+  ShieldCheck
 } from 'lucide-react';
 
 const navItems = [
@@ -49,14 +50,14 @@ const LANG_OPTIONS = [
 const LangSwitcher = () => {
   const { lang, setLang } = useLanguage();
   return (
-    <div className="flex items-center gap-0.5 bg-slate-100 rounded-xl p-0.5">
+    <div className="flex items-center gap-0 bg-slate-100/80 rounded-xl p-0.5">
       {LANG_OPTIONS.map(l => (
         <button key={l.code} onClick={() => setLang(l.code)} title={l.label}
           className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
             lang === l.code ? 'bg-white text-premium-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
           }`}>
-          <span className="text-sm">{l.flag}</span>
-          <span className="hidden sm:inline uppercase tracking-wider">{l.label}</span>
+          <span className="text-xs">{l.flag}</span>
+          <span className="hidden sm:inline uppercase tracking-widest text-[10px]">{l.label}</span>
         </button>
       ))}
     </div>
@@ -232,9 +233,12 @@ const Layout = ({ children }) => {
           : isRtl ? 'translate-x-full' : '-translate-x-full'}
         md:translate-x-0 md:static md:flex
       `}>
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-50">
-          <Link to="/" className="hover:opacity-80 transition-opacity">
-            <div className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-premium-600 to-premium-400 font-display">
+        <div className="h-14 flex items-center justify-between px-5 border-b border-slate-50">
+          <Link to="/" className="flex items-center group transition-transform hover:scale-[1.02]">
+            <div className="bg-premium-600 p-1.5 rounded-xl shadow-lg shadow-premium-100 group-hover:rotate-6 transition-transform">
+              <ShieldCheck className="w-5 h-5 text-white" />
+            </div>
+            <div className="ms-2.5 text-lg font-black bg-clip-text text-transparent bg-gradient-to-r from-premium-600 to-premium-400 font-display transition-all group-hover:tracking-tight">
               El Fatoora
             </div>
           </Link>
@@ -246,8 +250,8 @@ const Layout = ({ children }) => {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-6">
-          <nav className="space-y-1.5 px-3">
+        <div className="flex-1 overflow-y-auto py-4">
+          <nav className="space-y-1 px-3">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname.startsWith(item.path);
@@ -256,12 +260,12 @@ const Layout = ({ children }) => {
                   key={item.id} 
                   to={item.path}
                   onClick={() => setIsSidebarOpen(false)}
-                   className={`w-full flex items-center px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-200 ${
+                   className={`w-full flex items-center px-4 py-2.5 text-xs font-bold rounded-2xl transition-all duration-200 ${
                     isActive 
                       ? 'bg-premium-600 text-white shadow-lg shadow-premium-100' 
                       : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 group'
                   }`}>
-                  <Icon className={`${isActive ? 'text-white' : 'text-slate-400 group-hover:text-premium-600'} h-5 w-5 me-3`} />
+                  <Icon className={`${isActive ? 'text-white' : 'text-slate-400 group-hover:text-premium-600'} h-4.5 w-4.5 me-3`} />
                   {t(`nav.${item.id}`)}
                 </Link>
               );
@@ -289,15 +293,15 @@ const Layout = ({ children }) => {
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
 
         {/* Top Header */}
-        <header className="h-16 fixed inset-x-0 top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-4 sm:px-6 lg:px-8 transition-all duration-300 md:ms-72">
-          <div className="flex items-center gap-4">
+        <header className="h-14 fixed inset-x-0 top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-4 sm:px-6 lg:px-8 transition-all duration-300 md:ms-72">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
+              className="md:hidden p-1.5 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
             >
               <Menu className="w-6 h-6" />
             </button>
-            <div className="flex-1 flex text-xl font-black text-slate-900 font-display tracking-tight">
+            <div className="flex-1 flex text-lg font-black text-slate-900 font-display tracking-tight">
               {t(`nav.${currentNavItem.id}`)}
             </div>
           </div>
@@ -316,7 +320,7 @@ const Layout = ({ children }) => {
                   setShowSearchSuggestions(true);
                 }}
                 onFocus={() => setShowSearchSuggestions(true)}
-                className="ps-11 pe-4 py-2.5 border border-slate-100 bg-slate-50 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-premium-100 focus:border-premium-500 focus:bg-white w-48 md:w-64 transition-all" 
+                className="ps-11 pe-4 py-2 border border-slate-100 bg-slate-50 rounded-2xl text-xs font-medium focus:outline-none focus:ring-4 focus:ring-premium-100 focus:border-premium-500 focus:bg-white w-48 md:w-64 transition-all" 
               />
               
               {showSearchSuggestions && searchQuery.length > 0 && (

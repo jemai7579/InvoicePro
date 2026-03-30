@@ -167,24 +167,29 @@ const translations = {
       pricing: {
         badge: 'Nos Tarifs',
         title: 'Des prix transparents.',
+        subtitle: 'Investissez dans la conformité et la croissance de votre entreprise avec des tarifs adaptés.',
         currency: 'TND / mois',
         popular: 'Plus Populaire',
         choose: 'Choisir ce plan',
-        starter: {
+        month: 'mois',
+        starter: { 
+          desc: 'Pour les micro-entreprises individuelles.',
           feat1: '100 factures / mois',
           feat2: 'Support standard',
           feat3: 'Export XML TEIF',
         },
         pro: {
+          desc: 'Parfait pour les PME en pleine croissance.',
           feat1: 'Facturation illimitée',
           feat2: 'Support prioritaire',
           feat3: 'Assistant IA inclus',
           feat4: 'Signature digitale',
         },
         enterprise: {
+          desc: 'Solution robuste pour les grandes structures.',
           feat1: 'Multi-utilisateurs',
-          feat2: 'API complète',
-          feat3: 'Accompagnement TTN',
+          feat2: 'Support dédié',
+          feat3: 'TTN Onboarding',
           feat4: 'Hébergement dédié',
         },
       },
@@ -205,6 +210,7 @@ const translations = {
         privacy: 'Confidentialité',
         terms: 'Conditions',
         legal: 'Légal',
+        desc: 'La plateforme SaaS leader pour la facturation électronique conforme en Tunisie.',
         madeIn: 'Fabriqué en Tunisie 🇹🇳',
       },
       howItWorks: {
@@ -221,6 +227,8 @@ const translations = {
       },
     },
     dashboard: {
+      title: 'Tableau de bord',
+      welcome: 'Bienvenue sur votre espace El Fatoura',
       stats: {
         revenue: 'Revenu Total',
         monthly: 'Factures ce mois',
@@ -245,6 +253,26 @@ const translations = {
         status: 'Statut',
         name: 'Nom',
       },
+      client: 'Clients',
+      facture: 'Factures',
+      urgencies: {
+        overdue: 'Factures impayées',
+        pendingAction: 'actions requises',
+        drafts: 'Brouillons',
+        needValidation: 'nécessitent une validation'
+      },
+    },
+    demo: {
+      subscription: 'Abonnement',
+      premium: 'Démo Premium',
+      goReal: 'Passer au Réel',
+      banner: 'Environnement de Démo Interactif',
+      real_account_btn: 'Créer un compte réel',
+      welcome_user: 'Bienvenue, {name} !',
+      dashboard_subtitle: "Voici un aperçu de vos activités de démonstration aujourd'hui.",
+      action_btn: 'Action Démo',
+      revenue_7d: 'Recettes sur 7 jours',
+      activities: 'Activités Récentes',
     },
     search: {
       placeholder: 'Rechercher (ex: facture, client...)',
@@ -561,6 +589,7 @@ const translations = {
       }
     },
     common: {
+      details: "Détails",
       results: "résultats",
       loading: "Chargement...",
       edit: "Modifier",
@@ -752,21 +781,26 @@ const translations = {
       pricing: {
         badge: 'Pricing',
         title: 'Transparent pricing.',
+        subtitle: 'Invest in compliance and growth with our tailored pricing plans.',
         currency: 'TND / month',
         popular: 'Most Popular',
         choose: 'Choose plan',
-        starter: {
+        month: 'month',
+        starter: { 
+          desc: 'For individual micro-businesses.',
           feat1: '100 invoices / month',
           feat2: 'Standard support',
           feat3: 'XML TEIF export',
         },
         pro: {
+          desc: 'Perfect for growing SMEs.',
           feat1: 'Unlimited invoicing',
           feat2: 'Priority support',
           feat3: 'AI Assistant included',
           feat4: 'Digital signature',
         },
         enterprise: {
+          desc: 'Robust solution for large structures.',
           feat1: 'Multi-user',
           feat2: 'Full API',
           feat3: 'TTN Onboarding',
@@ -790,6 +824,7 @@ const translations = {
         privacy: 'Privacy',
         terms: 'Terms',
         legal: 'Legal',
+        desc: 'The leading SaaS platform for compliant electronic invoicing in Tunisia.',
         madeIn: 'Made in Tunisia 🇹🇳',
       },
       howItWorks: {
@@ -806,6 +841,8 @@ const translations = {
       },
     },
     dashboard: {
+      title: 'Dashboard',
+      welcome: 'Welcome to your El Fatoura workspace',
       stats: {
         revenue: 'Total Revenue',
         monthly: 'Invoices this month',
@@ -830,6 +867,46 @@ const translations = {
         status: 'Status',
         name: 'Name',
       },
+      client: 'Clients',
+      facture: 'Invoices',
+      urgencies: {
+        overdue: 'Overdue Invoices',
+        pendingAction: 'actions required',
+        drafts: 'Drafts',
+        needValidation: 'need validation'
+      },
+    },
+    demo: {
+      subscription: 'Subscription',
+      premium: 'Premium Demo',
+      goReal: 'Go Real',
+      banner: 'Interactive Demo Environment',
+      real_account_btn: 'Create real account',
+      welcome_user: 'Welcome, {name}!',
+      dashboard_subtitle: 'Here is an overview of your demo activities today.',
+      action_btn: 'Demo Action',
+      revenue_7d: '7-day Revenue',
+      activities: 'Recent Activities',
+    },
+    terms: {
+      title: 'Terms of Use',
+      subtitle: 'Rules for using the El Fatoura platform for your electronic invoices.',
+      section1: {
+        title: 'Acceptance of Terms',
+        content: 'By creating an account on El Fatoura, you accept these terms of use without reservation and commit to providing accurate information about your company.',
+      },
+      section2: {
+        title: 'Data Ownership',
+        content: 'You remain the owner of all data and invoices generated on the platform. El Fatoura acts only as a technical service provider for dematerialization.',
+      },
+      section3: {
+        title: 'Payment and Subscription',
+        content: 'Access to full services is subject to a subscription. Any delay in payment may result in a temporary suspension of access to signature and TTN submission features.',
+      },
+      section4: {
+        title: 'Liability',
+        content: 'The user is solely responsible for the accuracy of the fiscal information entered. El Fatoura cannot be held liable for entry errors impacting the tax compliance of your invoices.',
+      },
     },
     search: {
       placeholder: 'Search (e.g. invoice, client...)',
@@ -838,8 +915,24 @@ const translations = {
     },
     privacy: {
       title: 'Privacy Policy',
-      subtitle: 'How we protect your data.',
-      section1: { title: 'Data Collection' },
+      subtitle: 'How we protect your data and respect your privacy on El Fatoura.',
+      section1: {
+        title: 'Data Collection',
+        content: 'We only collect data necessary for managing your invoices and for your legal identification. This includes your tax ID, contact details, and billing information in accordance with Tunisian regulations.',
+      },
+      section2: {
+        title: 'Data Usage',
+        content: 'Your data is used exclusively for the proper functioning of the El Fatoura platform, generating your TEIF files, and technical communication regarding your account.',
+      },
+      section3: {
+        title: 'Protection (Law 2004-63)',
+        content: 'El Fatoura is committed to protecting your personal data in accordance with Law No. 2004-63 of July 27, 2004. You have the right to access, modify, and delete your data.',
+      },
+      section4: {
+        title: 'Security',
+        content: 'All communications between your browser and our servers are encrypted via SSL/TLS protocol. Your TunTrust signature certificates are stored in a highly secure manner.',
+      },
+      lastUpdated: 'Last updated',
     },
     form: {
       client: 'Client',
@@ -865,6 +958,7 @@ const translations = {
       rc: 'Commercial Register',
     },
     common: {
+      details: "Details",
       results: "results",
       loading: "Loading...",
       edit: "Edit",
@@ -909,7 +1003,7 @@ const translations = {
     },
     onboarding: {
       welcome: 'مرحباً بك في El Fatoura! 🚀',
-      subtitle: 'أكمل هذه الخطوات للبدء في الفوترة بامتثال كامل.',
+      subtitle: 'أكمل هذه الخطوات للبدء في الفاتورة بامتثال كامل.',
       step1: 'إعدادات الشركة',
       step2: 'إضافة أول عميل',
       step3: 'شهادة TunTrust',
@@ -917,7 +1011,7 @@ const translations = {
     },
     guide: {
       demandes: {
-        tip: 'نصيحة: بمجرد قبول العميل لطلبك، انقر فوق "فوترة" لإصدار الفاتورة الرسمية.',
+        tip: 'نصيحة: بمجرد قبول العميل لطلبك، انقر فوق "فاتورة" لإصدار الفاتورة الرسمية.',
       },
       settings: {
         mf: 'المعرف الجبائي أساسي للامتثال لنظام TEIF (TradeNet).',
@@ -1006,7 +1100,7 @@ const translations = {
         feat4: 'دعم فني ذو أولوية 7/7',
         trust: 'أكثر من 500 شركة تثق بنا',
       },
-      registerSubtitle: 'الفوترة الإلكترونية الاحترافية وفق المعايير التونسية.',
+      registerSubtitle: 'الفاتورة الإلكترونية الاحترافية وفق المعايير التونسية.',
       placeholder: {
         firstName: 'أحمد',
         lastName: 'بن صلاح',
@@ -1037,7 +1131,7 @@ const translations = {
       },
       hero: {
         badge: 'متوافق مع معايير TTN و TEIF تونس',
-        title: 'انتقل إلى الفوترة الإلكترونية الذكية.',
+        title: 'انتقل إلى الفاتورة الإلكترونية الذكية.',
         subtitle: 'حل SaaS المتكامل للشركات التونسية. بسيط، ممتثل، ومدعوم بالذكاء الاصطناعي.',
         cta: 'ابدأ الآن',
         demo: 'عرض تجريبي',
@@ -1056,31 +1150,36 @@ const translations = {
       pricing: {
         badge: 'الأسعار',
         title: 'أسعار شفافة.',
+        subtitle: 'استثمر في الامتثال ونمو شركتك مع أسعارنا المناسبة.',
         currency: 'د.ت / شهر',
         popular: 'الأكثر شعبية',
         choose: 'اختر الخطة',
+        month: 'شهر',
         starter: {
+          desc: 'للمؤسسات الصغرى الفردية.',
           feat1: '100 فاتورة / شهر',
-          feat2: 'دعم قياسي',
-          feat3: 'تصدير XML TEIF',
+          feat2: 'دعم فني عبر التذاكر',
+          feat3: 'تصدير PDF بسيط',
         },
         pro: {
-          feat1: 'فوترة غير محدودة',
-          feat2: 'دعم ذو أولوية',
-          feat3: 'مساعد ذكي مشمول',
-          feat4: 'توقيع رقمي',
+          desc: 'مثالي للمؤسسات الصغرى والمتوسطة النامية.',
+          feat1: 'فواتير غير محدودة',
+          feat2: 'مساعد ذكي مشمول',
+          feat3: 'دعم فني ذو أولوية',
+          feat4: 'توقيع TunTrust',
         },
         enterprise: {
-          feat1: 'تعدد المستخدمين',
-          feat2: 'واجهة برمجة تطبيقات كاملة',
-          feat3: 'مواكبة TTN',
-          feat4: 'استضافة مخصصة',
+          desc: 'حل متين للمؤسسات الكبرى.',
+          feat1: 'مستخدمين متعددين',
+          feat2: 'API للمطورين',
+          feat3: 'مدير حساب مخصص',
+          feat4: 'تدريب متميز (Onboarding)',
         },
       },
       tuntrust: {
         title: 'توقيع TunTrust إلزامي',
         subtitle: 'لماذا هو ضروري؟',
-        explanation: 'وفقاً للقانون التونسي للفوترة الإلكترونية (TEIF)، يجب توقيع كل فاتورة رقمياً.',
+        explanation: 'وفقاً للقانون التونسي للفاتورة الإلكترونية (TEIF)، يجب توقيع كل فاتورة رقمياً.',
         legal: 'القيمة القانونية: بدون توقيع TunTrust، لا تعترف الإدارة الضريبية بفاتورتك الإلكترونية.',
         steps: {
           title: 'كيف تحصل على توقيعك؟',
@@ -1094,6 +1193,7 @@ const translations = {
         privacy: 'الخصوصية',
         terms: 'الشروط',
         legal: 'قانوني',
+        desc: 'منصة الـ SaaS الرائدة للفواتير الإلكترونية المتوافقة في تونس.',
         madeIn: 'صنع في تونس 🇹🇳',
       },
       howItWorks: {
@@ -1110,6 +1210,8 @@ const translations = {
       },
     },
     dashboard: {
+      title: 'لوحة القيادة',
+      welcome: 'مرحباً بك في مساحة El Fatoura الخاصة بك',
       stats: {
         revenue: 'إجمالي الإيرادات',
         monthly: 'فواتير هذا الشهر',
@@ -1134,6 +1236,46 @@ const translations = {
         status: 'الحالة',
         name: 'الاسم',
       },
+      client: 'العملاء',
+      facture: 'الفواتير',
+      urgencies: {
+        overdue: 'فواتير متأخرة',
+        pendingAction: 'إجراءات مطلوبة',
+        drafts: 'مسودات',
+        needValidation: 'تحتاج إلى المصادقة'
+      },
+    },
+    demo: {
+      subscription: 'الاشتراك',
+      premium: 'ديمو بريميوم',
+      goReal: 'التحويل للأصيل',
+      banner: 'بيئة ديمو تفاعلية',
+      real_account_btn: 'إنشاء حساب حقيقي',
+      welcome_user: 'مرحباً، {name}!',
+      dashboard_subtitle: 'إليك نظرة عامة على أنشطتك التجريبية اليوم.',
+      action_btn: 'إجراء تجريبي',
+      revenue_7d: 'إيرادات 7 أيام',
+      activities: 'الأنشطة الأخيرة',
+    },
+    terms: {
+      title: 'الشروط العامة للاستخدام',
+      subtitle: 'قواعد استخدام منصة El Fatoura لفواتيرك الإلكترونية.',
+      section1: {
+        title: 'الموافقة على الشروط',
+        content: 'من خلال إنشاء حساب على El Fatoura، فإنك تقبل شروط الاستخدام هذه دون تحفظ وتتعهد بتقديم معلومات دقيقة عن شركتك.',
+      },
+      section2: {
+        title: 'ملكية البيانات',
+        content: 'تظل مالكاً لجميع البيانات والفواتير التي يتم إنشاؤها على المنصة. تعمل El Fatoura فقط كمزود خدمة تقنية للرقمنة.',
+      },
+      section3: {
+        title: 'الدفع والاشتراك',
+        content: 'الوصول إلى الخدمات الكاملة يخضع للاشتراك. قد يؤدي أي تأخير في الدفع إلى تعليق مؤقت للوصول إلى ميزات التوقيع والإرسال لـ TTN.',
+      },
+      section4: {
+        title: 'المسؤولية',
+        content: 'المستخدم مسؤول وحده عن صحة المعلومات الضريبية المدخلة. لا يمكن تحميل El Fatoura المسؤولية عن أخطاء الإدخال التي تؤثر على الامتثال الضريبي لفواتيرك.',
+      },
     },
     search: {
       placeholder: 'بحث (مثال: فاتورة، عميل...)',
@@ -1142,8 +1284,24 @@ const translations = {
     },
     privacy: {
       title: 'سياسة الخصوصية',
-      subtitle: 'كيف نحمي بياناتك.',
-      section1: { title: 'جمع البيانات' },
+      subtitle: 'كيف نحمي بياناتك ونحترم خصوصيتك على El Fatoura.',
+      section1: {
+        title: 'جمع البيانات',
+        content: 'نحن نجمع فقط البيانات الضرورية لإدارة فواتيرك ولتعريفك القانوني. ويشمل ذلك معرفك الضريبي وتفاصيل الاتصال ومعلومات الفواتير وفقاً للوائح التونسية.',
+      },
+      section2: {
+        title: 'استخدام البيانات',
+        content: 'تُستخدم بياناتك حصرياً للتشغيل السليم لمنصة El Fatoura، وتوليد ملفات TEIF الخاصة بك، والتواصل الفني بشأن حسابك.',
+      },
+      section3: {
+        title: 'الحماية (قانون 2004-63)',
+        content: 'تلتزم El Fatoura بحماية بياناتك الشخصية وفقاً للقانون رقم 2004-63 المؤرخ في 27 يوليو 2004. لك الحق في الوصول إلى بياناتك وتعديلها وحذفها.',
+      },
+      section4: {
+        title: 'الأمن والتبادل',
+        content: 'يتم تشفير جميع الاتصالات بين متصفحك وخوادمنا عبر بروتوكول SSL/TLS. يتم تخزين شهادات توقيع TunTrust الخاصة بك بطريقة آمنة للغاية.',
+      },
+      lastUpdated: 'آخر تحديث',
     },
     form: {
       client: 'العميل',
@@ -1169,6 +1327,7 @@ const translations = {
       rc: 'السجل التجاري',
     },
     common: {
+      details: "التفاصيل",
       results: "نتائج",
       loading: "جارٍ التحميل...",
       edit: "تعديل",

@@ -130,10 +130,10 @@ const Dashboard = () => {
       ) : (
         <>
           {/* Quick Actions & Header */}
-          <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-black text-slate-900 font-display tracking-tight">{t('dashboard.title')}</h1>
-              <p className="text-slate-500 text-sm font-medium">{t('dashboard.welcome')}</p>
+              <h1 className="text-xl font-black text-slate-900 font-display tracking-tight">{t('dashboard.title')}</h1>
+              <p className="text-slate-500 text-xs font-medium">{t('dashboard.welcome')}</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Button 
@@ -156,11 +156,11 @@ const Dashboard = () => {
 
           {/* Stepper Onboarding */}
           {onboarding.percent < 100 && (
-            <div className="mb-10 bg-white border border-slate-100 rounded-[2.5rem] p-10 shadow-sm relative overflow-hidden">
-               <div className="max-w-3xl mx-auto">
-                  <div className="text-center mb-10">
-                    <h2 className="text-xl font-black mb-2 text-slate-900 font-display">{t('onboarding.welcome')}</h2>
-                    <p className="text-slate-500 text-sm font-medium">{t('onboarding.subtitle')}</p>
+            <div className="mb-8 bg-white border border-slate-100 rounded-[2rem] p-8 shadow-sm relative overflow-hidden">
+               <div className="max-w-2xl mx-auto">
+                  <div className="text-center mb-8">
+                    <h2 className="text-lg font-black mb-1 text-slate-900 font-display">{t('onboarding.welcome')}</h2>
+                    <p className="text-slate-500 text-xs font-medium">{t('onboarding.subtitle')}</p>
                   </div>
                   <Stepper 
                     steps={onboardingSteps} 
@@ -208,9 +208,9 @@ const Dashboard = () => {
           <Card variant="premium" className="relative group overflow-hidden pt-6 pb-2">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{t('dashboard.stats.revenue')}</dt>
-                <dd className="text-2xl font-black text-slate-900 font-display">
-                  {stats.totalRevenue.toLocaleString()} <span className="text-xs text-slate-400 font-bold ms-1">{t('common.tnd')}</span>
+                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">{t('dashboard.stats.revenue')}</dt>
+                <dd className="text-xl font-black text-slate-900 font-display">
+                  {stats.totalRevenue.toLocaleString()} <span className="text-[10px] text-slate-400 font-bold ms-1">{t('common.tnd')}</span>
                 </dd>
               </div>
               <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
@@ -223,8 +223,8 @@ const Dashboard = () => {
           <Card className="relative group overflow-hidden pt-6 pb-2">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{t('dashboard.stats.monthly')}</dt>
-                <dd className="text-2xl font-black text-slate-900 font-display">{stats.totalInvoices}</dd>
+                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">{t('dashboard.stats.monthly')}</dt>
+                <dd className="text-xl font-black text-slate-900 font-display">{stats.totalInvoices}</dd>
               </div>
               <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600">
                 <ArrowUpRight className="w-4 h-4" />
@@ -236,8 +236,8 @@ const Dashboard = () => {
           <Card className="relative group overflow-hidden pt-6 pb-2">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{t('dashboard.stats.pending')}</dt>
-                <dd className="text-2xl font-black text-slate-900 font-display">{stats.pendingInvoices}</dd>
+                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">{t('dashboard.stats.pending')}</dt>
+                <dd className="text-xl font-black text-slate-900 font-display">{stats.pendingInvoices}</dd>
               </div>
               <div className="p-2 bg-amber-50 rounded-xl text-amber-600">
                 <Clock className="w-4 h-4" />
@@ -251,8 +251,8 @@ const Dashboard = () => {
           <Card className="relative group overflow-hidden pt-6 pb-2">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{t('dashboard.stats.paid')}</dt>
-                <dd className="text-2xl font-black text-slate-900 font-display">{stats.paidInvoices}</dd>
+                <dt className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">{t('dashboard.stats.paid')}</dt>
+                <dd className="text-xl font-black text-slate-900 font-display">{stats.paidInvoices}</dd>
               </div>
               <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
                 <CheckCircle2 className="w-4 h-4" />
@@ -281,23 +281,23 @@ const Dashboard = () => {
               <table className="min-w-full divide-y divide-slate-100">
                 <thead className="bg-slate-50/50">
                   <tr>
-                    <th className="px-6 py-4 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('invoices.table.id')}</th>
-                    <th className="px-6 py-4 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('form.client')}</th>
-                    <th className="px-6 py-4 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.table.status')}</th>
-                    <th className="px-6 py-4 text-end text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.table.amount')}</th>
+                    <th className="px-5 py-3 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('invoices.table.id')}</th>
+                    <th className="px-5 py-3 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('form.client')}</th>
+                    <th className="px-5 py-3 text-start text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.table.status')}</th>
+                    <th className="px-5 py-3 text-end text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('dashboard.table.amount')}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-50">
                   {stats.recentInvoices.map((invoice) => (
                     <tr key={invoice.id} className="hover:bg-premium-50/30 transition-colors group">
-                      <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-900">{invoice.id.slice(0, 8).toUpperCase()}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{invoice.client?.name || '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-5 py-3 whitespace-nowrap text-xs font-bold text-slate-900">{invoice.id.slice(0, 8).toUpperCase()}</td>
+                      <td className="px-5 py-3 whitespace-nowrap text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{invoice.client?.name || '-'}</td>
+                      <td className="px-5 py-3 whitespace-nowrap">
                         <Badge variant={getStatusVariant(invoice.status)}>
                           {t(`status.${invoice.status.toLowerCase()}`) || invoice.status}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-black text-slate-900 group-hover:text-premium-600 transition-colors">
+                      <td className="px-5 py-3 whitespace-nowrap text-end text-sm font-black text-slate-900 group-hover:text-premium-600 transition-colors">
                         {invoice.netToPay.toLocaleString()} <span className="text-[10px] text-slate-400 font-bold">{t('common.tnd')}</span>
                       </td>
                     </tr>
