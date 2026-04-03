@@ -331,7 +331,7 @@ const Settings = () => {
                            {saveMsg.text}
                         </div>
                      )}
-                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{t('settings.profile.last_updated') || 'Dernière mise à jour le ' + new Date().toLocaleDateString()}</p>
+                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{t('settings.profile.last_updated')} {new Date().toLocaleDateString()}</p>
                   </div>
                   <Button type="submit" loading={isSaving} className="w-full sm:w-auto px-12 py-4 shadow-2xl shadow-indigo-200 active:scale-95 transition-all" icon={Save}>
                      {t('common.save')}
@@ -344,12 +344,12 @@ const Settings = () => {
                   <div className="flex items-center gap-4">
                      <div className="p-4 bg-rose-50 rounded-2xl text-rose-600 border border-rose-100 shadow-sm"><ShieldAlert className="w-6 h-6" /></div>
                      <div>
-                        <h4 className="text-sm font-black text-rose-900 uppercase tracking-tighter">{t('settings.danger_zone') || 'Zone de Danger'}</h4>
-                        <p className="text-xs text-rose-500 font-medium">{t('settings.delete_account_desc') || 'Supprimer définitivement votre compte et vos données.'}</p>
+                        <h4 className="text-sm font-black text-rose-900 uppercase tracking-tighter">{t('settings.danger_zone')}</h4>
+                        <p className="text-xs text-rose-500 font-medium">{t('settings.delete_account_desc')}</p>
                      </div>
                   </div>
                   <Button variant="ghost" className="text-rose-600 hover:bg-rose-50 border-rose-100 !rounded-2xl font-black text-[10px] uppercase tracking-widest">
-                     {t('settings.delete_account') || 'Supprimer le compte'}
+                     {t('settings.delete_account')}
                   </Button>
                </div>
             </Card>
@@ -442,7 +442,7 @@ const Settings = () => {
                         <div className="relative group">
                            <FileText className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition-colors" />
                            <input type="file" accept=".p12" onChange={e => setCertFile(e.target.files[0])} className="w-full bg-slate-50/50 border border-slate-100 rounded-[1.5rem] pl-14 pr-4 py-4 text-xs font-bold text-slate-500 cursor-pointer file:hidden hover:bg-white hover:ring-4 hover:ring-indigo-500/5 transition-all outline-none" />
-                           <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-indigo-600 uppercase tracking-widest pointer-events-none">{certFile ? certFile.name : 'Choisir .p12'}</span>
+                           <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-indigo-600 uppercase tracking-widest pointer-events-none">{certFile ? certFile.name : t('settings.compliance.choose_file')}</span>
                         </div>
                      </div>
                      <Input 
@@ -468,10 +468,10 @@ const Settings = () => {
                       <header className="space-y-3">
                          <h4 className="text-2xl font-black flex items-center gap-4 font-display italic">
                            <Cpu className="w-8 h-8 text-indigo-400 animate-pulse" /> 
-                           SYSTEM STATUS
+                           {t('settings.compliance.system_status')}
                          </h4>
                          <p className="text-slate-400 text-sm font-bold tracking-tight">
-                           {t('settings.compliance.status_desc') || 'Surveillance en temps réel des modules de conformité fiscale.'}
+                           {t('settings.compliance.status_desc')}
                          </p>
                       </header>
 
@@ -500,7 +500,7 @@ const Settings = () => {
                             <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-[10px] font-black">TTN</div>
                             <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-[10px] font-black">+</div>
                          </div>
-                         <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Compliance V2.0</span>
+                         <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">{t('settings.compliance.version')}</span>
                       </div>
                    </div>
                 </div>
@@ -521,7 +521,7 @@ const Settings = () => {
                 <div className="space-y-4">
                    <h3 className="text-3xl font-black text-slate-900 font-display tracking-tight uppercase italic">{t('settings.team.title')}</h3>
                    <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                      {t('settings.team.desc') || 'Invitez vos collaborateurs et gérez les permissions d\'accès à votre entreprise.'}
+                      {t('settings.team.desc')}
                    </p>
                 </div>
                 <div className="inline-flex items-center gap-4 px-8 py-3 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-sm">

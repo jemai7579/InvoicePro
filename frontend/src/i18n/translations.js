@@ -432,6 +432,9 @@ const translations = {
       loading: "Chargement du profil...",
       success: "Informations mises à jour avec succès.",
       error: "Échec de la sauvegarde.",
+      danger_zone: "Zone de Danger",
+      delete_account: "Supprimer le compte",
+      delete_account_desc: "Supprimer définitivement votre compte et vos données.",
       profile: {
         company_name: "Nom de votre entreprise",
         active_account: "Compte Actif",
@@ -442,7 +445,8 @@ const translations = {
         address_label: "Adresse du siège",
         city: "Ville",
         zip: "Code Postal",
-        phone: "Téléphone professionnel"
+        phone: "Téléphone professionnel",
+        last_updated: "Dernière mise à jour le"
       },
       security: {
         title: "Protection des accès",
@@ -475,6 +479,9 @@ const translations = {
         not_config: "Non configuré",
         ready: "Prêt",
         req_cert: "Certificat requis",
+        choose_file: "Choisir .p12",
+        system_status: "STATUT DU SYSTÈME",
+        version: "Conformité V2.0",
         why_title: "Pourquoi signer ?",
         why_desc: "La signature électronique garantit que vos documents n’ont pas été modifiés après émission et authentifie l’identité de l’émetteur."
       },
@@ -612,6 +619,40 @@ const translations = {
       paid: "Payée",
       rejected: "Rejetée",
       sent_to_ttn: "Soumise TTN"
+    },
+    reports: {
+      title: "Analytique & Rapports",
+      subtitle: "Indicateurs clés et statistiques de performance",
+      startDate: "Date de début",
+      endDate: "Date de fin",
+      kpi: {
+        revenueHT: "Revenu HT",
+        revenueTTC: "Revenu TTC",
+        tva: "TVA Collectée",
+        invoiceCount: "Total Factures"
+      },
+      charts: {
+        revenue: {
+          title: "Croissance du Revenu",
+          subtitle: "Analyse mensuelle comparative HT/TTC"
+        },
+        volume: {
+          title: "Volume d'Activité",
+          subtitle: "Nombre total de factures générées"
+        },
+        clients: {
+          title: "Meilleurs Clients",
+          subtitle: "Répartition du revenu par client"
+        },
+        tva: {
+          title: "Fiscalité (TVA)",
+          subtitle: "Historique de la taxe collectée"
+        }
+      },
+      export: {
+        title: "Exporter les Données",
+        subtitle: "Générer un rapport PDF détaillé"
+      }
     }
   },
   en: {
@@ -981,6 +1022,106 @@ const translations = {
       paid: "Paid",
       rejected: "Rejected",
       sent_to_ttn: "Submitted TTN"
+    },
+    settings: {
+      title: "Settings",
+      subtitle: "Manage your account and company information.",
+      tabs: {
+        profile: "Company Profile",
+        security: "Security",
+        compliance: "TEIF Compliance",
+        team: "Team & CRM"
+      },
+      loading: "Loading profile...",
+      profile: {
+        company_name: "Your Company Name",
+        active_account: "Active Account",
+        legal_identity: "Legal Identity",
+        raison_sociale: "Company Name",
+        rc: "Commercial Register",
+        contact_siege: "Contact & HQ",
+        address_label: "HQ Address",
+        city: "City",
+        zip: "Zip Code",
+        phone: "Professional Phone",
+        last_updated: "Last updated on"
+      },
+      danger_zone: "Danger Zone",
+      delete_account: "Delete Account",
+      delete_account_desc: "Permanently delete your account and data.",
+      security: {
+        title: "Access Protection",
+        subtitle: "Update your password regularly.",
+        current_pwd: "Current Password",
+        new_pwd: "New Password",
+        confirm_pwd: "Confirm Password",
+        button: "Update Password",
+        match_error: "Passwords do not match.",
+        success: "Password updated successfully."
+      },
+      compliance: {
+        title: "TunTrust Signature",
+        subtitle: "Configure your XAdES-B identity.",
+        prerequisite: "Technical Prerequisite",
+        explanation: "To send invoices on Tunisia Trade Net (TTN), you must have a valid electronic certificate from TunTrust (PKCS#12 / .p12 format).",
+        order_cert: "Order a certificate",
+        file_label: "Certificate File (.p12)",
+        pwd_label: "Certificate Password",
+        button: "Install Certificate",
+        success: "Certificate configured successfully.",
+        error: "Certificate configuration failed.",
+        status_desc: "Your platform is ready to generate UBL 2.1 TEIF documents. Adding the TunTrust certificate will enable automatic XAdES-B signature.",
+        ubl_gen: "UBL 2.1 Generation",
+        xades_sign: "XAdES-B Signature",
+        ttn_sub: "TTN Submission",
+        operational: "Operational",
+        active: "Activated",
+        not_config: "Not configured",
+        ready: "Ready",
+        req_cert: "Certificate required",
+        choose_file: "Choose .p12",
+        system_status: "SYSTEM STATUS",
+        version: "Compliance V2.0"
+      },
+      team: {
+        title: "Team & CRM",
+        desc: "Manage collaborator access (accountants, assistants) and centralize client relations.",
+        feature_premium: "Premium Feature"
+      }
+    },
+    reports: {
+      title: "Analytics & Reports",
+      subtitle: "Key indicators and performance statistics",
+      startDate: "Start Date",
+      endDate: "End Date",
+      kpi: {
+        revenueHT: "Revenue (Excl. Tax)",
+        revenueTTC: "Revenue (Incl. Tax)",
+        tva: "Collected VAT",
+        invoiceCount: "Total Invoices"
+      },
+      charts: {
+        revenue: {
+          title: "Revenue Growth",
+          subtitle: "Monthly comparative analysis (HT/TTC)"
+        },
+        volume: {
+          title: "Activity Volume",
+          subtitle: "Total number of invoices generated"
+        },
+        clients: {
+          title: "Top Clients",
+          subtitle: "Revenue distribution by client"
+        },
+        tva: {
+          title: "Taxation (VAT)",
+          subtitle: "History of collected tax"
+        }
+      },
+      export: {
+        title: "Export Data",
+        subtitle: "Generate a detailed PDF report"
+      }
     }
   },
   ar: {
@@ -1350,6 +1491,106 @@ const translations = {
       paid: "خالصة",
       rejected: "مرفوضة",
       sent_to_ttn: "مرسلة لـ TTN"
+    },
+    settings: {
+      title: "الإعدادات",
+      subtitle: "إدارة حسابك ومعلومات شركتك.",
+      tabs: {
+        profile: "ملف الشركة",
+        security: "الأمان",
+        compliance: "الامتثال لـ TEIF",
+        team: "الفريق و CRM"
+      },
+      loading: "جاري تحميل الملف الشخصي...",
+      profile: {
+        company_name: "اسم شركتك",
+        active_account: "حساب نشط",
+        legal_identity: "الهوية القانونية",
+        raison_sociale: "الاسم التجاري",
+        rc: "السجل التجاري",
+        contact_siege: "الاتصال والمقر",
+        address_label: "عنوان المقر",
+        city: "المدينة",
+        zip: "الرمز البريدي",
+        phone: "الهاتف المهني",
+        last_updated: "آخر تحديث في"
+      },
+      danger_zone: "منطقة خطر",
+      delete_account: "حذف الحساب",
+      delete_account_desc: "حذف حسابك وبياناتك نهائياً.",
+      security: {
+        title: "حماية الوصول",
+        subtitle: "قم بتحديث كلمة المرور بانتظام.",
+        current_pwd: "كلمة المرور الحالية",
+        new_pwd: "كلمة المرور الجديدة",
+        confirm_pwd: "تأكيد كلمة المرور",
+        button: "تحديث كلمة المرور",
+        match_error: "كلمات المرور غير متطابقة.",
+        success: "تم تحديث كلمة المرور بنجاح."
+      },
+      compliance: {
+        title: "توقيع TunTrust",
+        subtitle: "قم بتهيئة هوية XAdES-B الخاصة بك.",
+        prerequisite: "المتطلبات التقنية",
+        explanation: "لإرسال الفواتير على شبكة التجارة التونسية (TTN)، يجب أن يكون لديك شهادة إلكترونية صالحة من TunTrust (تنسيق PKCS#12 / .p12).",
+        order_cert: "طلب شهادة",
+        file_label: "ملف الشهادة (.p12)",
+        pwd_label: "كلمة مرور الشهادة",
+        button: "تثبيت الشهادة",
+        success: "تم تهيئة الشهادة بنجاح.",
+        error: "فشلت تهيئة الشهادة.",
+        status_desc: "منصتك جاهزة لإنشاء مستندات UBL 2.1 TEIF. إضافة شهادة TunTrust ستفعل توقيع XAdES-B التلقائي.",
+        ubl_gen: "إنشاء UBL 2.1",
+        xades_sign: "توقيع XAdES-B",
+        ttn_sub: "الإرسال لـ TTN",
+        operational: "مشغل",
+        active: "مفعل",
+        not_config: "غير مهيأ",
+        ready: "جاهز",
+        req_cert: "الشهادة مطلوبة",
+        choose_file: "اختر .p12",
+        system_status: "حالة النظام",
+        version: "الامتثال V2.0"
+      },
+      team: {
+        title: "الفريق و CRM",
+        desc: "إدارة وصول المتعاونين (محاسبون، مساعدون) ومركزة علاقات العملاء.",
+        feature_premium: "ميزة بريميوم"
+      }
+    },
+    reports: {
+      title: "التحليلات والتقارير",
+      subtitle: "المؤشرات الرئيسية وإحصائيات الأداء",
+      startDate: "تاريخ البدء",
+      endDate: "تاريخ الانتهاء",
+      kpi: {
+        revenueHT: "الإيرادات (بدون أداء)",
+        revenueTTC: "الإيرادات (مع الأداء)",
+        tva: "الأداء على القيمة المضافة المجمع",
+        invoiceCount: "إجمالي الفواتير"
+      },
+      charts: {
+        revenue: {
+          title: "نمو الإيرادات",
+          subtitle: "تحليل شهري مقارن (بدون/مع الأداء)"
+        },
+        volume: {
+          title: "حجم النشاط",
+          subtitle: "إجمالي عدد الفواتير المنشأة"
+        },
+        clients: {
+          title: "أفضل العملاء",
+          subtitle: "توزيع الإيرادات حسب العميل"
+        },
+        tva: {
+          title: "الجباية (الأداء)",
+          subtitle: "سجل الأداء المجمع"
+        }
+      },
+      export: {
+        title: "تصدير البيانات",
+        subtitle: "إنشاء تقرير PDF مفصل"
+      }
     }
   },
 };

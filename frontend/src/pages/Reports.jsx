@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Loader, Calendar, FileText, TrendingUp, DollarSign, PieChart as PieIcon, BarChart3, Filter, Download } from 'lucide-react';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -6,6 +6,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -14,6 +16,8 @@ const Reports = () => {
   const isRtl = lang === 'ar';
   const [loading, setLoading] = useState(true);
   const [reportsData, setReportsData] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const reportRef = useRef(null);
   
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -42,6 +46,40 @@ const Reports = () => {
   const handleFilter = (e) => {
     e.preventDefault();
     fetchReports();
+  };
+
+  const handleExportPDF = async () => {
+    if (!reportRef.current) return;
+    setIsExporting(true);
+    
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f8fafc',
+        windowWidth: reportRef.current.scrollWidth,
+        windowHeight: reportRef.current.scrollHeight
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgScaledWidth = imgWidth * ratio;
+      const imgScaledHeight = imgHeight * ratio;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgScaledWidth, imgScaledHeight);
+      pdf.save(`rapport-statistiques-${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      alert('Erreur lors de la génération du PDF');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const formatCurrency = (value) => `${value.toLocaleString(undefined, { maximumFractionDigits: 0 })} TND`;
@@ -77,13 +115,13 @@ const Reports = () => {
     <div className="max-w-7xl space-y-8 pb-20 animate-in fade-in duration-500">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight font-display">{t('reports.title') || 'Analytique & Rapports'}</h1>
-          <p className="text-sm text-slate-500 font-medium">{t('reports.subtitle') || 'Indicateurs clés et statistiques de performance'}</p>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight font-display">{t('reports.title')}</h1>
+          <p className="text-sm text-slate-500 font-medium">{t('reports.subtitle')}</p>
         </div>
         
         <form onSubmit={handleFilter} className="flex flex-wrap items-end gap-3 w-full lg:w-auto">
           <div className="flex-1 lg:flex-initial space-y-1.5">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('reports.startDate') || 'Début'}</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('reports.startDate')}</label>
             <div className="relative group">
                <Calendar className="absolute inset-y-0 left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
                <input 
@@ -95,7 +133,7 @@ const Reports = () => {
             </div>
           </div>
           <div className="flex-1 lg:flex-initial space-y-1.5">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('reports.endDate') || 'Fin'}</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('reports.endDate')}</label>
             <div className="relative group">
                <Calendar className="absolute inset-y-0 left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
                <input 
@@ -111,20 +149,20 @@ const Reports = () => {
             className="h-[42px] px-6 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all flex items-center gap-2 shadow-lg shadow-slate-100 active:scale-95"
           >
             <Filter className="w-3.5 h-3.5" />
-            {t('common.filter') || 'Filtrer'}
+            {t('common.filter')}
           </button>
         </form>
       </div>
 
-      <div className="space-y-8">
+      <div ref={reportRef} className="space-y-8 p-4 rounded-[2rem]">
         
         {/* Top KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { label: 'Revenu HT', val: reportsData.totalKPIs.revenueHT, icon: TrendingUp, color: 'text-indigo-600' },
-            { label: 'Revenu TTC', val: reportsData.totalKPIs.revenueTTC, icon: DollarSign, color: 'text-emerald-600', accent: 'border-b-4 border-b-emerald-500' },
-            { label: 'TVA Collectée', val: reportsData.totalKPIs.tva, icon: BarChart3, color: 'text-amber-600' },
-            { label: 'Total Factures', val: `${reportsData.totalKPIs.invoiceCount} Unités`, icon: FileText, color: 'text-slate-600', accent: 'border-b-4 border-b-indigo-500' }
+            { label: t('reports.kpi.revenueHT'), val: reportsData.totalKPIs.revenueHT, icon: TrendingUp, color: 'text-indigo-600' },
+            { label: t('reports.kpi.revenueTTC'), val: reportsData.totalKPIs.revenueTTC, icon: DollarSign, color: 'text-emerald-600', accent: 'border-b-4 border-b-emerald-500' },
+            { label: t('reports.kpi.tva'), val: reportsData.totalKPIs.tva, icon: BarChart3, color: 'text-amber-600' },
+            { label: t('reports.kpi.invoiceCount'), val: `${reportsData.totalKPIs.invoiceCount}`, icon: FileText, color: 'text-slate-600', accent: 'border-b-4 border-b-indigo-500' }
           ].map((kpi, i) => (
             <div key={i} className={`bg-white p-6 rounded-[1.8rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow ${kpi.accent || ''}`}>
               <div className="flex items-center justify-between mb-4">
@@ -147,8 +185,8 @@ const Reports = () => {
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 group">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-lg font-black text-slate-900 font-display leading-none">Croissance du Revenu</h2>
-                <p className="text-xs text-slate-400 font-medium mt-1.5">Analyse mensuelle comparative HT/TTC</p>
+                <h2 className="text-lg font-black text-slate-900 font-display leading-none">{t('reports.charts.revenue.title')}</h2>
+                <p className="text-xs text-slate-400 font-medium mt-1.5">{t('reports.charts.revenue.subtitle')}</p>
               </div>
               <div className="p-2 bg-slate-50 rounded-xl group-hover:rotate-12 transition-transform"><BarChart3 className="w-5 h-5 text-indigo-600" /></div>
             </div>
@@ -172,8 +210,8 @@ const Reports = () => {
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{fill: '#f8fafc'}}/>
                   <Legend iconType="circle" wrapperStyle={{paddingTop: 20, fontSize: 12, fontWeight: 700}} />
-                  <Bar dataKey="RevenueHT" name="Revenu HT" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={20} />
-                  <Bar dataKey="RevenueTTC" name="Revenu TTC" fill="#10b981" radius={[6, 6, 0, 0]} barSize={20} />
+                  <Bar dataKey="RevenueHT" name={t('reports.kpi.revenueHT')} fill="#6366f1" radius={[6, 6, 0, 0]} barSize={20} />
+                  <Bar dataKey="RevenueTTC" name={t('reports.kpi.revenueTTC')} fill="#10b981" radius={[6, 6, 0, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -183,8 +221,8 @@ const Reports = () => {
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 group">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-lg font-black text-slate-900 font-display leading-none">Volume d'Activité</h2>
-                <p className="text-xs text-slate-400 font-medium mt-1.5">Nombre total de factures générées</p>
+                <h2 className="text-lg font-black text-slate-900 font-display leading-none">{t('reports.charts.volume.title')}</h2>
+                <p className="text-xs text-slate-400 font-medium mt-1.5">{t('reports.charts.volume.subtitle')}</p>
               </div>
               <div className="p-2 bg-slate-50 rounded-xl group-hover:rotate-12 transition-transform"><FileText className="w-5 h-5 text-indigo-600" /></div>
             </div>
@@ -215,7 +253,7 @@ const Reports = () => {
                   <Area 
                     type="monotone" 
                     dataKey="Count" 
-                    name="Factures" 
+                    name={t('nav.invoices')} 
                     stroke="#6366f1" 
                     strokeWidth={4} 
                     fillOpacity={1} 
@@ -231,8 +269,8 @@ const Reports = () => {
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 group">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-lg font-black text-slate-900 font-display leading-none">Meilleurs Clients</h2>
-                <p className="text-xs text-slate-400 font-medium mt-1.5">Répartition du revenu par client</p>
+                <h2 className="text-lg font-black text-slate-900 font-display leading-none">{t('reports.charts.clients.title')}</h2>
+                <p className="text-xs text-slate-400 font-medium mt-1.5">{t('reports.charts.clients.subtitle')}</p>
               </div>
               <div className="p-2 bg-slate-50 rounded-xl group-hover:rotate-12 transition-transform"><PieIcon className="w-5 h-5 text-indigo-600" /></div>
             </div>
@@ -264,8 +302,8 @@ const Reports = () => {
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 group">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-lg font-black text-slate-900 font-display leading-none">Fiscalité (TVA)</h2>
-                <p className="text-xs text-slate-400 font-medium mt-1.5">Historique de la taxe collectée</p>
+                <h2 className="text-lg font-black text-slate-900 font-display leading-none">{t('reports.charts.tva.title')}</h2>
+                <p className="text-xs text-slate-400 font-medium mt-1.5">{t('reports.charts.tva.subtitle')}</p>
               </div>
               <div className="p-2 bg-slate-50 rounded-xl group-hover:rotate-12 transition-transform"><BarChart3 className="w-5 h-5 text-amber-500" /></div>
             </div>
@@ -288,28 +326,33 @@ const Reports = () => {
                     dx={-10}
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{fill: '#fefce8'}}/>
-                  <Bar dataKey="TVA" name="Taxe (TVA)" fill="#f59e0b" radius={[6, 6, 0, 0]} barSize={30} />
+                  <Bar dataKey="TVA" name={t('reports.kpi.tva')} fill="#f59e0b" radius={[6, 6, 0, 0]} barSize={30} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
         </div>
-        
-        {/* Export Action */}
-        <div className="flex justify-center pt-4">
-           <button className="flex items-center gap-3 px-10 py-5 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-indigo-100 hover:-translate-y-1 transition-all group">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform"><Download className="w-5 h-5" /></div>
-              <div className="text-left">
-                 <p className="text-xs font-black uppercase tracking-widest text-slate-900">Exporter les Données</p>
-                 <p className="text-[10px] font-medium text-slate-400">Générer un rapport PDF ou Excel détaillé</p>
-              </div>
-           </button>
-        </div>
+      </div>
+      
+      {/* Export Action */}
+      <div className="flex justify-center pt-4">
+         <button 
+          onClick={handleExportPDF}
+          disabled={isExporting}
+          className="flex items-center gap-3 px-10 py-5 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-indigo-100 hover:-translate-y-1 transition-all group disabled:opacity-50"
+         >
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+              {isExporting ? <Loader className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+            </div>
+            <div className="text-left">
+               <p className="text-xs font-black uppercase tracking-widest text-slate-900">{t('reports.export.title')}</p>
+               <p className="text-[10px] font-medium text-slate-400">{t('reports.export.subtitle')}</p>
+            </div>
+         </button>
       </div>
     </div>
   );
 };
 
 export default Reports;
-
