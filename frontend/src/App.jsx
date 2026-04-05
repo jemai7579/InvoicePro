@@ -21,38 +21,66 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Legal from './pages/Legal';
 
+// Admin Pages
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminInvoices from './pages/admin/AdminInvoices';
+import AdminSubscriptions from './pages/admin/AdminSubscriptions';
+import AdminActivity from './pages/admin/AdminActivity';
+import AdminSettings from './pages/admin/AdminSettings';
+import AdminLayout from './components/AdminLayout';
+import AdminPrivateRoute from './components/AdminPrivateRoute';
+
+import { AdminAuthProvider } from './context/AdminAuthContext';
+
 function App() {
   console.log('App.jsx: Rendering App');
   return (
     <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/demo" element={<Demo />} />
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/legal" element={<Legal />} />
+      <AdminAuthProvider>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/demo" element={<Demo />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/legal" element={<Legal />} />
 
-        {/* Protected Routes */}
-        <Route element={<PrivateRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/invoices" element={<Invoices />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/demandes" element={<Demandes />} />
-            <Route path="/teif" element={<Teif />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/ai" element={<AI />} />
-            <Route path="/help" element={<Help />} />
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route element={<AdminPrivateRoute />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/invoices" element={<AdminInvoices />} />
+              <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
+              <Route path="/admin/activity" element={<AdminActivity />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+            </Route>
           </Route>
-        </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* User Protected Routes */}
+          <Route element={<PrivateRoute />}>
+            <Route element={<Layout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/invoices" element={<Invoices />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/demandes" element={<Demandes />} />
+              <Route path="/teif" element={<Teif />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/ai" element={<AI />} />
+              <Route path="/help" element={<Help />} />
+            </Route>
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AdminAuthProvider>
     </Router>
   );
 }

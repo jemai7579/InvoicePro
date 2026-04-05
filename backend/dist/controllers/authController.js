@@ -14,15 +14,25 @@ const generateToken = (id) => {
 };
 const register = async (req, res) => {
     try {
-        const { email, password, name, matriculeFiscal, registreCommerce, address, phone, rib } = req.body;
-        if (!email || !password || !name || !matriculeFiscal || !address) {
-            return res.status(400).json({ message: 'Please add all required fields' });
+        const { email, password, name, firstName, lastName, matriculeFiscal, registreCommerce, address, phone, rib, plan: requestedPlan } = req.body;
+        const validPlans = ['starter', 'professional', 'enterprise'];
+        const plan = validPlans.includes(requestedPlan) ? requestedPlan : 'starter';
+        // Validation Matricule Fiscal Tunisien (ex: 1234567/X/A/P/000)
+        // Validation Matricule Fiscal Tunisien (ex: 1234567/X/A/P/000)
+        const mfRegex = /^\d{7,8}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}$/;
+        if (!mfRegex.test(matriculeFiscal)) {
+            return res.status(400).json({ message: 'Format Matricule Fiscal invalide. Exemple: 1234567/X/A/M/000' });
+        }
+        // Validation Téléphone Tunisien (8 chiffres ou avec +216)
+        const phoneRegex = /^(\+216)?\s?\d{8}$/;
+        if (!phoneRegex.test(phone)) {
+            return res.status(400).json({ message: 'Format numéro de téléphone invalide.' });
         }
         const companyExists = await prisma_1.default.company.findUnique({
             where: { email },
         });
         if (companyExists) {
-            return res.status(400).json({ message: 'Company already exists' });
+            return res.status(400).json({ message: 'An account with this email already exists.' });
         }
         const salt = await bcryptjs_1.default.genSalt(10);
         const hashedPassword = await bcryptjs_1.default.hash(password, salt);
@@ -31,12 +41,23 @@ const register = async (req, res) => {
                 email,
                 password: hashedPassword,
                 name,
+                firstName,
+                lastName,
                 matriculeFiscal,
                 registreCommerce,
                 address,
                 phone,
-                rib
+                rib,
+                subscription: {
+                    create: {
+                        plan: plan,
+                        status: 'ACTIVE'
+                    }
+                }
             },
+            include: {
+                subscription: true
+            }
         });
         if (company) {
             res.status(201).json({
@@ -52,6 +73,9 @@ const register = async (req, res) => {
     }
     catch (error) {
         console.error(error);
+        if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+            return res.status(400).json({ message: 'An account with this email already exists.' });
+        }
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -94,6 +118,7 @@ const getMe = async (req, res) => {
                 phone: true,
                 rib: true,
                 createdAt: true,
+                subscription: true,
             }
         });
         res.status(200).json(company);

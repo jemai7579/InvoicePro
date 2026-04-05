@@ -9,6 +9,7 @@ import { getInvoices, getInvoiceById, createInvoice,
   importInvoiceXml
 } from '../controllers/invoiceController';
 import { protect } from '../middleware/authMiddleware';
+import { checkInvoiceQuota } from '../middleware/subscriptionMiddleware';
 import multer from 'multer';
 
 const router = Router();
@@ -16,7 +17,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 
 router.route('/')
   .get(protect, getInvoices)
-  .post(protect, createInvoice);
+  .post(protect, checkInvoiceQuota, createInvoice);
 
 router.route('/:id')
   .get(protect, getInvoiceById)
@@ -37,6 +38,6 @@ router.route('/:id/submit-ttn')
 router.route('/:id/status')
   .patch(protect, updateInvoiceStatus);
 
-router.post('/import-xml', protect, upload.single('xml'), importInvoiceXml);
+router.post('/import-xml', protect, checkInvoiceQuota, upload.single('xml'), importInvoiceXml);
 
 export default router;

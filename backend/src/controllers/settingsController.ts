@@ -37,22 +37,45 @@ export const getSettings = async (req: Request, res: Response) => {
 export const updateSettings = async (req: Request, res: Response) => {
   try {
     const { name, matriculeFiscal, registreCommerce, address, city, zipCode, country, phone, rib, logo, newPassword, currentPassword } = req.body;
-
     const companyId = (req as any).company.id;
+
+    // Fetch the actual current values to compare
+    const currentSettings = await prisma.company.findUnique({
+      where: { id: companyId }
+    });
+
+    if (!currentSettings) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
 
     // Build update data — only include fields that were actually sent
     const updateData: any = {};
-    if (name !== undefined) updateData.name = name;
-    if (matriculeFiscal !== undefined) updateData.matriculeFiscal = matriculeFiscal;
-    // ... other fields ...
-    if (registreCommerce !== undefined) updateData.registreCommerce = registreCommerce;
-    if (address !== undefined) updateData.address = address;
-    if (city !== undefined) updateData.city = city;
-    if (zipCode !== undefined) updateData.zipCode = zipCode;
-    if (country !== undefined) updateData.country = country;
-    if (phone !== undefined) updateData.phone = phone;
-    if (rib !== undefined) updateData.rib = rib;
-    if (logo !== undefined) updateData.logo = logo;
+    const changes: any[] = [];
+
+    const fieldsToTrack = [
+      { key: 'name', label: 'Raison sociale' },
+      { key: 'matriculeFiscal', label: 'Matricule Fiscal' },
+      { key: 'registreCommerce', label: 'Registre de Commerce' },
+      { key: 'address', label: 'Adresse' },
+      { key: 'city', label: 'Ville' },
+      { key: 'zipCode', label: 'Code Postal' },
+      { key: 'phone', label: 'Téléphone' },
+      { key: 'rib', label: 'RIB' }
+    ];
+
+    fieldsToTrack.forEach(field => {
+      const newValue = req.body[field.key];
+      const oldValue = (currentSettings as any)[field.key];
+
+      if (newValue !== undefined && newValue !== oldValue) {
+        updateData[field.key] = newValue;
+        changes.push({
+          field: field.label,
+          oldValue: String(oldValue || ''),
+          newValue: String(newValue || '')
+        });
+      }
+    });
 
     // Password change logic
     if (newPassword) {
@@ -60,18 +83,8 @@ export const updateSettings = async (req: Request, res: Response) => {
         return res.status(400).json({ message: 'Le mot de passe actuel est requis pour changer votre mot de passe.' });
       }
 
-      // Fetch the actual current password hash
-      const company = await prisma.company.findUnique({
-        where: { id: companyId },
-        select: { password: true }
-      });
-
-      if (!company) {
-        return res.status(404).json({ message: 'Company not found' });
-      }
-
       // Compare
-      const isMatch = await bcrypt.compare(currentPassword, company.password);
+      const isMatch = await bcrypt.compare(currentPassword, currentSettings.password);
       if (!isMatch) {
         return res.status(401).json({ message: 'Le mot de passe actuel est incorrect.' });
       }
@@ -82,6 +95,22 @@ export const updateSettings = async (req: Request, res: Response) => {
 
       const salt = await bcrypt.genSalt(10);
       updateData.password = await bcrypt.hash(newPassword, salt);
+      
+      changes.push({
+        field: 'Mot de passe',
+        oldValue: '********',
+        newValue: 'Modifié'
+      });
+    }
+
+    // Logo change logic (if logo specifically sent in body, though it usually goes through uploadLogo)
+    if (logo !== undefined && logo !== currentSettings.logo) {
+      updateData.logo = logo;
+      changes.push({
+        field: 'Logo',
+        oldValue: currentSettings.logo ? 'Ancien logo' : 'Aucun',
+        newValue: 'Nouveau logo'
+      });
     }
 
     const updatedCompany = await prisma.company.update({
@@ -103,7 +132,35 @@ export const updateSettings = async (req: Request, res: Response) => {
       }
     });
 
+    // Log all changes if any
+    if (changes.length > 0) {
+      await Promise.all(changes.map(change => 
+        prisma.settingsHistory.create({
+          data: {
+            companyId,
+            field: change.field,
+            oldValue: change.oldValue,
+            newValue: change.newValue
+          }
+        })
+      ));
+    }
+
     res.status(200).json(updatedCompany);
+  } catch (error) {
+    console.error('UpdateSettings Error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const getSettingsHistory = async (req: Request, res: Response) => {
+  try {
+    const companyId = (req as any).company.id;
+    const history = await prisma.settingsHistory.findMany({
+      where: { companyId },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.status(200).json(history);
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

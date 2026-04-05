@@ -1,9 +1,17 @@
 import React from 'react';
 import { Bot, Sparkles, MessageSquare, Zap, ShieldCheck, BrainCircuit, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import UpgradeOverlay from '../components/Subscription/UpgradeOverlay';
 
 const AI = () => {
   const { t } = useLanguage();
+  const { user } = useContext(AuthContext);
+
+  if (user?.subscription?.plan === 'STARTER') {
+    return <UpgradeOverlay featureType="ai" />;
+  }
 
   const features = [
     {

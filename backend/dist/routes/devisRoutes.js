@@ -12,4 +12,8 @@ router.route('/:id')
     .put(authMiddleware_1.protect, devisController_1.updateDevisStatus)
     .delete(authMiddleware_1.protect, devisController_1.deleteDevis);
 router.post('/:id/convert', authMiddleware_1.protect, devisController_1.convertDevisToInvoice);
+router.route('/:id/pdf')
+    .get(authMiddleware_1.protect, devisController_1.getDevisPdf);
+router.route('/:id/send-email')
+    .post(authMiddleware_1.protect, devisController_1.sendDevisEmailController);
 exports.default = router;

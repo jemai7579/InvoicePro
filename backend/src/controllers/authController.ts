@@ -11,7 +11,7 @@ const generateToken = (id: string) => {
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, name, firstName, lastName, matriculeFiscal, registreCommerce, address, phone, rib } = req.body;
+    const { email, password, name, firstName, lastName, matriculeFiscal, registreCommerce, address, phone, rib, plan } = req.body;
 
     if (!email || !password || !name || !firstName || !lastName || !matriculeFiscal || !address || !phone) {
       return res.status(400).json({ message: 'Veuillez remplir tous les champs obligatoires (incluant Nom/Prénom et Téléphone).' });
@@ -51,11 +51,23 @@ export const register = async (req: Request, res: Response) => {
         registreCommerce,
         address,
         phone,
-        rib
+        rib,
+        subscription: {
+          create: {
+            plan: (['STARTER', 'PROFESSIONAL', 'ENTERPRISE'].includes(plan?.toUpperCase()) ? plan.toUpperCase() : 'STARTER'),
+            status: 'ACTIVE'
+          }
+        }
       },
     });
 
     if (company) {
+      // Fetch company with subscription for consistent response
+      const companyWithSub = await prisma.company.findUnique({
+        where: { id: company.id },
+        include: { subscription: true }
+      });
+
       res.status(201).json({
         id: company.id,
         name: company.name,
@@ -100,23 +112,70 @@ export const login = async (req: Request, res: Response) => {
 
 export const getMe = async (req: Request, res: Response) => {
   try {
+    const companyId = (req as any).company.id;
     const company = await prisma.company.findUnique({
-      where: { id: (req as any).company.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        matriculeFiscal: true,
-        registreCommerce: true,
-        address: true,
-        phone: true,
-        rib: true,
-        createdAt: true,
+      where: { id: companyId },
+      include: {
+        subscription: true,
       }
     });
 
-    res.status(200).json(company);
+    if (!company) {
+      return res.status(404).json({ message: 'Compte introuvable' });
+    }
+
+    // Fallback logic for missing subscription or old names
+    let subscription = company.subscription;
+    if (!subscription) {
+      subscription = await prisma.subscription.create({
+        data: {
+          companyId: companyId,
+          plan: 'STARTER',
+          status: 'ACTIVE'
+        }
+      });
+    } else if (subscription.plan === 'FREE' || subscription.plan === 'PRO') {
+      // Migrate old plan names on the fly
+      const newPlan = subscription.plan === 'FREE' ? 'STARTER' : 'PROFESSIONAL';
+      subscription = await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { plan: newPlan }
+      });
+    }
+
+    // Dynamic month count
+    const startOfMonth = new Date();
+    startOfMonth.setHours(0, 0, 0, 0);
+    startOfMonth.setDate(1);
+
+    const usedInvoicesThisMonth = await prisma.invoice.count({
+      where: {
+        companyId: companyId,
+        createdAt: { gte: startOfMonth }
+      }
+    });
+
+    const plan = subscription.plan;
+    const monthlyInvoiceLimit = plan === 'STARTER' ? 7 : Infinity;
+    const remainingInvoices = plan === 'STARTER' ? Math.max(0, 7 - usedInvoicesThisMonth) : 999999; // Using high number for infinity as JSON literal
+
+    res.status(200).json({
+      ...company,
+      password: undefined, // ensure password is not sent
+      subscription: {
+        plan: subscription.plan,
+        status: subscription.status,
+        startDate: subscription.startDate,
+        endDate: subscription.endDate,
+        monthlyInvoiceLimit,
+        usedInvoicesThisMonth,
+        remainingInvoices,
+        aiEnabled: plan !== 'STARTER',
+        reportsEnabled: plan !== 'STARTER'
+      }
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error in getMe:', error);
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 };

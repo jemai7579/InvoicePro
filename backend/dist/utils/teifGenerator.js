@@ -14,6 +14,35 @@ const generateTeifXml = (invoice) => {
         Invoice: {
             '@xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2',
             '@xmlns:cac': 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2',
+            '@xmlns:ext': 'urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2',
+            '@xmlns:ds': 'http://www.w3.org/2000/09/xmldsig#',
+            'ext:UBLExtensions': {
+                'ext:UBLExtension': {
+                    'ext:ExtensionContent': {
+                        'ds:Signature': {
+                            '@Id': 'Signature',
+                            'ds:SignedInfo': {
+                                'ds:CanonicalizationMethod': { '@Algorithm': 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315' },
+                                'ds:SignatureMethod': { '@Algorithm': 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256' },
+                                'ds:Reference': {
+                                    '@URI': '',
+                                    'ds:Transforms': {
+                                        'ds:Transform': { '@Algorithm': 'http://www.w3.org/2000/09/xmldsig#enveloped-signature' }
+                                    },
+                                    'ds:DigestMethod': { '@Algorithm': 'http://www.w3.org/2001/04/xmlenc#sha256' },
+                                    'ds:DigestValue': '' // To be filled optionally by actual signers later
+                                }
+                            },
+                            'ds:SignatureValue': '', // To be filled
+                            'ds:KeyInfo': {
+                                'ds:X509Data': {
+                                    'ds:X509Certificate': '' // To be filled
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             // Document Metadata
             'cbc:ID': invoice.id,
             'cbc:IssueDate': new Date(invoice.createdAt).toISOString().split('T')[0],
@@ -72,12 +101,38 @@ const generateTeifXml = (invoice) => {
                 'cbc:Note': 'Paiement à réception'
             },
             // Tax Totals
-            'cac:TaxTotal': {
-                'cbc:TaxAmount': {
-                    '@currencyID': 'TND',
-                    '#': invoice.totalTVA.toFixed(3)
+            'cac:TaxTotal': [
+                // VAT Total
+                {
+                    'cbc:TaxAmount': {
+                        '@currencyID': 'TND',
+                        '#': invoice.totalTVA.toFixed(3)
+                    },
+                    'cac:TaxSubtotal': {
+                        'cbc:TaxableAmount': { '@currencyID': 'TND', '#': invoice.totalHT.toFixed(3) },
+                        'cbc:TaxAmount': { '@currencyID': 'TND', '#': invoice.totalTVA.toFixed(3) },
+                        'cac:TaxCategory': {
+                            'cbc:ID': 'S',
+                            'cac:TaxScheme': { 'cbc:ID': 'VAT' }
+                        }
+                    }
+                },
+                // Stamp Duty (Droit de Timbre)
+                {
+                    'cbc:TaxAmount': {
+                        '@currencyID': 'TND',
+                        '#': (invoice.stampDuty || 1.000).toFixed(3)
+                    },
+                    'cac:TaxSubtotal': {
+                        'cbc:TaxableAmount': { '@currencyID': 'TND', '#': (invoice.stampDuty || 1.000).toFixed(3) },
+                        'cbc:TaxAmount': { '@currencyID': 'TND', '#': (invoice.stampDuty || 1.000).toFixed(3) },
+                        'cac:TaxCategory': {
+                            'cbc:ID': 'OTH', // Other taxes for Stamp Duty
+                            'cac:TaxScheme': { 'cbc:ID': 'STAMP' }
+                        }
+                    }
                 }
-            },
+            ],
             // Legal Monetary Total
             'cac:LegalMonetaryTotal': {
                 'cbc:LineExtensionAmount': {
@@ -90,7 +145,11 @@ const generateTeifXml = (invoice) => {
                 },
                 'cbc:TaxInclusiveAmount': {
                     '@currencyID': 'TND',
-                    '#': invoice.totalTTC.toFixed(3)
+                    '#': (invoice.totalTTC + (invoice.stampDuty || 1.000)).toFixed(3)
+                },
+                'cbc:PayableRoundingAmount': {
+                    '@currencyID': 'TND',
+                    '#': (invoice.stampDuty || 1.000).toFixed(3)
                 },
                 'cbc:PayableAmount': {
                     '@currencyID': 'TND',
@@ -129,6 +188,7 @@ const generateTeifXml = (invoice) => {
         }
     };
     const doc = (0, xmlbuilder2_1.create)(xmlObj);
-    return doc.end({ prettyPrint: true });
+    let xmlString = doc.end({ prettyPrint: true });
+    return xmlString;
 };
 exports.generateTeifXml = generateTeifXml;

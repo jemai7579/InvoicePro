@@ -8,6 +8,10 @@ import Badge from '../components/ui/Badge';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import { useLanguage } from '../context/LanguageContext';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import { Zap, ArrowRight, ShieldAlert } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
@@ -15,8 +19,11 @@ const Invoices = () => {
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
   const { t } = useLanguage();
+  const { user, refreshUser } = useContext(AuthContext);
+  const navigate = useNavigate();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -55,6 +62,12 @@ const Invoices = () => {
   }, [loading, searchParams]);
 
   const openModal = () => {
+    // Check quota for Starter plan
+    if (user?.subscription?.plan === 'STARTER' && user?.subscription?.remainingInvoices === 0) {
+      setIsQuotaModalOpen(true);
+      return;
+    }
+    
     setClientId('');
     setStatus('DRAFT');
     setLines([{ description: '', quantity: 1, unitPrice: 0, tvaRate: 19 }]);
@@ -121,6 +134,7 @@ const Invoices = () => {
       };
       
       await api.post('/invoices', payload);
+      await refreshUser(); // Update the counter immediately
       fetchData();
       closeModal();
     } catch (error) {
@@ -579,6 +593,39 @@ const Invoices = () => {
               </div>
             </div>
           </Card>
+        </div>
+      )}
+      {/* Quota Exceeded Modal */}
+      {isQuotaModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl animate-in zoom-in duration-300 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-60"></div>
+            
+            <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mb-6 border border-rose-100">
+              <ShieldAlert size={32} />
+            </div>
+            
+            <h3 className="text-2xl font-black text-slate-900 mb-4 font-display leading-tight">Quota Starter Épuisé</h3>
+            <p className="text-slate-500 font-medium mb-8 leading-relaxed">
+              Vous avez atteint votre limite de <span className="font-bold text-slate-900">7 factures</span> pour ce mois. Passez à l'offre Professional pour créer des factures en illimité et accéder à l'IA.
+            </p>
+            
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => navigate('/settings?tab=subscription')}
+                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-indigo-600 transition-all shadow-lg active:scale-95"
+              >
+                Passer à Professional
+                <Zap size={18} fill="currentColor" />
+              </button>
+              <button 
+                onClick={() => setIsQuotaModalOpen(false)}
+                className="w-full py-4 bg-slate-50 text-slate-500 rounded-2xl font-bold hover:bg-slate-100 transition-all"
+              >
+                Plus tard
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

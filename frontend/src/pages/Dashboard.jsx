@@ -8,9 +8,13 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Stepper from '../components/ui/Stepper';
 import MiniChart from '../components/ui/MiniChart';
+import { AuthContext } from '../context/AuthContext';
+import SubscriptionQuotaCard from '../components/Subscription/SubscriptionQuotaCard';
+import { useContext } from 'react';
 
 const Dashboard = () => {
   const { t } = useLanguage();
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalClients: 0,
@@ -152,6 +156,11 @@ const Dashboard = () => {
                 {t('dashboard.newClient')}
               </Button>
             </div>
+          </div>
+
+          {/* Subscription Quota Card */}
+          <div className="mb-8">
+            <SubscriptionQuotaCard user={user} />
           </div>
 
           {/* Stepper Onboarding */}

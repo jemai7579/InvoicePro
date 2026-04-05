@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getSettings, updateSettings, uploadCertificate, uploadLogo } from '../controllers/settingsController';
+import { getSettings, updateSettings, uploadCertificate, uploadLogo, getSettingsHistory } from '../controllers/settingsController';
 import { protect } from '../middleware/authMiddleware';
 import multer from 'multer';
 
@@ -22,5 +22,6 @@ router.route('/')
 
 router.post('/certificate', protect, upload.single('certificate'), uploadCertificate);
 router.post('/logo', protect, upload.single('logo'), uploadLogo);
+router.get('/history', protect, getSettingsHistory);
 
 export default router;

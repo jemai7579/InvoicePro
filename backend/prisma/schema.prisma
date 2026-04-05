@@ -33,6 +33,44 @@ model Company {
   products            Product[]
   notifications       Notification[]
   invoiceRequests     InvoiceRequest[]
+  subscription        Subscription?
+  settingsHistory     SettingsHistory[]
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  logs      ActivityLog[]
+}
+
+model Subscription {
+  id        String   @id @default(uuid())
+  companyId String   @unique
+  plan      String   @default("STARTER") // STARTER, PROFESSIONAL, ENTERPRISE
+  status    String   @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
+  startDate DateTime @default(now())
+  endDate   DateTime?
+  company   Company  @relation(fields: [companyId], references: [id])
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+  admin     Admin    @relation(fields: [adminId], references: [id])
+}
+
+model SystemSetting {
+  id          String @id @default(uuid())
+  key         String @unique
+  value       String
+  description String?
 }
 
 model Client {
@@ -174,5 +212,15 @@ enum InvoiceRequestStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+model SettingsHistory {
+  id        String   @id @default(uuid())
+  companyId String
+  field     String   // e.g., "name", "address"
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime @default(now())
+  company   Company  @relation(fields: [companyId], references: [id])
 }
 

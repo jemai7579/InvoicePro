@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Loader, Calendar, FileText, TrendingUp, DollarSign, PieChart as PieIcon, BarChart3, Filter, Download } from 'lucide-react';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+import UpgradeOverlay from '../components/Subscription/UpgradeOverlay';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend, AreaChart, Area
@@ -13,7 +16,12 @@ const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const Reports = () => {
   const { t, lang } = useLanguage();
+  const { user } = useContext(AuthContext);
   const isRtl = lang === 'ar';
+
+  if (user?.subscription?.plan === 'STARTER') {
+    return <UpgradeOverlay featureType="reports" />;
+  }
   const [loading, setLoading] = useState(true);
   const [reportsData, setReportsData] = useState(null);
   const [isExporting, setIsExporting] = useState(false);

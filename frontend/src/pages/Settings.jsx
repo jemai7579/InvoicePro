@@ -4,7 +4,7 @@ import {
   Image as ImageIcon, Plus, Building2, Users2, ShieldAlert,
   ChevronRight, CheckCircle2, AlertCircle, Trash2, Camera,
   MapPin, Phone, Mail, Globe, Briefcase, BadgeCheck, Zap, Cpu,
-  User, CreditCard, Hash, Home, FileText
+  User, CreditCard, Hash, Home, FileText, History
 } from 'lucide-react';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -13,14 +13,24 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import SettingsHistoryModal from '../components/SettingsHistoryModal';
 
 const Settings = () => {
-  const { t } = useLanguage();
-  const { user } = useContext(AuthContext);
-  const [activeTab, setActiveTab] = useState('profile');
+  const { t, lang } = useLanguage();
+  const { user, refreshUser } = useContext(AuthContext);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -214,6 +224,7 @@ const Settings = () => {
         <TabButton id="profile" icon={Building2} label={t('settings.tabs.profile')} />
         <TabButton id="security" icon={Lock} label={t('settings.tabs.security')} />
         <TabButton id="compliance" icon={ShieldCheck} label={t('settings.tabs.compliance')} />
+        <TabButton id="subscription" icon={CreditCard} label="Abonnement" />
         <TabButton id="team" icon={Users2} label={t('settings.tabs.team')} />
       </nav>
 
@@ -322,7 +333,6 @@ const Settings = () => {
                      />
                   </div>
                </div>
-
                <div className="px-10 py-8 bg-slate-50/50 border-t border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-6">
                   <div className="flex flex-col gap-1">
                      {saveMsg && (
@@ -333,9 +343,25 @@ const Settings = () => {
                      )}
                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{t('settings.profile.last_updated')} {new Date().toLocaleDateString()}</p>
                   </div>
-                  <Button type="submit" loading={isSaving} className="w-full sm:w-auto px-12 py-4 shadow-2xl shadow-indigo-200 active:scale-95 transition-all" icon={Save}>
-                     {t('common.save')}
-                  </Button>
+                  <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <Button 
+                      type="button" 
+                      onClick={() => setIsHistoryModalOpen(true)}
+                      variant="secondary" 
+                      className="flex-1 sm:w-auto px-8 py-4 !bg-white !text-slate-900 border border-slate-200 hover:border-indigo-600 shadow-xl shadow-slate-100 transition-all active:scale-95" 
+                      icon={History}
+                    >
+                      {lang === 'fr' ? 'Historique' : 'History'}
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      loading={isSaving} 
+                      className="flex-1 sm:w-auto px-12 py-4 shadow-2xl shadow-indigo-200 active:scale-95 transition-all" 
+                      icon={Save}
+                    >
+                      {t('common.save')}
+                    </Button>
+                  </div>
                </div>
             </Card>
 
@@ -508,6 +534,116 @@ const Settings = () => {
           </div>
         )}
 
+        {activeTab === 'subscription' && (
+          <div className="space-y-10">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* CURRENT PLAN STATUS */}
+              <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                <div className="p-10 md:p-12 space-y-10">
+                  <header className="flex items-center gap-6">
+                    <div className="bg-blue-50 p-5 rounded-[1.5rem] text-blue-600 shadow-sm border border-blue-100/50">
+                       <Zap className="w-7 h-7" fill="currentColor" />
+                    </div>
+                    <div>
+                       <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight font-display">Votre Forfait {user?.subscription?.plan}</h3>
+                       <p className="text-slate-500 text-sm font-medium">Gérez vos limites et options de facturation</p>
+                    </div>
+                  </header>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-6">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Statut de la Facturation</h4>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                          <span className="text-xs font-bold text-slate-600">Factures ce mois</span>
+                          <span className="text-sm font-black text-slate-900">
+                             {user?.subscription?.usedInvoicesThisMonth} / {user?.subscription?.monthlyInvoiceLimit === 999999 ? '∞' : user?.subscription?.monthlyInvoiceLimit}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                          <span className="text-xs font-bold text-slate-600">Prochain rechargement</span>
+                          <span className="text-sm font-black text-slate-900">
+                             Le 1er du mois prochain
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Fonctionnalités Incluses</h4>
+                      <div className="space-y-3">
+                         <div className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                            Facturation TEIF (XML)
+                         </div>
+                         <div className={`flex items-center gap-3 text-sm font-bold ${user?.subscription?.aiEnabled ? 'text-slate-700' : 'text-slate-300'}`}>
+                            {user?.subscription?.aiEnabled ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <AlertCircle className="w-5 h-5" />}
+                            Assistant IA Expert
+                         </div>
+                         <div className={`flex items-center gap-3 text-sm font-bold ${user?.subscription?.reportsEnabled ? 'text-slate-700' : 'text-slate-300'}`}>
+                            {user?.subscription?.reportsEnabled ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <AlertCircle className="w-5 h-5" />}
+                            Rapports de Performance
+                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* UPGRADE TEASER */}
+              <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-slate-900/30 flex flex-col justify-between relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
+                 <div>
+                    <Badge variant="premium" className="mb-6 bg-indigo-500 text-white border-none px-4 py-1.5 font-black uppercase text-[10px] tracking-widest">{user?.subscription?.plan === 'STARTER' ? 'Recommandé' : 'Actuel'}</Badge>
+                    <h4 className="text-2xl font-black mb-2 font-display italic">Professional</h4>
+                    <div className="text-4xl font-black mb-6">99 <span className="text-sm font-bold text-slate-400 tracking-tight">TND/mois</span></div>
+                    
+                    <ul className="space-y-4 mb-10">
+                       <li className="flex items-center gap-3 text-[11px] font-bold text-slate-400">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Facturation Illimitée
+                       </li>
+                       <li className="flex items-center gap-3 text-[11px] font-bold text-slate-400">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Assistant IA Complet
+                       </li>
+                       <li className="flex items-center gap-3 text-[11px] font-bold text-slate-400">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Rapports Avancés
+                       </li>
+                    </ul>
+                 </div>
+                 
+                 {user?.subscription?.plan === 'STARTER' ? (
+                   <button className="w-full py-4 bg-white text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-white/5 hover:scale-[1.02] active:scale-95 transition-all">
+                      S'abonner maintenant
+                   </button>
+                 ) : (
+                   <div className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-black text-xs uppercase tracking-widest text-center">
+                      Plan Actuel
+                   </div>
+                 )}
+              </div>
+            </div>
+
+            {/* ENTERPRISE CARD */}
+            <div className="p-10 bg-gradient-to-r from-slate-50 to-indigo-50/50 border border-indigo-100 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8 group">
+               <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-indigo-50 flex items-center justify-center text-indigo-600 transition-transform group-hover:scale-110">
+                     <Building2 size={32} />
+                  </div>
+                  <div>
+                     <h4 className="text-xl font-black text-slate-900 font-display italic">Forfait Enterprise</h4>
+                     <p className="text-sm text-slate-500 font-medium">Solutions sur-mesure pour les grandes équipes et franchises.</p>
+                  </div>
+               </div>
+               <div className="flex flex-col items-center md:items-end gap-2">
+                  <div className="text-2xl font-black text-slate-900 tracking-tighter">Sur Devis</div>
+                  <button className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-slate-900 active:scale-95 transition-all">
+                     Contacter un expert
+                  </button>
+               </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'team' && (
           <Card className="text-center py-24 shadow-2xl shadow-slate-200/50 border-slate-100 overflow-hidden relative group">
              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-transparent via-indigo-600 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
@@ -534,6 +670,11 @@ const Settings = () => {
           </Card>
         )}
       </div>
+
+      <SettingsHistoryModal 
+        isOpen={isHistoryModalOpen} 
+        onClose={() => setIsHistoryModalOpen(false)} 
+      />
     </div>
   );
 };

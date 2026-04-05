@@ -18,6 +18,8 @@ import {
   Layout,
   MessageSquare
 } from 'lucide-react';
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
 const LangSwitcher = () => {
@@ -42,7 +44,9 @@ const LangSwitcher = () => {
 const Landing = () => {
   console.log('Landing.jsx: Rendering Landing');
   const { t, lang } = useLanguage();
+  const { user, loading } = useContext(AuthContext);
   const isRtl = lang === 'ar';
+  const isAuthenticated = !!user;
 
   return (
     <div className={`min-h-screen bg-white text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900 ${isRtl ? 'rtl' : 'ltr'}`} dir={isRtl ? 'rtl' : 'ltr'}>
@@ -73,10 +77,19 @@ const Landing = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <Link to="/login" className="hidden sm:block text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">{t('landing.nav.login')}</Link>
-              <Link to="/register" className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-sm font-bold hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95">
-                {t('landing.nav.register')}
-              </Link>
+              {isAuthenticated ? (
+                <Link to="/dashboard" className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 flex items-center gap-2 group">
+                  {t('landing.nav.dashboard_return')}
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              ) : (
+                <>
+                  <Link to="/login" className="hidden sm:block text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">{t('landing.nav.login')}</Link>
+                  <Link to="/register" className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-sm font-bold hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95">
+                    {t('landing.nav.register')}
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -111,10 +124,17 @@ const Landing = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-24 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            <Link to="/register" className="w-full sm:w-auto bg-indigo-600 text-white px-12 py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 hover:bg-slate-900 hover:shadow-[0_20px_50px_rgba(79,70,229,0.3)] transition-all active:scale-95 group text-lg shadow-2xl shadow-indigo-100">
-              {t('landing.hero.cta')}
-              <ArrowRight className={`w-6 h-6 group-hover:translate-x-1 transition-transform ${isRtl ? 'rotate-180' : ''}`} />
-            </Link>
+            {isAuthenticated ? (
+              <Link to="/dashboard" className="w-full sm:w-auto bg-indigo-600 text-white px-12 py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 hover:bg-slate-900 hover:shadow-[0_20px_50px_rgba(79,70,229,0.3)] transition-all active:scale-95 group text-lg shadow-2xl shadow-indigo-100">
+                {t('landing.hero.dashboard_cta')}
+                <ArrowRight className={`w-6 h-6 group-hover:translate-x-1 transition-transform ${isRtl ? 'rotate-180' : ''}`} />
+              </Link>
+            ) : (
+              <Link to="/register" className="w-full sm:w-auto bg-indigo-600 text-white px-12 py-5 rounded-[2rem] font-black flex items-center justify-center gap-4 hover:bg-slate-900 hover:shadow-[0_20px_50px_rgba(79,70,229,0.3)] transition-all active:scale-95 group text-lg shadow-2xl shadow-indigo-100">
+                {t('landing.hero.cta')}
+                <ArrowRight className={`w-6 h-6 group-hover:translate-x-1 transition-transform ${isRtl ? 'rotate-180' : ''}`} />
+              </Link>
+            )}
             <Link to="/demo" className="w-full sm:w-auto px-12 py-5 bg-white text-slate-900 font-black rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-200 hover:border-indigo-600 transition-all active:scale-95 flex items-center justify-center gap-4 text-lg group">
               <Zap className="w-6 h-6 text-amber-500 fill-amber-500 group-hover:scale-125 transition-transform" />
               {t('landing.hero.demo')}
@@ -375,8 +395,9 @@ const Landing = () => {
             {[
               { 
                 name: "Starter", 
-                price: "49", 
-                feat: [t('landing.pricing.starter.feat1'), t('landing.pricing.starter.feat2'), t('landing.pricing.starter.feat3')],
+                price: "19", 
+                featCount: 4,
+                feat: [t('landing.pricing.starter.feat1'), t('landing.pricing.starter.feat2'), t('landing.pricing.starter.feat3'), t('landing.pricing.starter.feat4')],
                 desc: t('landing.pricing.starter.desc')
               },
               { 
@@ -419,7 +440,7 @@ const Landing = () => {
                 </ul>
 
                 <Link 
-                  to="/register" 
+                  to={`/register?plan=${plan.name.toLowerCase()}`} 
                   className={`w-full py-5 rounded-[2rem] font-black flex items-center justify-center gap-3 transition-all duration-300 transform group-hover:scale-[1.02] active:scale-95 text-lg ${plan.popular ? 'bg-white text-indigo-600 shadow-xl' : 'bg-slate-900 text-white hover:bg-indigo-600 shadow-xl'}`}
                 >
                   {t('landing.pricing.choose')}

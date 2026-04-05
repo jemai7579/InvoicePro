@@ -1,0 +1,46 @@
+name: Build & Deploy El Fatoora
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # Log in to Docker Registry (if useful)
+    # - name: Log in to Docker Hub
+    #   uses: docker/login-action@v3
+    #   with:
+    #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+    #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build Backend Image
+      run: |
+        docker build ./backend -t elfatoora-backend:latest
+
+    - name: Build Frontend Image
+      run: |
+        docker build ./frontend \
+          --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }} \
+          -t elfatoora-frontend:latest
+
+    # Deployment steps depending on the final platform (SSH, etc.)
+    # - name: Deploy via SSH
+    #   uses: appleboy/ssh-action@master
+    #   with:
+    #     host: ${{ secrets.HOST }}
+    #     username: ${{ secrets.USERNAME }}
+    #     key: ${{ secrets.SSH_KEY }}
+    #     script: |
+    #       cd /path/to/el-fatoora
+    #       docker-compose -f docker-compose.prod.yml pull
+    #       docker-compose -f docker-compose.prod.yml up -d

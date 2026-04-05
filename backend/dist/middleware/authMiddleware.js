@@ -14,6 +14,7 @@ const protect = async (req, res, next) => {
             const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'supersecret');
             const company = await prisma_1.default.company.findUnique({
                 where: { id: decoded.id },
+                include: { subscription: true }
             });
             if (!company) {
                 return res.status(401).json({ message: 'Not authorized, user not found' });

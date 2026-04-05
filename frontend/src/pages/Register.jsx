@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, ArrowRight, Loader, User, Building2, MapPin, Phone, Mail, Lock, CheckCircle2, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -12,6 +12,31 @@ const Register = () => {
   const [success, setSuccess] = useState(null);
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedPlan = searchParams.get('plan') || 'starter';
+
+  const planDetails = {
+    starter: {
+      name: t('auth.planSummary.starter'),
+      price: '19',
+      features: [t('landing.pricing.starter.feat1'), t('landing.pricing.starter.feat2'), t('landing.pricing.starter.feat3'), t('landing.pricing.starter.feat4')],
+      color: 'bg-indigo-50 border-indigo-100 text-indigo-600',
+    },
+    professional: {
+      name: t('auth.planSummary.professional'),
+      price: '99',
+      features: [t('landing.pricing.pro.feat1'), t('landing.pricing.pro.feat2'), t('landing.pricing.pro.feat3'), t('landing.pricing.pro.feat4')],
+      color: 'bg-amber-50 border-amber-100 text-amber-600',
+    },
+    enterprise: {
+      name: t('auth.planSummary.enterprise'),
+      price: '199',
+      features: [t('landing.pricing.enterprise.feat1'), t('landing.pricing.enterprise.feat2'), t('landing.pricing.enterprise.feat3'), t('landing.pricing.enterprise.feat4')],
+      color: 'bg-slate-900 border-slate-800 text-white',
+    }
+  };
+
+  const currentPlan = planDetails[selectedPlan.toLowerCase()] || planDetails.starter;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -65,7 +90,8 @@ const Register = () => {
     setLoading(true);
     try {
       const { confirmPassword, termsAccepted, ...dataToSend } = formData;
-      await register(dataToSend);
+      // Send the plan to the backend
+      await register({ ...dataToSend, plan: selectedPlan.toUpperCase() });
       setSuccess(t('auth.success'));
       setTimeout(() => {
         navigate('/dashboard');
@@ -162,6 +188,29 @@ const Register = () => {
                 {error}
               </div>
             )}
+
+            {/* Plan Info Summary Block */}
+            <div className={`mb-10 p-6 rounded-3xl border-2 transition-all ${currentPlan.color} -mt-2 animate-in slide-in-from-top-2 duration-500`}>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{t('auth.planSummary.selected')}</span>
+                    <h4 className="text-xl font-black font-display uppercase tracking-tight">{currentPlan.name}</h4>
+                  </div>
+                  <div className="text-end">
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{t('auth.planSummary.price')}</span>
+                    <div className="text-xl font-black">{currentPlan.price}<span className="text-[10px] ms-1">{t('landing.pricing.currency')}</span></div>
+                  </div>
+                </div>
+                <div className="h-px bg-current opacity-10 mb-4" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                   {currentPlan.features.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 text-[11px] font-bold">
+                         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                         <span className="opacity-80">{f}</span>
+                      </div>
+                   ))}
+                </div>
+            </div>
 
             <form onSubmit={handleRegisterSubmit} className="space-y-6">
               {/* Step 1: Personal Info */}

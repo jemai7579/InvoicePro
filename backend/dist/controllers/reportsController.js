@@ -9,69 +9,67 @@ const date_fns_1 = require("date-fns");
 const getDashboardReports = async (req, res) => {
     try {
         const companyId = req.company.id;
-        // 1. Get ALL Invoices for the company
+        const { startDate, endDate } = req.query;
+        let dateFilter = {};
+        if (startDate && endDate) {
+            // Ensure we query till the end of the endDate day
+            const endD = new Date(endDate);
+            endD.setHours(23, 59, 59, 999);
+            dateFilter = {
+                createdAt: {
+                    gte: new Date(startDate),
+                    lte: endD
+                }
+            };
+        }
         const allInvoices = await prisma_1.default.invoice.findMany({
-            where: { companyId },
-            include: {
-                client: true
-            }
+            where: { companyId, ...dateFilter },
+            include: { client: true },
+            orderBy: { createdAt: 'asc' }
         });
-        // --- Graph 1: Monthly Revenue (Last 6 Months) ---
-        const monthlyRevenue = [];
-        for (let i = 5; i >= 0; i--) {
-            const targetMonth = (0, date_fns_1.subMonths)(new Date(), i);
-            const start = (0, date_fns_1.startOfMonth)(targetMonth);
-            const end = (0, date_fns_1.endOfMonth)(targetMonth);
-            const monthInvoices = allInvoices.filter(inv => inv.createdAt >= start && inv.createdAt <= end);
-            const revenueHT = monthInvoices.reduce((acc, inv) => acc + inv.totalHT, 0);
-            const revenueTTC = monthInvoices.reduce((acc, inv) => acc + inv.totalTTC, 0);
-            monthlyRevenue.push({
-                name: (0, date_fns_1.format)(targetMonth, 'MMM yyyy'),
-                RevenueHT: revenueHT,
-                RevenueTTC: revenueTTC
-            });
-        }
-        // --- Graph 2: Invoices per Month (Count) ---
-        const invoicesPerMonth = [];
-        for (let i = 5; i >= 0; i--) {
-            const targetMonth = (0, date_fns_1.subMonths)(new Date(), i);
-            const start = (0, date_fns_1.startOfMonth)(targetMonth);
-            const end = (0, date_fns_1.endOfMonth)(targetMonth);
-            const count = allInvoices.filter(inv => inv.createdAt >= start && inv.createdAt <= end).length;
-            invoicesPerMonth.push({
-                name: (0, date_fns_1.format)(targetMonth, 'MMM yyyy'),
-                Count: count
-            });
-        }
-        // --- Graph 3: TVA Collected (Last 6 Months) ---
-        const tvaCollected = monthlyRevenue.map(m => ({
-            name: m.name,
-            TVA: m.RevenueTTC - m.RevenueHT
-        }));
-        // --- Graph 4: Top Clients (By Total Revenue) ---
+        const monthlyDataMap = {};
+        allInvoices.forEach(inv => {
+            const monthKey = (0, date_fns_1.format)(inv.createdAt, 'MMM yyyy');
+            if (!monthlyDataMap[monthKey]) {
+                monthlyDataMap[monthKey] = { name: monthKey, RevenueHT: 0, RevenueTTC: 0, Count: 0, TVA: 0 };
+            }
+            monthlyDataMap[monthKey].RevenueHT += inv.totalHT;
+            monthlyDataMap[monthKey].RevenueTTC += inv.totalTTC;
+            monthlyDataMap[monthKey].TVA += (inv.totalTTC - inv.totalHT);
+            monthlyDataMap[monthKey].Count += 1;
+        });
+        const monthlyRevenue = Object.values(monthlyDataMap);
+        const invoicesPerMonth = monthlyRevenue.map((m) => ({ name: m.name, Count: m.Count }));
+        const tvaCollected = monthlyRevenue.map((m) => ({ name: m.name, TVA: m.TVA }));
+        // Top Clients
         const clientRevenueMap = {};
         allInvoices.forEach(inv => {
             const clientId = inv.clientId;
             if (!clientRevenueMap[clientId]) {
-                clientRevenueMap[clientId] = {
-                    name: inv.client.name,
-                    revenue: 0
-                };
+                clientRevenueMap[clientId] = { name: inv.client.name, revenue: 0 };
             }
             clientRevenueMap[clientId].revenue += inv.totalTTC;
         });
         const topClients = Object.values(clientRevenueMap)
             .sort((a, b) => b.revenue - a.revenue)
-            .slice(0, 5) // Top 5
+            .slice(0, 5)
             .map(client => ({
             name: client.name,
             Revenue: client.revenue
         }));
+        // Total KPIs for the selected period
+        const totalKPIs = {
+            revenueHT: allInvoices.reduce((acc, inv) => acc + inv.totalHT, 0),
+            revenueTTC: allInvoices.reduce((acc, inv) => acc + inv.totalTTC, 0),
+            tva: allInvoices.reduce((acc, inv) => acc + (inv.totalTTC - inv.totalHT), 0),
+            invoiceCount: allInvoices.length
+        };
         res.status(200).json({
             monthlyRevenue,
             invoicesPerMonth,
             tvaCollected,
-            topClients
+            topClients,
+            totalKPIs
         });
     }
     catch (error) {
