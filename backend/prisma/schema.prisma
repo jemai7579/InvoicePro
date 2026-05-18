@@ -36,6 +36,16 @@ model Company {
   subscription        Subscription?
   settingsHistory     SettingsHistory[]
   documentSequences   DocumentSequence[]
+  auditTrails         UserActivityLog[]
+  offers              Offer[]
+  payments            Payment[]
+  onboardingRequests  OnboardingRequest[]
+  sentPlatformInvitations     PlatformInvitation[] @relation("PlatformInvitationSender")
+  receivedPlatformInvitations PlatformInvitation[] @relation("PlatformInvitationRecipient")
+  partnerConnectionsA         PartnerConnection[]  @relation("PartnerConnectionA")
+  partnerConnectionsB         PartnerConnection[]  @relation("PartnerConnectionB")
+  sentPartnerMessages         PartnerMessage[]     @relation("PartnerMessageSender")
+  receivedPartnerMessages     PartnerMessage[]     @relation("PartnerMessageRecipient")
 }
 
 model Admin {
@@ -83,6 +93,8 @@ model Client {
   matriculeFiscal String?
   address         String?
   city            String?
+  rne             String?
+  notes           String?
   zipCode         String?
   country         String?   @default("Tunisie")
   phone           String?
@@ -91,6 +103,7 @@ model Client {
   company         Company   @relation(fields: [companyId], references: [id])
   devis           Devis[]
   invoices        Invoice[]
+  offers          Offer[]
   invoiceRequests InvoiceRequest[]
 
   @@unique([companyId, number])
@@ -169,8 +182,59 @@ model Invoice {
   company        Company       @relation(fields: [companyId], references: [id])
   devis          Devis?        @relation(fields: [devisId], references: [id])
   lines          InvoiceLine[]
+  payments       Payment[]
 
   @@unique([companyId, number])
+}
+
+model Offer {
+  id                     String         @id @default(uuid())
+  companyId              String
+  clientId               String?
+  invoiceRequestId       String?
+  number                 String?
+  title                  String
+  description            String?
+  estimatedAmount        Float          @default(0)
+  deliveryDelay          String?
+  validUntil             DateTime?
+  terms                  String?
+  purchaseOrderReference String?
+  purchaseOrderFile      String?
+  status                 String         @default("DRAFT")
+  publicToken            String?        @unique
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  company                Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  client                 Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  comments               OfferComment[]
+
+  @@unique([companyId, number])
+}
+
+model OfferComment {
+  id        String   @id @default(uuid())
+  offerId   String
+  actorType String   @default("USER")
+  message   String
+  createdAt DateTime @default(now())
+  offer     Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  companyId   String
+  invoiceId   String
+  amount      Float
+  paymentDate DateTime @default(now())
+  method      String   @default("CASH")
+  status      String   @default("PAID")
+  reference   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
 model InvoiceLine {
@@ -253,6 +317,7 @@ model DocumentSequence {
 enum DocumentSequenceType {
   INVOICE
   DEVIS
+  OFFER
   PROJECT
   CLIENT
 }
@@ -265,4 +330,97 @@ model SettingsHistory {
   newValue  String?
   createdAt DateTime @default(now())
   company   Company  @relation(fields: [companyId], references: [id])
+}
+
+model UserActivityLog {
+  id         String   @id @default(uuid())
+  companyId  String
+  actorId    String?
+  actorType  String
+  actionType String
+  objectType String
+  objectId   String
+  message    String
+  oldValue   Json?
+  newValue   Json?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@index([companyId, objectType, objectId])
+}
+
+model SignatureProviderOption {
+  id                String   @id @default(uuid())
+  name              String
+  targetUsers       String
+  costDescription   String?
+  difficulty        String   @default("UNKNOWN")
+  setupInstructions String
+  status            String   @default("NEEDS_VERIFICATION")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model OnboardingRequest {
+  id          String   @id @default(uuid())
+  companyId   String?
+  name        String
+  companyName String
+  email       String
+  phone       String?
+  needType    String
+  message     String?
+  status      String   @default("NEW")
+  createdAt   DateTime @default(now())
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+}
+
+model PlatformInvitation {
+  id                 String   @id @default(uuid())
+  senderCompanyId    String
+  recipientCompanyId String?
+  recipientEmail     String
+  status             String   @default("PENDING")
+  message            String?
+  respondedAt        DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  senderCompany      Company  @relation("PlatformInvitationSender", fields: [senderCompanyId], references: [id], onDelete: Cascade)
+  recipientCompany   Company? @relation("PlatformInvitationRecipient", fields: [recipientCompanyId], references: [id], onDelete: SetNull)
+
+  @@index([senderCompanyId, status])
+  @@index([recipientCompanyId, status])
+  @@index([recipientEmail, status])
+}
+
+model PartnerConnection {
+  id         String   @id @default(uuid())
+  companyAId String
+  companyBId String
+  status     String   @default("ACCEPTED")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  companyA   Company  @relation("PartnerConnectionA", fields: [companyAId], references: [id], onDelete: Cascade)
+  companyB   Company  @relation("PartnerConnectionB", fields: [companyBId], references: [id], onDelete: Cascade)
+
+  @@unique([companyAId, companyBId])
+  @@index([companyAId, status])
+  @@index([companyBId, status])
+}
+
+model PartnerMessage {
+  id                 String   @id @default(uuid())
+  senderCompanyId    String
+  recipientCompanyId String
+  body               String
+  metadata           Json?
+  readAt             DateTime?
+  createdAt          DateTime @default(now())
+  senderCompany      Company  @relation("PartnerMessageSender", fields: [senderCompanyId], references: [id], onDelete: Cascade)
+  recipientCompany   Company  @relation("PartnerMessageRecipient", fields: [recipientCompanyId], references: [id], onDelete: Cascade)
+
+  @@index([senderCompanyId, recipientCompanyId, createdAt])
+  @@index([recipientCompanyId, createdAt])
 }

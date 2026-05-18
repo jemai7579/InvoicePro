@@ -9,7 +9,6 @@ const Help = () => {
   const navigate = useNavigate();
   const { t, lang } = useLanguage();
   const isStarter = user?.subscription?.plan === 'STARTER';
-  const isRtl = lang === 'ar';
 
   const faqsByLang = {
     fr: [
@@ -28,6 +27,14 @@ const Help = () => {
       {
         question: "Puis-je convertir un Devis en Facture ?",
         answer: "Oui. Depuis la liste des Devis, cliquez sur l'icône 'Convertir en Facture' pour créer un brouillon de facture.",
+      },
+      {
+        question: "L'assistant IA peut-il valider mes factures ?",
+        answer: "Non. Il aide à comprendre, rédiger et expliquer, mais il ne remplace pas un expert-comptable, fiscaliste ou conseiller juridique. Les actions sensibles exigent votre confirmation.",
+      },
+      {
+        question: "Comment préparer TTN et la signature électronique ?",
+        answer: "Consultez la page Accompagnement TTN & Signature pour préparer l'adhésion, le certificat et la configuration. Les exigences officielles doivent être vérifiées avant production.",
       },
     ],
     en: [
@@ -168,4 +175,3 @@ const Help = () => {
 };
 
 export default Help;
-

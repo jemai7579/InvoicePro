@@ -86,6 +86,18 @@ const Privacy = () => {
                 {t('privacy.section4.content')}
               </p>
             </section>
+
+            <section className="space-y-4">
+              <h2 className="text-2xl font-black m-0">Données traitées par la plateforme</h2>
+              <p className="text-slate-600 leading-relaxed">
+                El Fatoora peut traiter le matricule fiscal, les factures, clients, documents commerciaux, statuts de paiement,
+                historiques d'action, informations de configuration signature/TTN et paramètres de compte. L'assistant IA reste
+                une aide d'utilisation et ne remplace pas un expert-comptable, fiscaliste ou conseiller juridique.
+              </p>
+              <p className="text-slate-600 leading-relaxed">
+                La plateforme présente des informations d’accompagnement concernant les types de signature électronique, l’adhésion TTN et les étapes de configuration. Ces informations sont fournies à titre d’aide et peuvent nécessiter une vérification auprès des organismes officiels ou prestataires concernés. L’utilisateur reste responsable du choix final de sa signature électronique et de la validation de sa conformité.
+              </p>
+            </section>
           </div>
           
           <div className="mt-20 pt-10 border-t border-slate-100 text-center">

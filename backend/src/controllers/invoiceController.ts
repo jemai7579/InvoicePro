@@ -22,6 +22,7 @@ import {
   sanitizeBusinessNumberForFileName,
 } from '../services/numberingService';
 import { appendComplianceStatus, writeComplianceMetadata } from '../services/complianceStorage';
+import { logActivity } from '../services/auditTrailService';
 
 const VALID_STATUSES = ['DRAFT', 'VALIDATED', 'TEIF_GENERATED', 'SIGNED', 'SENT_TO_TTN', 'PENDING_TTN', 'ACCEPTED_TTN', 'REJECTED_TTN', 'CANCELLED'];
 
@@ -90,6 +91,7 @@ export const getInvoices = async (req: Request, res: Response) => {
         company: true,
         client: true,
         lines: true,
+        payments: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -113,6 +115,7 @@ export const getInvoiceById = async (req: Request, res: Response) => {
         client: true,
         lines: true,
         company: true,
+        payments: true,
       },
     });
 
@@ -220,6 +223,16 @@ export const generateInvoiceTeifController = async (req: Request, res: Response)
     }
 
     const { metadata } = await generateInvoiceTeifXml(invoice as any);
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: 'XML_GENERATED',
+      objectType: 'INVOICE',
+      objectId: invoice.id,
+      message: 'XML TEIF genere pour la facture.',
+      metadata: { teifXmlPath: metadata.teifXmlPath },
+    });
     const updatedInvoice = await getSerializedInvoice(invoice.id, (req as any).company.id);
     res.status(200).json({
       message: 'Le fichier XML TEIF a ete genere avec succes.',
@@ -241,6 +254,16 @@ export const signInvoiceTeifController = async (req: Request, res: Response) => 
     }
 
     const { metadata } = await signInvoiceTeifXml(invoice as any);
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: 'SIGNED',
+      objectType: 'INVOICE',
+      objectId: invoice.id,
+      message: 'Facture signee electroniquement.',
+      metadata: { signatureProvider: metadata.signatureProvider },
+    });
     const updatedInvoice = await getSerializedInvoice(invoice.id, (req as any).company.id);
     res.status(200).json({
       message: 'La facture a ete signee electroniquement.',
@@ -336,6 +359,16 @@ export const createInvoice = async (req: Request, res: Response) => {
     });
 
     const invoice = await getSerializedInvoice(createdInvoice.id, companyId);
+    await logActivity({
+      companyId,
+      actorId: companyId,
+      actorType: 'USER',
+      actionType: 'CREATED',
+      objectType: 'INVOICE',
+      objectId: createdInvoice.id,
+      message: 'Facture creee.',
+      newValue: invoice,
+    });
     res.status(201).json(invoice);
   } catch (error) {
     console.error('Error creating invoice:', error);
@@ -602,6 +635,16 @@ export const updateInvoiceStatus = async (req: Request, res: Response) => {
     }
 
     const updated = await getSerializedInvoice(req.params.id as string, (req as any).company.id);
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: status === 'VALIDATED' ? 'STATUS_CHANGED' : 'UPDATED',
+      objectType: 'INVOICE',
+      objectId: req.params.id as string,
+      message: `Statut facture change vers ${status}.`,
+      metadata: { status },
+    });
     res.status(200).json(updated);
   } catch (error) {
     console.error('Error updating invoice status:', error);
@@ -618,6 +661,16 @@ export const submitToTTNController = async (req: Request, res: Response) => {
     }
 
     const result = await submitInvoiceToTTNWorkflow(invoice as any);
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: 'SUBMITTED_TTN',
+      objectType: 'TTN_SUBMISSION',
+      objectId: invoice.id,
+      message: 'Facture envoyee a TTN.',
+      metadata: { message: result.message },
+    });
     const updatedInvoice = await getSerializedInvoice(invoice.id, (req as any).company.id);
     res.status(200).json({
       message: result.message,
@@ -639,6 +692,15 @@ export const checkTTNStatusController = async (req: Request, res: Response) => {
 
     const { simulateDecision } = req.body || {};
     const { result } = await syncInvoiceTTNStatus(invoice as any, simulateDecision || null);
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorType: 'TTN',
+      actionType: result.status === 'ACCEPTED_TTN' ? 'VALIDATED_TTN' : result.status === 'REJECTED_TTN' ? 'REJECTED_TTN' : 'STATUS_CHANGED',
+      objectType: 'TTN_SUBMISSION',
+      objectId: invoice.id,
+      message: result.message,
+      metadata: { status: result.status, ttnReference: result.ttnReference, rejectionReason: result.rejectionReason },
+    });
     const updatedInvoice = await getSerializedInvoice(invoice.id, (req as any).company.id);
 
     res.status(200).json({

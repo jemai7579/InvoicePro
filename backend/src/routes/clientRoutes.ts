@@ -7,7 +7,8 @@ import {
   deleteClient,
   getClientInvitations,
   createClientInvitation,
-  respondToClientInvitation
+  respondToClientInvitation,
+  importClients
 } from '../controllers/clientController';
 import { protect } from '../middleware/authMiddleware';
 
@@ -16,6 +17,7 @@ const router = Router();
 router.get('/invitations', protect, getClientInvitations);
 router.post('/invitations', protect, createClientInvitation);
 router.post('/invitations/:id/respond', protect, respondToClientInvitation);
+router.post('/import', protect, importClients);
 
 router.route('/')
   .get(protect, getClients)

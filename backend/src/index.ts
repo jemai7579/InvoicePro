@@ -41,6 +41,13 @@ import aiRoutes from './routes/aiRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import adminRoutes from './routes/adminRoutes';
 import projectRoutes from './routes/projectRoutes';
+import offerRoutes from './routes/offerRoutes';
+import publicOfferRoutes from './routes/publicOfferRoutes';
+import paymentRoutes from './routes/paymentRoutes';
+import auditTrailRoutes from './routes/auditTrailRoutes';
+import onboardingRoutes from './routes/onboardingRoutes';
+import networkRoutes from './routes/networkRoutes';
+import messageRoutes from './routes/messageRoutes';
 
 import { errorHandler } from './middleware/errorMiddleware';
 
@@ -107,6 +114,13 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/offers', offerRoutes);
+app.use('/api/public', publicOfferRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/audit-trail', auditTrailRoutes);
+app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/network', networkRoutes);
+app.use('/api/messages', messageRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ success: true, status: 'OK' });

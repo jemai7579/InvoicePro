@@ -23,6 +23,15 @@ import InvoiceTracking from './pages/InvoiceTracking';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Legal from './pages/Legal';
+import Contact from './pages/Contact';
+import Pricing from './pages/Pricing';
+import Offers from './pages/Offers';
+import Payments from './pages/Payments';
+import AuditTrail from './pages/AuditTrail';
+import SignatureTTN from './pages/SignatureTTN';
+import PublicOffer from './pages/PublicOffer';
+import Network from './pages/Network';
+import Messages from './pages/Messages';
 
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
@@ -56,6 +65,10 @@ function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/legal" element={<Legal />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/tarifs" element={<Pricing />} />
+          <Route path="/public/offers/:token" element={<PublicOffer />} />
 
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
@@ -83,11 +96,18 @@ function App() {
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/invoices" element={<Invoices />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/reglements" element={<Payments />} />
               <Route path="/invoice-tracking" element={<InvoiceTracking />} />
               <Route path="/suivi-factures" element={<InvoiceTracking />} />
               <Route path="/clients" element={<Clients />} />
+              <Route path="/network" element={<Network />} />
+              <Route path="/reseau-professionnel" element={<Network />} />
+              <Route path="/messages" element={<Messages />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/mes-projets" element={<Projects />} />
+              <Route path="/offers" element={<Offers />} />
+              <Route path="/mes-offres" element={<Offers />} />
               <Route path="/devis" element={<Devis />} />
               <Route path="/quotes" element={<Devis />} />
               <Route path="/mes-devis" element={<Devis />} />
@@ -97,6 +117,9 @@ function App() {
               <Route path="/products" element={<Products />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/historique" element={<AuditTrail />} />
+              <Route path="/audit-trail" element={<AuditTrail />} />
+              <Route path="/signature-ttn" element={<SignatureTTN />} />
               <Route path="/ai" element={<AI />} />
               <Route path="/help" element={<Help />} />
             </Route>

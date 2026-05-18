@@ -17,6 +17,7 @@ import { getInvoices, getInvoiceById, createInvoice,
 import { protect } from '../middleware/authMiddleware';
 import { checkInvoiceQuota } from '../middleware/subscriptionMiddleware';
 import multer from 'multer';
+import { createInvoicePayment, getInvoicePayments } from '../controllers/paymentController';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -59,6 +60,10 @@ router.route('/:id/check-ttn-status')
 
 router.route('/:id/status')
   .patch(protect, updateInvoiceStatus);
+
+router.route('/:id/payments')
+  .get(protect, getInvoicePayments)
+  .post(protect, createInvoicePayment);
 
 router.post('/import-xml', protect, checkInvoiceQuota, upload.single('xml'), importInvoiceXml);
 

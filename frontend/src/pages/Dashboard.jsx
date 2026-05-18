@@ -340,6 +340,17 @@ const Dashboard = () => {
           </div>
         </div>
 
+        <Card title="Workflow global" subtitle="Idée → Offre → Devis → Facture → TTN → Règlement">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+            {['Idée projet', 'Offre / BC', 'Devis', 'Facture', 'Suivi TTN', 'Règlement'].map((step, index) => (
+              <div key={step} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <div className="text-[10px] font-black text-indigo-600 mb-1">0{index + 1}</div>
+                <div className="text-xs font-black text-slate-700">{step}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
         {onboarding.percent < 100 ? (
           <div className="bg-white border border-slate-100 rounded-[2rem] p-8 shadow-sm relative overflow-hidden">
             <div className="max-w-2xl mx-auto">

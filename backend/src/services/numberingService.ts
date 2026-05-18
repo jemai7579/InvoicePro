@@ -3,6 +3,7 @@ import { Prisma, DocumentSequenceType } from '@prisma/client';
 const PREFIX_BY_TYPE: Record<DocumentSequenceType, string> = {
   INVOICE: 'FAC',
   DEVIS: 'DEV',
+  OFFER: 'OFF',
   PROJECT: 'PRJ',
   CLIENT: 'CL',
 };

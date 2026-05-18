@@ -7,6 +7,7 @@ import {
   getInvoiceVisibleNumber,
   sanitizeBusinessNumberForFileName,
 } from '../services/numberingService';
+import { logActivity } from '../services/auditTrailService';
 
 type NormalizedDevisLine = {
   productId: string | null;
@@ -166,6 +167,16 @@ export const createDevis = async (req: Request, res: Response) => {
       `Demande envoyée au client ${clientRecord?.name ?? clientId}.`,
       'DEMANDE_SENT'
     );
+    await logActivity({
+      companyId,
+      actorId: companyId,
+      actorType: 'USER',
+      actionType: 'CREATED',
+      objectType: 'DEVIS',
+      objectId: devis.id,
+      message: `Devis ${devis.number || devis.id.slice(0, 8)} cree.`,
+      newValue: devis,
+    });
 
     res.status(201).json(devis);
   } catch (error) {
@@ -207,6 +218,17 @@ export const updateDevisStatus = async (req: Request, res: Response) => {
       await createNotif((req as any).company.id, 'Demande rejetée',
         `La demande pour ${clientName} a été rejetée.`, 'DEMANDE_REJECTED');
     }
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: status === 'ACCEPTED' ? 'ACCEPTED' : status === 'REJECTED' ? 'REJECTED' : 'STATUS_CHANGED',
+      objectType: 'DEVIS',
+      objectId: devis.id,
+      message: `Statut devis change vers ${status}.`,
+      oldValue: { status: devis.status },
+      newValue: { status },
+    });
 
     res.status(200).json(updatedDevis);
   } catch (error) {
@@ -277,6 +299,17 @@ export const convertDevisToInvoice = async (req: Request, res: Response) => {
       });
 
       return createdInvoice;
+    });
+
+    await logActivity({
+      companyId: devis.companyId,
+      actorId: devis.companyId,
+      actorType: 'USER',
+      actionType: 'STATUS_CHANGED',
+      objectType: 'DEVIS',
+      objectId: devis.id,
+      message: `Devis ${devis.number || devis.id.slice(0, 8)} converti en facture.`,
+      metadata: { invoiceId: newInvoice.id },
     });
 
     res.status(201).json(newInvoice);

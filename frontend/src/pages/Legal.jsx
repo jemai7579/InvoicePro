@@ -93,6 +93,18 @@ const Legal = () => {
                 {t('legal.section3.content')}
               </p>
             </section>
+
+            <section className="space-y-4">
+              <h2 className="text-2xl font-black m-0">Signature, TTN et responsabilités</h2>
+              <p className="text-slate-600 leading-relaxed">
+                Les integrations reelles avec TTN, certificats de signature ou tiers de confiance dependent des exigences
+                officielles des fournisseurs et administrations concernees. El Fatoora fournit une assistance logicielle,
+                mais ne remplace pas le conseil comptable, fiscal ou juridique.
+              </p>
+              <p className="text-slate-600 leading-relaxed">
+                La plateforme présente des informations d’accompagnement concernant les types de signature électronique, l’adhésion TTN et les étapes de configuration. Ces informations sont fournies à titre d’aide et peuvent nécessiter une vérification auprès des organismes officiels ou prestataires concernés. L’utilisateur reste responsable du choix final de sa signature électronique et de la validation de sa conformité.
+              </p>
+            </section>
           </div>
           
           <div className="mt-20 pt-10 border-t border-slate-100 text-center">

@@ -95,7 +95,7 @@ const Landing = () => {
                 {t('landing.nav.compliance')}
               </a>
               <a
-                href="#pricing"
+                href="/pricing"
                 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 hover:text-indigo-600 transition-colors whitespace-nowrap"
               >
                 {t('landing.nav.pricing')}
@@ -154,7 +154,7 @@ const Landing = () => {
                 {[
                   { href: '#features', label: t('landing.nav.features') },
                   { href: '#compliance', label: t('landing.nav.compliance') },
-                  { href: '#pricing', label: t('landing.nav.pricing') },
+                  { href: '/pricing', label: t('landing.nav.pricing') },
                 ].map(({ href, label }) => (
                   <a
                     key={href}
@@ -508,121 +508,34 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ── Pricing ── */}
-      <section id="pricing" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8 bg-slate-50 relative border-y border-slate-100">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16 md:mb-24 max-w-3xl mx-auto">
-            <h2 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.4em] mb-4 sm:mb-6">
-              {t('landing.pricing.badge')}
-            </h2>
-            <h3 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-slate-900 tracking-tighter leading-[0.95] mb-4 sm:mb-6 md:mb-8">
-              {t('landing.pricing.title')}
-            </h3>
-            <p className="text-slate-500 text-base sm:text-lg font-bold">{t('landing.pricing.subtitle')}</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 items-stretch pt-6 sm:pt-12">
-            {[
-              {
-                name: 'Starter',
-                price: '19',
-                feat: [
-                  t('landing.pricing.starter.feat1'),
-                  t('landing.pricing.starter.feat2'),
-                  t('landing.pricing.starter.feat3'),
-                  t('landing.pricing.starter.feat4'),
-                ],
-                desc: t('landing.pricing.starter.desc'),
-              },
-              {
-                name: 'Professional',
-                price: '99',
-                feat: [
-                  t('landing.pricing.pro.feat1'),
-                  t('landing.pricing.pro.feat2'),
-                  t('landing.pricing.pro.feat3'),
-                  t('landing.pricing.pro.feat4'),
-                ],
-                popular: true,
-                desc: t('landing.pricing.pro.desc'),
-              },
-              {
-                name: 'Enterprise',
-                price: '199',
-                feat: [
-                  t('landing.pricing.enterprise.feat1'),
-                  t('landing.pricing.enterprise.feat2'),
-                  t('landing.pricing.enterprise.feat3'),
-                  t('landing.pricing.enterprise.feat4'),
-                ],
-                desc: t('landing.pricing.enterprise.desc'),
-              },
-            ].map((plan, i) => (
-              <div
-                key={i}
-                className={`p-6 sm:p-8 lg:p-10 xl:p-12 rounded-3xl sm:rounded-[3rem] lg:rounded-[4rem] flex flex-col transition-all duration-700 relative group ${
-                  plan.popular
-                    ? 'bg-indigo-600 text-white shadow-[0_40px_100px_-20px_rgba(79,70,229,0.4)] md:scale-105 z-10'
-                    : 'bg-white border border-slate-100 hover:shadow-2xl'
-                }`}
-              >
-                {plan.popular && (
-                  <span className="absolute -top-5 sm:-top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 sm:px-8 py-2 sm:py-2.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] shadow-xl border-4 border-slate-50 whitespace-nowrap">
-                    {t('landing.pricing.popular')}
-                  </span>
-                )}
-
-                <div className="mb-6 sm:mb-8 lg:mb-10">
-                  <h4 className={`text-xl sm:text-2xl font-black mb-2 ${plan.popular ? 'text-white' : 'text-slate-900'}`}>
-                    {plan.name}
-                  </h4>
-                  <p className={`text-sm font-semibold opacity-60 ${plan.popular ? 'text-indigo-100' : 'text-slate-400'}`}>
-                    {plan.desc}
-                  </p>
-                </div>
-
-                <div className="flex items-baseline gap-2 mb-8 sm:mb-10 lg:mb-12">
-                  <span className={`text-4xl sm:text-5xl lg:text-6xl font-black ${plan.popular ? 'text-white' : 'text-slate-900'}`}>
-                    {plan.price}
-                  </span>
-                  <span className={`text-sm sm:text-base lg:text-lg font-bold uppercase tracking-widest ${plan.popular ? 'text-indigo-200' : 'text-slate-400'}`}>
-                    {t('landing.pricing.currency')}
-                  </span>
-                  <span className={`text-sm font-bold opacity-40 ${plan.popular ? 'text-indigo-100' : 'text-slate-400'}`}>
-                    /{t('landing.pricing.month')}
-                  </span>
-                </div>
-
-                <ul className="space-y-3 sm:space-y-4 lg:space-y-6 mb-8 sm:mb-10 lg:mb-12 flex-1">
-                  {plan.feat.map((f, j) => (
-                    <li key={j} className="flex items-center gap-3 sm:gap-4">
-                      <div
-                        className={`h-5 w-5 sm:h-6 sm:w-6 rounded-md sm:rounded-lg flex items-center justify-center shrink-0 ${
-                          plan.popular ? 'bg-white/20' : 'bg-indigo-50'
-                        }`}
-                      >
-                        <CheckCircle2
-                          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${plan.popular ? 'text-white' : 'text-indigo-600'}`}
-                        />
-                      </div>
-                      <span className={`text-sm font-bold ${plan.popular ? 'text-indigo-50' : 'text-slate-600'}`}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  to={`/register?plan=${plan.name.toLowerCase()}`}
-                  className={`w-full py-4 sm:py-5 rounded-2xl sm:rounded-[2rem] font-black flex items-center justify-center gap-3 transition-all duration-300 transform group-hover:scale-[1.02] active:scale-95 text-base sm:text-lg ${
-                    plan.popular
-                      ? 'bg-white text-indigo-600 shadow-xl'
-                      : 'bg-slate-900 text-white hover:bg-indigo-600 shadow-xl'
-                  }`}
-                >
-                  {t('landing.pricing.choose')}
-                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                </Link>
-              </div>
+      {/* ── Commercial workflow ── */}
+      <section id="workflow" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-8 bg-slate-50 relative border-y border-slate-100">
+        <div className="max-w-7xl mx-auto text-center">
+          <h2 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.4em] mb-4 sm:mb-6">
+            Workflow global
+          </h2>
+          <h3 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-black text-slate-900 tracking-tighter leading-[0.95] mb-6">
+            De l'idée au règlement, sans perdre la conformité.
+          </h3>
+          <p className="max-w-3xl mx-auto text-slate-500 text-base sm:text-lg font-bold">
+            El Fatoora accompagne les TPE/PME tunisiennes sur les idées de projet, offres, bons de commande, devis,
+            factures, signature électronique, suivi TTN et historique de traçabilité.
+          </p>
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-6 gap-3 text-sm font-black text-slate-700">
+            {['Idée', 'Offre', 'Devis', 'Facture', 'TTN', 'Règlement'].map((step) => (
+              <div key={step} className="rounded-2xl bg-white border border-slate-100 px-5 py-4 shadow-sm">{step}</div>
             ))}
+          </div>
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link to="/demo" className="w-full sm:w-auto bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-slate-900 transition-all">
+              Demander une démo
+            </Link>
+            <Link to="/contact" className="w-full sm:w-auto bg-white text-slate-900 px-8 py-4 rounded-2xl font-black border border-slate-200 hover:border-indigo-300 transition-all">
+              Parler à un conseiller
+            </Link>
+            <Link to="/register" className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-2xl font-black hover:bg-indigo-600 transition-all">
+              Commencer
+            </Link>
           </div>
         </div>
       </section>
@@ -659,7 +572,7 @@ const Landing = () => {
             <ul className="space-y-3 sm:space-y-4 text-slate-500 font-bold text-sm">
               <li><a href="#features" className="hover:text-indigo-600 transition-colors">{t('landing.nav.features')}</a></li>
               <li><a href="#compliance" className="hover:text-indigo-600 transition-colors">{t('landing.nav.compliance')}</a></li>
-              <li><a href="#pricing" className="hover:text-indigo-600 transition-colors">{t('landing.nav.pricing')}</a></li>
+              <li><Link to="/pricing" className="hover:text-indigo-600 transition-colors">{t('landing.nav.pricing')}</Link></li>
               <li><a href="#" className="hover:text-indigo-600 transition-colors">Digital Signature</a></li>
             </ul>
           </div>

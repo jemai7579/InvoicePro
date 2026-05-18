@@ -557,6 +557,7 @@ const Invoices = () => {
                     <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">{text.nextAction}</th>
                     <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">{text.lastUpdate}</th>
                     <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">{text.amount}</th>
+                    <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Règlement</th>
                     <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">{text.actions}</th>
                   </tr>
                 </thead>
@@ -592,6 +593,14 @@ const Invoices = () => {
                         </td>
                         <td className="px-6 py-5 text-right font-black text-slate-900">
                           {Number(invoice.netToPay || 0).toLocaleString(undefined, { minimumFractionDigits: 3 })} TND
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <Badge variant={invoice.paymentStatus === 'PAID' ? 'success' : invoice.paymentStatus === 'PARTIALLY_PAID' ? 'warning' : 'neutral'}>
+                            {invoice.paymentStatus || 'UNPAID'}
+                          </Badge>
+                          <div className="mt-1 text-[11px] font-bold text-slate-400">
+                            Reste {Number(invoice.remainingAmount ?? invoice.netToPay ?? 0).toFixed(3)} TND
+                          </div>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex justify-end flex-wrap gap-2">
@@ -647,6 +656,7 @@ const Invoices = () => {
                     </div>
                     <div className="text-sm text-slate-600">
                       <div className="font-black text-slate-900">{Number(invoice.netToPay || 0).toLocaleString(undefined, { minimumFractionDigits: 3 })} TND</div>
+                      <div>Règlement: {invoice.paymentStatus || 'UNPAID'} · Reste {Number(invoice.remainingAmount ?? invoice.netToPay ?? 0).toFixed(3)} TND</div>
                       {invoice.ttnReference ? <div>{text.ttnReference}: {invoice.ttnReference}</div> : null}
                       {invoice.ttnRejectionReason ? <div className="text-rose-600 mt-2">{invoice.ttnRejectionReason}</div> : null}
                     </div>

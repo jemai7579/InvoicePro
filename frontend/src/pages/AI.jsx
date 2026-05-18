@@ -1,12 +1,10 @@
 import React from 'react';
 import { Bot, Sparkles, MessageSquare, Zap, ShieldCheck, BrainCircuit, ChevronRight } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
 import { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import UpgradeOverlay from '../components/Subscription/UpgradeOverlay';
 
 const AI = () => {
-  const { t } = useLanguage();
   const { user } = useContext(AuthContext);
 
   if (user?.subscription?.plan === 'STARTER') {
@@ -56,7 +54,7 @@ const AI = () => {
               Pilotez votre entreprise avec <span className="text-indigo-400 italic">Intelligence</span>
             </h1>
             <p className="text-lg text-slate-400 font-medium mb-10 max-w-xl">
-              El Fatoora AI automatise les tâches complexes, vérifie la conformité de vos factures et répond à toutes vos questions en quelques secondes.
+              L'assistant IA aide à préparer vos offres, devis, emails, descriptions de services, à comprendre les étapes TTN et à expliquer les erreurs ou rejets.
             </p>
             <div className="flex flex-wrap justify-center md:justify-start gap-4">
               <button 
@@ -116,6 +114,16 @@ const AI = () => {
           <Bot className="w-4 h-4" />
           Ouvrir l'Assistant
         </button>
+      </div>
+
+      <div className="mt-8 bg-white border border-slate-100 rounded-[2rem] p-8 shadow-sm">
+        <h2 className="text-lg font-black text-slate-900 mb-4">Cadre d'utilisation et limites</h2>
+        <p className="text-sm text-slate-600 font-medium leading-7">
+          L’assistant IA accompagne les utilisateurs dans la compréhension et l’utilisation de la plateforme. Il aide à préparer des offres, devis, emails, descriptions de services, à comprendre les étapes TTN et à expliquer les erreurs ou rejets. Il ne remplace pas un expert-comptable, fiscaliste ou conseiller juridique. Toute action sensible, comme l’envoi TTN, la signature électronique, la modification d’un montant ou la validation finale d’un document, nécessite une confirmation explicite de l’utilisateur.
+        </p>
+        <p className="text-sm text-slate-600 font-medium leading-7 mt-4">
+          Il peut expliquer les options de signature électronique de manière générale, mais il ne valide pas légalement un type de signature, ne garantit pas sa compatibilité TTN, ne remplace pas TTN, ANCE, TunTrust, E-Houwiya, Digigo ou un fournisseur officiel, ne signe pas automatiquement les documents et ne choisit pas le fournisseur sans confirmation utilisateur.
+        </p>
       </div>
 
     </div>

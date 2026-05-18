@@ -88,6 +88,19 @@ const Terms = () => {
                 </p>
               </div>
             </section>
+
+            <section className="space-y-4">
+              <h2 className="text-2xl font-black m-0">Politique IA et actions sensibles</h2>
+              <p className="text-slate-600 leading-relaxed">
+                L'assistant IA accompagne l'utilisateur dans la comprehension de la plateforme, la preparation de contenus
+                commerciaux et l'explication des etapes TTN. Il ne valide pas juridiquement ou fiscalement un document.
+                L'utilisateur reste responsable de toute validation finale. Les actions sensibles, notamment signature,
+                envoi TTN, modification de montant ou validation finale, exigent une confirmation explicite de l'utilisateur.
+              </p>
+              <p className="text-slate-600 leading-relaxed">
+                La plateforme présente des informations d’accompagnement concernant les types de signature électronique, l’adhésion TTN et les étapes de configuration. Ces informations sont fournies à titre d’aide et peuvent nécessiter une vérification auprès des organismes officiels ou prestataires concernés. L’utilisateur reste responsable du choix final de sa signature électronique et de la validation de sa conformité.
+              </p>
+            </section>
           </div>
           
           <div className="mt-20 pt-10 border-t border-slate-100 text-center">

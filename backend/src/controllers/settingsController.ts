@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../prisma';
 import bcrypt from 'bcryptjs';
 import { getTTNMode } from '../services/ttnProvider';
+import { logActivity } from '../services/auditTrailService';
 
 export const getSettings = async (req: Request, res: Response) => {
   try {
@@ -206,6 +207,16 @@ export const updateSettings = async (req: Request, res: Response) => {
           }
         })
       ));
+      await logActivity({
+        companyId,
+        actorId: companyId,
+        actorType: 'USER',
+        actionType: 'PROFILE_UPDATED',
+        objectType: 'SETTINGS',
+        objectId: companyId,
+        message: 'Parametres entreprise mis a jour.',
+        metadata: { fields: changes.map((change) => change.field) },
+      });
     }
 
     res.status(200).json(updatedCompany);
@@ -268,8 +279,19 @@ export const uploadCertificate = async (req: Request, res: Response) => {
       where: { id: companyId },
       data: {
         certificatePath: newPath,
+        // TODO(security): encrypt this value or move it to a secrets manager before production.
         certificatePassword: password // In a real prod app, encrypt this or store safely
       }
+    });
+    await logActivity({
+      companyId,
+      actorId: companyId,
+      actorType: 'USER',
+      actionType: 'UPDATED',
+      objectType: 'SETTINGS',
+      objectId: companyId,
+      message: 'Certificat de signature televerse.',
+      metadata: { fileType: ext },
     });
 
     res.status(200).json({ message: 'Certificate uploaded successfully' });
@@ -304,6 +326,16 @@ export const uploadLogo = async (req: Request, res: Response) => {
     await prisma.company.update({
       where: { id: companyId },
       data: { logo: logoUrl }
+    });
+    await logActivity({
+      companyId,
+      actorId: companyId,
+      actorType: 'USER',
+      actionType: 'UPDATED',
+      objectType: 'SETTINGS',
+      objectId: companyId,
+      message: 'Logo entreprise mis a jour.',
+      metadata: { logo: logoUrl },
     });
 
     res.status(200).json({ message: 'Logo uploaded successfully', logo: logoUrl });

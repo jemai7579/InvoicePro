@@ -3,8 +3,14 @@ const translations = {
   fr: {
     nav: {
       dashboard: 'Tableau de bord',
+      projectIdeas: 'Mes idées de projet',
+      offers: 'Mes offres & bons de commande',
       clients: 'Clients',
-      invoices: 'Factures',
+      network: 'Réseau professionnel',
+      messages: 'Messages',
+      payments: 'Règlements',
+      history: 'Historique & Traçabilité',
+      invoices: 'Mes factures / notes d’honoraires',
       demandes: 'Demandes',
       teif: 'TEIF',
       products: 'Produits',
@@ -697,8 +703,14 @@ const translations = {
   en: {
     nav: {
       dashboard: 'Dashboard',
+      projectIdeas: 'Project ideas',
+      offers: 'Offers & purchase orders',
       clients: 'Clients',
-      invoices: 'Invoices',
+      network: 'Professional network',
+      messages: 'Messages',
+      payments: 'Payments',
+      history: 'History & traceability',
+      invoices: 'Invoices / fee notes',
       demandes: 'Requests',
       teif: 'TEIF',
       products: 'Products',
@@ -1195,8 +1207,14 @@ const translations = {
   ar: {
     nav: {
       dashboard: 'لوحة القيادة',
+      projectIdeas: 'أفكار المشاريع',
+      offers: 'العروض وأوامر الشراء',
       clients: 'العملاء',
-      invoices: 'الفواتير',
+      network: 'الشبكة المهنية',
+      messages: 'الرسائل',
+      payments: 'الدفعات',
+      history: 'السجل والتتبع',
+      invoices: 'الفواتير ومذكرات الأتعاب',
       demandes: 'الطلبات',
       teif: 'TEIF',
       products: 'المنتجات',

@@ -1,4 +1,4 @@
-import type { Invoice, Company, Client, InvoiceLine } from '@prisma/client';
+import type { Invoice, Company, Client, InvoiceLine, Payment } from '@prisma/client';
 import prisma from '../prisma';
 import generatePdf from '../utils/pdfGenerator';
 import { generateTeifXml } from '../utils/teifGenerator';
@@ -19,6 +19,7 @@ type FullInvoice = Invoice & {
   company: Company;
   client: Client;
   lines: InvoiceLine[];
+  payments?: Payment[];
 };
 
 export const TTN_WORKFLOW_ORDER: ComplianceWorkflowStatus[] = [
@@ -164,6 +165,7 @@ export const getInvoiceByIdForCompliance = async (invoiceId: string, companyId: 
       company: true,
       client: true,
       lines: true,
+      payments: true,
     },
   });
 
@@ -469,6 +471,11 @@ export const enrichInvoiceWithCompliance = async <T extends Invoice & { companyI
 ) => {
   const metadata = await readComplianceMetadata(invoice.companyId, invoice.id);
   const complianceStatus = getInvoiceComplianceStatus(invoice, metadata);
+  const payments = (invoice as any).payments || [];
+  const totalPaid = payments
+    .filter((payment: any) => ['PAID', 'PARTIALLY_PAID'].includes(payment.status))
+    .reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0);
+  const remainingAmount = Math.max(0, Number((invoice as any).netToPay || 0) - totalPaid);
 
   return {
     ...invoice,
@@ -504,5 +511,8 @@ export const enrichInvoiceWithCompliance = async <T extends Invoice & { companyI
     hasSignedXml: !!metadata.signedXmlPath,
     hasFinalPdf: !!metadata.finalizedPdfPath,
     ttnResponse: metadata.statusHistory?.[metadata.statusHistory.length - 1]?.note || null,
+    totalPaid,
+    remainingAmount,
+    paymentStatus: totalPaid <= 0 ? 'UNPAID' : remainingAmount <= 0 ? 'PAID' : 'PARTIALLY_PAID',
   };
 };
