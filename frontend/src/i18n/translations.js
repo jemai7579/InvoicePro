@@ -9,6 +9,7 @@ const translations = {
       teif: 'TEIF',
       products: 'Produits',
       reports: 'Rapports',
+      ai: 'Assistant IA',
       settings: 'Paramètres',
       help: "Centre d'aide",
     },
@@ -228,7 +229,7 @@ const translations = {
       },
       howItWorks: {
         title: 'Comment obtenir votre facture électronique',
-        subtitle: 'La création d’une facture électronique suit des étapes précises. Notre plateforme vous accompagne pas à pas dans ce processus pour garantir votre conformité.',
+        subtitle: "La création d'une facture électronique suit des étapes précises. Notre plateforme vous accompagne pas à pas dans ce processus pour garantir votre conformité.",
         step1: { title: '1. Créer votre compte', desc: 'Inscrivez-vous sur El Fatoura en quelques clics pour accéder à votre espace de gestion dédié.' },
         step2: { title: '2. Informations entreprise', desc: 'Complétez votre profil : Matricule Fiscal, Registre de Commerce et coordonnées officielles.' },
         step3: { title: '3. Signature TunTrust', desc: 'Configurez votre certificat électronique TunTrust, indispensable pour la valeur légale de vos factures.' },
@@ -475,7 +476,7 @@ const translations = {
         title: "Signature TunTrust",
         subtitle: "Configurez votre identité XAdES-B.",
         prerequisite: "Pré-requis technique",
-        explanation: "Pour envoyer vos factures sur Tunisie Trade Net (TTN)، vous devez disposer d’un certificat électronique valide délivré par TunTrust (Format PKCS#12 / .p12).",
+        explanation: "Pour envoyer vos factures sur Tunisie Trade Net (TTN)، vous devez disposer d'un certificat électronique valide délivré par TunTrust (Format PKCS#12 / .p12).",
         order_cert: "Commander un certificat",
         file_label: "Fichier Certificat (.p12)",
         pwd_label: "Mot de passe du certificat",
@@ -483,7 +484,7 @@ const translations = {
         success: "Certificat configuré avec succès.",
         error: "Échec de la configuration du certificat.",
         status_title: "État de conformité",
-        status_desc: "Votre plateforme est prête à générer des documents conformes au standard UBL 2.1 TEIF. L’ajout du certificat TunTrust activera la signature XAdES-B automatique.",
+        status_desc: "Votre plateforme est prête à générer des documents conformes au standard UBL 2.1 TEIF. L'ajout du certificat TunTrust activera la signature XAdES-B automatique.",
         ubl_gen: "Génération UBL 2.1",
         xades_sign: "Signature XAdES-B",
         ttn_sub: "Envoi TTN",
@@ -496,7 +497,7 @@ const translations = {
         system_status: "STATUT DU SYSTÈME",
         version: "Conformité V2.0",
         why_title: "Pourquoi signer ?",
-        why_desc: "La signature électronique garantit que vos documents n’ont pas été modifiés après émission et authentifie l’identité de l’émetteur."
+        why_desc: "La signature électronique garantit que vos documents n'ont pas été modifiés après émission et authentifie l'identité de l'émetteur."
       },
       team: {
         title: "Équipe & CRM",
@@ -530,12 +531,12 @@ const translations = {
         import_button: "Importer",
         success: "Document importé et traité.",
         error_format: "Format de fichier non supporté.",
-        error_failed: "Échec de l’importation."
+        error_failed: "Échec de l'importation."
       },
       card: {
         sign_active: "Signature Active",
         sign_inactive: "Signature désactivée",
-        sign_active_desc: "Votre certificat TunTrust (XAdES-B) est prêt pour l’envoi légal à TTN.",
+        sign_active_desc: "Votre certificat TunTrust (XAdES-B) est prêt pour l'envoi légal à TTN.",
         sign_inactive_desc: "Veuillez configurer votre certificat pour activer la signature des factures.",
         config_now: "Configurer maintenant",
         validated: "Validé par TTN"
@@ -619,10 +620,21 @@ const translations = {
       tnd: "TND",
       close: "Fermer",
       cancel: "Annuler",
+      confirm: "Confirmer",
       submit: "Soumettre",
       waiting: "En attente...",
       various_client: "Client Divers",
       import: "Importer",
+      actions: "Actions",
+      success_submit: "Facture soumise à TTN avec succès !",
+      error_load: "Erreur lors du chargement des données.",
+      error_delete: "Erreur lors de la suppression.",
+      error_send: "Erreur lors de l'envoi.",
+      error_download: "Erreur lors du téléchargement.",
+      error_generic: "Une erreur est survenue.",
+      confirm_ttn_desc: "Cette action enverra la facture à TradeNet pour validation.",
+      confirm_delete_desc: "Cette action est irréversible.",
+      confirm_email_desc: "Un e-mail sera envoyé au client avec la facture.",
     },
     status: {
       draft: "Brouillon",
@@ -666,6 +678,20 @@ const translations = {
         title: "Exporter les Données",
         subtitle: "Générer un rapport PDF détaillé"
       }
+    },
+    helpPage: {
+      title: "Centre d'aide",
+      subtitle: "Trouvez des réponses, obtenez de l'aide et apprenez à utiliser El Fatoora.",
+      faqTitle: "Questions Fréquentes",
+      contactTitle: "Contacter le Support",
+      emailLabel: "Nous écrire",
+      docsLabel: "Lire la Documentation",
+      docsDesc: "Guides API et manuels",
+      aiTitle: "Besoin d'IA ?",
+      aiSubStarter: "L'assistant IA est disponible uniquement avec l'offre Professional ou Enterprise pour automatiser votre gestion.",
+      aiSubPro: "Notre IA est disponible 24/7 pour vous aider à naviguer, générer des factures ou répondre à vos questions techniques.",
+      aiUnlock: "Débloquer l'IA",
+      aiOpen: "Ouvrir l'Assistant",
     }
   },
   en: {
@@ -677,6 +703,7 @@ const translations = {
       teif: 'TEIF',
       products: 'Products',
       reports: 'Reports',
+      ai: 'AI Assistant',
       settings: 'Settings',
       help: 'Help Center',
     },
@@ -842,11 +869,12 @@ const translations = {
         popular: 'Most Popular',
         choose: 'Choose plan',
         month: 'month',
-        starter: { 
+        starter: {
           desc: 'For individual micro-businesses.',
-          feat1: '100 invoices / month',
-          feat2: 'Standard support',
-          feat3: 'XML TEIF export',
+          feat1: '7 invoices / month',
+          feat2: 'XML TEIF export',
+          feat3: 'Standard support',
+          feat4: 'Simple dashboard',
         },
         pro: {
           desc: 'Perfect for growing SMEs.',
@@ -1024,10 +1052,21 @@ const translations = {
       tnd: "TND",
       close: "Close",
       cancel: "Cancel",
+      confirm: "Confirm",
       submit: "Submit",
       waiting: "Waiting...",
       various_client: "Various Client",
       import: "Import",
+      actions: "Actions",
+      success_submit: "Invoice successfully submitted to TTN!",
+      error_load: "Error loading data.",
+      error_delete: "Error deleting item.",
+      error_send: "Error sending.",
+      error_download: "Error downloading file.",
+      error_generic: "An error occurred.",
+      confirm_ttn_desc: "This will send the invoice to TradeNet for validation.",
+      confirm_delete_desc: "This action cannot be undone.",
+      confirm_email_desc: "An email with the invoice will be sent to the client.",
     },
     status: {
       draft: "Draft",
@@ -1137,6 +1176,20 @@ const translations = {
         title: "Export Data",
         subtitle: "Generate a detailed PDF report"
       }
+    },
+    helpPage: {
+      title: "Help Center",
+      subtitle: "Find answers, get support, and learn how to use El Fatoora.",
+      faqTitle: "Frequently Asked Questions",
+      contactTitle: "Contact Support",
+      emailLabel: "Email Us",
+      docsLabel: "Read Documentation",
+      docsDesc: "API guides & manuals",
+      aiTitle: "Need AI Assistance?",
+      aiSubStarter: "The AI Assistant is available only with Professional or Enterprise plans to automate your workflows.",
+      aiSubPro: "Our AI Assistant is available 24/7 to help you navigate, generate invoices, or answer technical questions.",
+      aiUnlock: "Unlock AI",
+      aiOpen: "Open AI Assistant",
     }
   },
   ar: {
@@ -1148,6 +1201,7 @@ const translations = {
       teif: 'TEIF',
       products: 'المنتجات',
       reports: 'التقارير',
+      ai: 'المساعد الذكي',
       settings: 'الإعدادات',
       help: 'مركز المساعدة',
     },
@@ -1493,10 +1547,21 @@ const translations = {
       tnd: "د.ت",
       close: "إغلاق",
       cancel: "إلغاء",
+      confirm: "تأكيد",
       submit: "إرسال",
       waiting: "في الانتظار...",
       various_client: "عملاء متنوعون",
       import: "استيراد",
+      actions: "الإجراءات",
+      success_submit: "تم إرسال الفاتورة إلى TTN بنجاح!",
+      error_load: "خطأ في تحميل البيانات.",
+      error_delete: "خطأ في الحذف.",
+      error_send: "خطأ في الإرسال.",
+      error_download: "خطأ في التحميل.",
+      error_generic: "حدث خطأ.",
+      confirm_ttn_desc: "سيتم إرسال الفاتورة إلى TradeNet للتحقق.",
+      confirm_delete_desc: "هذا الإجراء لا يمكن التراجع عنه.",
+      confirm_email_desc: "سيتم إرسال بريد إلكتروني بالفاتورة إلى العميل.",
     },
     status: {
       draft: "مسودة",
@@ -1606,6 +1671,20 @@ const translations = {
         title: "تصدير البيانات",
         subtitle: "إنشاء تقرير PDF مفصل"
       }
+    },
+    helpPage: {
+      title: "مركز المساعدة",
+      subtitle: "ابحث عن إجابات واحصل على الدعم وتعلم كيفية استخدام El Fatoora.",
+      faqTitle: "الأسئلة المتكررة",
+      contactTitle: "التواصل مع الدعم",
+      emailLabel: "راسلنا",
+      docsLabel: "قراءة التوثيق",
+      docsDesc: "أدلة API والمناهج",
+      aiTitle: "تحتاج مساعدة ذكية؟",
+      aiSubStarter: "المساعد الذكي متاح فقط مع خطة Professional أو Enterprise لأتمتة سير عملك.",
+      aiSubPro: "مساعدنا الذكي متاح على مدار الساعة لمساعدتك في التنقل وإنشاء الفواتير أو الإجابة على أسئلتك التقنية.",
+      aiUnlock: "إلغاء قفل الذكاء الاصطناعي",
+      aiOpen: "فتح المساعد",
     }
   },
 };

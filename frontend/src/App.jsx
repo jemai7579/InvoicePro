@@ -11,12 +11,15 @@ import Dashboard from './pages/Dashboard';
 import Invoices from './pages/Invoices';
 import Clients from './pages/Clients';
 import Demandes from './pages/Demandes';
+import Devis from './pages/Devis';
 import Teif from './pages/Teif';
 import Settings from './pages/Settings';
 import AI from './pages/AI';
 import Products from './pages/Products';
 import Reports from './pages/Reports';
 import Help from './pages/Help';
+import Projects from './pages/Projects';
+import InvoiceTracking from './pages/InvoiceTracking';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Legal from './pages/Legal';
@@ -24,10 +27,16 @@ import Legal from './pages/Legal';
 // Admin Pages
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminCompanies from './pages/admin/AdminCompanies';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminInvoices from './pages/admin/AdminInvoices';
+import AdminTTN from './pages/admin/AdminTTN';
+import AdminCompliance from './pages/admin/AdminCompliance';
+import AdminPayments from './pages/admin/AdminPayments';
+import AdminSupport from './pages/admin/AdminSupport';
 import AdminSubscriptions from './pages/admin/AdminSubscriptions';
 import AdminActivity from './pages/admin/AdminActivity';
+import AdminSystemErrors from './pages/admin/AdminSystemErrors';
 import AdminSettings from './pages/admin/AdminSettings';
 import AdminLayout from './components/AdminLayout';
 import AdminPrivateRoute from './components/AdminPrivateRoute';
@@ -35,7 +44,6 @@ import AdminPrivateRoute from './components/AdminPrivateRoute';
 import { AdminAuthProvider } from './context/AdminAuthContext';
 
 function App() {
-  console.log('App.jsx: Rendering App');
   return (
     <Router>
       <AdminAuthProvider>
@@ -53,11 +61,19 @@ function App() {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route element={<AdminPrivateRoute />}>
             <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/companies" element={<AdminCompanies />} />
               <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/invoices" element={<AdminInvoices />} />
               <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
+              <Route path="/admin/invoices" element={<AdminInvoices />} />
+              <Route path="/admin/ttn" element={<AdminTTN />} />
+              <Route path="/admin/compliance" element={<AdminCompliance />} />
+              <Route path="/admin/payments" element={<AdminPayments />} />
+              <Route path="/admin/support" element={<AdminSupport />} />
               <Route path="/admin/activity" element={<AdminActivity />} />
+              <Route path="/admin/activity-logs" element={<AdminActivity />} />
+              <Route path="/admin/system-errors" element={<AdminSystemErrors />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
             </Route>
           </Route>
@@ -67,9 +83,17 @@ function App() {
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/invoices" element={<Invoices />} />
+              <Route path="/invoice-tracking" element={<InvoiceTracking />} />
+              <Route path="/suivi-factures" element={<InvoiceTracking />} />
               <Route path="/clients" element={<Clients />} />
+              <Route path="/projects" element={<Projects />} />
+              <Route path="/mes-projets" element={<Projects />} />
+              <Route path="/devis" element={<Devis />} />
+              <Route path="/quotes" element={<Devis />} />
+              <Route path="/mes-devis" element={<Devis />} />
               <Route path="/demandes" element={<Demandes />} />
               <Route path="/teif" element={<Teif />} />
+              <Route path="/compliance-center" element={<Teif />} />
               <Route path="/products" element={<Products />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<Settings />} />
@@ -86,4 +110,3 @@ function App() {
 }
 
 export default App;
-

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateTeifXml = void 0;
 const xmlbuilder2_1 = require("xmlbuilder2");
+const numberingService_1 = require("../services/numberingService");
 const generateTeifXml = (invoice) => {
     // Validate basic requirements before generation
     if (!invoice.company.matriculeFiscal)
@@ -44,7 +45,7 @@ const generateTeifXml = (invoice) => {
                 }
             },
             // Document Metadata
-            'cbc:ID': invoice.id,
+            'cbc:ID': (0, numberingService_1.getInvoiceVisibleNumber)(invoice),
             'cbc:IssueDate': new Date(invoice.createdAt).toISOString().split('T')[0],
             'cbc:InvoiceTypeCode': '380', // Commercial Invoice
             'cbc:DocumentCurrencyCode': 'TND',
@@ -97,8 +98,12 @@ const generateTeifXml = (invoice) => {
                 }
             },
             // Payment Terms
+            'cac:PaymentMeans': {
+                'cbc:PaymentMeansCode': '10',
+                'cbc:InstructionNote': 'Paiement en espece'
+            },
             'cac:PaymentTerms': {
-                'cbc:Note': 'Paiement à réception'
+                'cbc:Note': 'Paiement en espece'
             },
             // Tax Totals
             'cac:TaxTotal': [

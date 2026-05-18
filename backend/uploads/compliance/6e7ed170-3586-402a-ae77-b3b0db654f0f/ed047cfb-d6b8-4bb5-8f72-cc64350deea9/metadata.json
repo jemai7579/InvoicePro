@@ -1,0 +1,20 @@
+{
+  "workflowStatus": "DRAFT",
+  "teifXmlPath": null,
+  "signedXmlPath": null,
+  "finalizedPdfPath": null,
+  "ttnSubmissionId": null,
+  "ttnReference": null,
+  "ttnRejectionReason": null,
+  "ttnQrCode": null,
+  "ttnAcceptedAt": null,
+  "lastTtnSyncAt": null,
+  "lastStatusAt": "2026-04-20T00:27:06.886Z",
+  "statusHistory": [
+    {
+      "status": "DRAFT",
+      "at": "2026-04-20T00:27:06.886Z",
+      "note": "Invoice updated and reset to draft"
+    }
+  ]
+}

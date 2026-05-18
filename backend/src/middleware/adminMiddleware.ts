@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../prisma';
+import { getJwtSecret } from '../utils/jwtSecret';
 
 export const adminProtect = async (req: Request, res: Response, next: NextFunction) => {
   let token;
@@ -9,7 +10,7 @@ export const adminProtect = async (req: Request, res: Response, next: NextFuncti
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
+      const decoded: any = jwt.verify(token, getJwtSecret());
 
       // Recherche dans la table Admin au lieu de Company
       const admin = await prisma.admin.findUnique({

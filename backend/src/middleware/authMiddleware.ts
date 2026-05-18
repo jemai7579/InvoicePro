@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../prisma';
+import { getJwtSecret } from '../utils/jwtSecret';
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
   let token;
@@ -9,7 +10,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'supersecret');
+      const decoded: any = jwt.verify(token, getJwtSecret());
 
       const company = await prisma.company.findUnique({
         where: { id: decoded.id },

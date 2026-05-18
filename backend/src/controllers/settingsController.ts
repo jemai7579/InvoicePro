@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma';
 import bcrypt from 'bcryptjs';
+import { getTTNMode } from '../services/ttnProvider';
 
 export const getSettings = async (req: Request, res: Response) => {
   try {
-    const company = await prisma.company.findUnique({
+    const raw = await prisma.company.findUnique({
       where: { id: (req as any).company.id },
       select: {
         id: true,
@@ -19,10 +20,71 @@ export const getSettings = async (req: Request, res: Response) => {
         phone: true,
         rib: true,
         logo: true,
+        certificatePath: true,
         createdAt: true,
         updatedAt: true
       }
     });
+
+    const lastSignedInvoice = await prisma.invoice.findFirst({
+      where: {
+        companyId: (req as any).company.id,
+        ttnStatus: {
+          in: ['SIGNED', 'TTN_ACCEPTED', 'FINALIZED'],
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        updatedAt: true,
+        ttnStatus: true,
+      },
+    });
+
+    const lastSubmission = await prisma.invoice.findFirst({
+      where: {
+        companyId: (req as any).company.id,
+        ttnStatus: {
+          in: ['SUBMITTED_TO_TTN', 'TTN_PROCESSING', 'TTN_ACCEPTED', 'FINALIZED', 'TTN_REJECTED'],
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        updatedAt: true,
+        ttnStatus: true,
+      },
+    });
+
+    const ttnMode = getTTNMode();
+
+    const company = raw
+      ? {
+          ...raw,
+          hasCertificate: !!raw.certificatePath,
+          certificatePath: undefined,
+          compliance: {
+            signatureStatus: raw.certificatePath ? 'configured' : 'not_configured',
+            certificateProvider: process.env.SIGNATURE_PROVIDER_NAME || 'TunTrust / ANCE',
+            certificateType: process.env.SIGNATURE_CERT_TYPE || 'USB token',
+            companyFiscalIdentifier: raw.matriculeFiscal,
+            lastSignatureTestDate: lastSignedInvoice?.updatedAt || null,
+            ttnMode,
+            ttnConnectionStatus:
+              ttnMode === 'mock'
+                ? 'test'
+                : ttnMode === 'webservice' && process.env.TTN_API_BASE_URL && process.env.TTN_API_USERNAME
+                  ? 'configured'
+                  : ttnMode === 'sftp' && process.env.TTN_SFTP_HOST && process.env.TTN_SFTP_USERNAME
+                    ? 'configured'
+                    : ttnMode === 'provider' && process.env.TTN_PROVIDER_API_KEY
+                      ? 'configured'
+                      : 'not_configured',
+            teifAvailable: true,
+            lastSubmission,
+          },
+        }
+      : null;
 
     if (!company) {
       return res.status(404).json({ message: 'Company not found' });

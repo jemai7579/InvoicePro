@@ -1,0 +1,18 @@
+{
+  "workflowStatus": "TEIF_GENERATED",
+  "lastStatusAt": "2026-04-24T14:08:57.144Z",
+  "statusHistory": [
+    {
+      "status": "VALIDATED",
+      "at": "2026-04-24T14:08:52.889Z",
+      "note": "Invoice validated"
+    },
+    {
+      "status": "TEIF_GENERATED",
+      "at": "2026-04-24T14:08:57.144Z",
+      "note": "TEIF XML generated"
+    }
+  ],
+  "teifXmlPath": "/uploads/compliance/32bdd06b-6756-4fb2-8089-7e14ae0dff0a/1dd3b525-d431-4097-941e-7a40f1cec5b8/teif.xml",
+  "complianceMode": "mock"
+}

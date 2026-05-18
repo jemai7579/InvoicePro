@@ -64,19 +64,19 @@ const AIAssistant = () => {
       {/* Chat Button */}
       <button
         onClick={toggleChat}
-        className={`fixed bottom-6 right-6 p-4 rounded-2xl shadow-2xl transition-all duration-500 z-50 flex items-center justify-center group ${
+        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 p-3.5 sm:p-4 rounded-2xl shadow-2xl transition-all duration-500 z-50 flex items-center justify-center group ${
           isOpen ? 'scale-90 opacity-0 pointer-events-none rotate-90' : 'bg-slate-900 text-white hover:bg-indigo-600 scale-100 opacity-100 hover:shadow-indigo-200'
         }`}
       >
-        <MessageSquare className="w-6 h-6 group-hover:scale-110 transition-transform" />
+        <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
       </button>
 
-      {/* Chat Window */}
+      {/* Chat Window — full-width on mobile, fixed width on sm+ */}
       <div
-        className={`fixed bottom-6 right-6 w-[350px] sm:w-[400px] bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_30px_100px_-20px_rgba(0,0,0,0.15)] border border-white/50 flex flex-col overflow-hidden transition-all duration-500 transform origin-bottom-right z-50 ${
+        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[380px] max-w-[420px] bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-[2.5rem] shadow-[0_30px_100px_-20px_rgba(0,0,0,0.15)] border border-white/50 flex flex-col overflow-hidden transition-all duration-500 transform origin-bottom-right z-50 ${
           isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-75 opacity-0 translate-y-20 pointer-events-none'
         }`}
-        style={{ height: '550px', maxHeight: '85vh' }}
+        style={{ height: '520px', maxHeight: '80vh' }}
       >
         {/* Header */}
         <div className="bg-slate-900 px-6 py-5 flex justify-between items-center text-white relative overflow-hidden">

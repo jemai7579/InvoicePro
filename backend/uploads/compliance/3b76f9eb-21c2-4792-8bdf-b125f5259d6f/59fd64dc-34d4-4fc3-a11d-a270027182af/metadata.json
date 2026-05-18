@@ -1,0 +1,39 @@
+{
+  "workflowStatus": "PENDING_TTN",
+  "lastStatusAt": "2026-05-02T14:42:28.012Z",
+  "statusHistory": [
+    {
+      "status": "VALIDATED",
+      "at": "2026-04-23T22:39:28.657Z",
+      "note": "Invoice validated"
+    },
+    {
+      "status": "TEIF_GENERATED",
+      "at": "2026-04-23T22:44:18.194Z",
+      "note": "TEIF XML generated"
+    },
+    {
+      "status": "SIGNED",
+      "at": "2026-05-02T14:42:21.940Z",
+      "note": "Electronic signature completed"
+    },
+    {
+      "status": "SENT_TO_TTN",
+      "at": "2026-05-02T14:42:25.855Z",
+      "note": "TTN integration is not configured yet. Simulation mode enabled."
+    },
+    {
+      "status": "PENDING_TTN",
+      "at": "2026-05-02T14:42:28.012Z",
+      "note": "TTN integration is not configured yet. Simulation mode enabled."
+    }
+  ],
+  "teifXmlPath": "/uploads/compliance/3b76f9eb-21c2-4792-8bdf-b125f5259d6f/59fd64dc-34d4-4fc3-a11d-a270027182af/teif.xml",
+  "complianceMode": "mock",
+  "signedXmlPath": "/uploads/compliance/3b76f9eb-21c2-4792-8bdf-b125f5259d6f/59fd64dc-34d4-4fc3-a11d-a270027182af/teif.signed.xml",
+  "signatureProvider": "TunTrust / ANCE",
+  "certificateType": "USB token",
+  "lastSignatureTestDate": "2026-05-02T14:42:21.936Z",
+  "ttnSubmissionId": "MOCK-SUB-59FD64DC-1777732945853",
+  "lastTtnSyncAt": "2026-05-02T14:42:28.011Z"
+}

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../prisma';
+import { getJwtSecret } from '../utils/jwtSecret';
 
 export const adminLogin = async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -14,7 +15,7 @@ export const adminLogin = async (req: Request, res: Response) => {
     if (admin && (await bcrypt.compare(password, admin.password))) {
       const token = jwt.sign(
         { id: admin.id, role: 'admin' },
-        process.env.JWT_SECRET || 'secret123',
+        getJwtSecret(),
         { expiresIn: '30d' }
       );
 

@@ -2,11 +2,10 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import prisma from '../prisma';
+import { getJwtSecret } from '../utils/jwtSecret';
 
 const generateToken = (id: string) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'supersecret', {
-    expiresIn: '30d',
-  });
+  return jwt.sign({ id }, getJwtSecret(), { expiresIn: '30d' });
 };
 
 export const register = async (req: Request, res: Response) => {

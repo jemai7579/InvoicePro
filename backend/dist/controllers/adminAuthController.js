@@ -7,6 +7,7 @@ exports.getAdminProfile = exports.adminLogin = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = __importDefault(require("../prisma"));
+const jwtSecret_1 = require("../utils/jwtSecret");
 const adminLogin = async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -14,7 +15,7 @@ const adminLogin = async (req, res) => {
             where: { email },
         });
         if (admin && (await bcryptjs_1.default.compare(password, admin.password))) {
-            const token = jsonwebtoken_1.default.sign({ id: admin.id, role: 'admin' }, process.env.JWT_SECRET || 'secret123', { expiresIn: '30d' });
+            const token = jsonwebtoken_1.default.sign({ id: admin.id, role: 'admin' }, (0, jwtSecret_1.getJwtSecret)(), { expiresIn: '30d' });
             // Log activity
             await prisma_1.default.activityLog.create({
                 data: {

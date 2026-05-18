@@ -1,10 +1,16 @@
 import { Router } from 'express';
 import { getInvoices, getInvoiceById, createInvoice,
+  updateInvoice,
   deleteInvoice,
   getInvoicePdf,
+  getFinalInvoicePdf,
   getInvoiceXml,
+  generateInvoiceTeifController,
+  validateInvoiceTeifController,
+  signInvoiceTeifController,
   sendInvoiceEmailController,
   submitToTTNController,
+  checkTTNStatusController,
   updateInvoiceStatus,
   importInvoiceXml
 } from '../controllers/invoiceController';
@@ -21,19 +27,35 @@ router.route('/')
 
 router.route('/:id')
   .get(protect, getInvoiceById)
+  .put(protect, updateInvoice)
   .delete(protect, deleteInvoice);
 
 router.route('/:id/pdf')
   .get(protect, getInvoicePdf);
 
+router.route('/:id/final-pdf')
+  .get(protect, getFinalInvoicePdf);
+
 router.route('/:id/xml')
   .get(protect, getInvoiceXml);
+
+router.route('/:id/validate-teif')
+  .post(protect, validateInvoiceTeifController);
+
+router.route('/:id/generate-teif')
+  .post(protect, generateInvoiceTeifController);
+
+router.route('/:id/sign-teif')
+  .post(protect, signInvoiceTeifController);
 
 router.route('/:id/send-email')
   .post(protect, sendInvoiceEmailController);
 
 router.route('/:id/submit-ttn')
   .post(protect, submitToTTNController);
+
+router.route('/:id/check-ttn-status')
+  .post(protect, checkTTNStatusController);
 
 router.route('/:id/status')
   .patch(protect, updateInvoiceStatus);

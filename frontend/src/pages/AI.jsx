@@ -100,23 +100,22 @@ const AI = () => {
       <div className="mt-12 p-10 bg-gradient-to-br from-indigo-50 to-white rounded-[3rem] border border-indigo-100/50 flex flex-col md:flex-row items-center gap-8 justify-between">
         <div className="flex items-center gap-6">
           <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center flex-shrink-0">
-             <div className="w-4 h-4 bg-emerald-500 rounded-full animate-ping"></div>
+            <div className="w-4 h-4 bg-emerald-500 rounded-full animate-ping"></div>
           </div>
           <div>
-            <h4 className="text-xl font-black text-slate-900 font-display uppercase tracking-tight">Déploiement Progressif</h4>
-            <p className="text-sm text-slate-500 font-medium mt-1 italic">
-              "L'assistant flottant est opérationnel. Le dashboard IA complet arrive bientôt."
+            <h4 className="text-xl font-black text-slate-900 font-display uppercase tracking-tight">Assistant Opérationnel</h4>
+            <p className="text-sm text-slate-500 font-medium mt-1">
+              L'assistant IA est actif et prêt à répondre à vos questions sur la facturation et la conformité TEIF.
             </p>
           </div>
         </div>
-        <div className="flex -space-x-3">
-          {[1,2,3,4].map(i => (
-            <div key={i} className="w-12 h-12 rounded-full border-4 border-white bg-slate-200 overflow-hidden shadow-sm">
-               <img src={`https://i.pravatar.cc/150?u=${i+10}`} alt="User" />
-            </div>
-          ))}
-          <div className="w-12 h-12 rounded-full border-4 border-white bg-indigo-600 flex items-center justify-center text-[10px] font-black text-white shadow-sm">+250</div>
-        </div>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('open-ai-assistant'))}
+          className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+        >
+          <Bot className="w-4 h-4" />
+          Ouvrir l'Assistant
+        </button>
       </div>
 
     </div>

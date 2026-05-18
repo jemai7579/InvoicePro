@@ -38,7 +38,7 @@ const getProductById = async (req, res) => {
 exports.getProductById = getProductById;
 const createProduct = async (req, res) => {
     try {
-        const { code, name, description, priceHT, tvaRate } = req.body;
+        const { code, category, name, description, priceHT, tvaRate } = req.body;
         if (!name || priceHT === undefined) {
             return res.status(400).json({ message: 'Name and price are required' });
         }
@@ -46,6 +46,7 @@ const createProduct = async (req, res) => {
             data: {
                 companyId: req.company.id,
                 code,
+                category: category || null,
                 name,
                 description,
                 priceHT,
@@ -70,10 +71,10 @@ const updateProduct = async (req, res) => {
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
-        const { code, name, description, priceHT, tvaRate } = req.body;
+        const { code, category, name, description, priceHT, tvaRate } = req.body;
         const updatedProduct = await prisma_1.default.product.update({
             where: { id: req.params.id },
-            data: { code, name, description, priceHT, tvaRate }
+            data: { code, category, name, description, priceHT, tvaRate }
         });
         res.status(200).json(updatedProduct);
     }

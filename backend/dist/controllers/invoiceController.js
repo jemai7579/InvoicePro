@@ -3,24 +3,72 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.importInvoiceXml = exports.submitToTTNController = exports.updateInvoiceStatus = exports.sendInvoiceEmailController = exports.deleteInvoice = exports.createInvoice = exports.getInvoiceXml = exports.getInvoicePdf = exports.getInvoiceById = exports.getInvoices = void 0;
+exports.importInvoiceXml = exports.checkTTNStatusController = exports.submitToTTNController = exports.updateInvoiceStatus = exports.sendInvoiceEmailController = exports.deleteInvoice = exports.updateInvoice = exports.createInvoice = exports.signInvoiceTeifController = exports.generateInvoiceTeifController = exports.validateInvoiceTeifController = exports.getInvoiceXml = exports.getFinalInvoicePdf = exports.getInvoicePdf = exports.getInvoiceById = exports.getInvoices = void 0;
+const xmlbuilder2_1 = require("xmlbuilder2");
+const nodemailer_1 = __importDefault(require("nodemailer"));
 const prisma_1 = __importDefault(require("../prisma"));
 const pdfGenerator_1 = __importDefault(require("../utils/pdfGenerator"));
-const teifGenerator_1 = require("../utils/teifGenerator");
 const notificationHelper_1 = require("../utils/notificationHelper");
+const mailer_1 = require("../utils/mailer");
+const teifWorkflowService_1 = require("../services/teifWorkflowService");
+const numberingService_1 = require("../services/numberingService");
+const complianceStorage_1 = require("../services/complianceStorage");
+const VALID_STATUSES = ['DRAFT', 'VALIDATED', 'TEIF_GENERATED', 'SIGNED', 'SENT_TO_TTN', 'PENDING_TTN', 'ACCEPTED_TTN', 'REJECTED_TTN', 'CANCELLED'];
+const getOwnedInvoice = async (invoiceId, companyId) => (0, teifWorkflowService_1.getInvoiceByIdForCompliance)(invoiceId, companyId);
+const getSerializedInvoice = async (invoiceId, companyId) => {
+    const invoice = await getOwnedInvoice(invoiceId, companyId);
+    return invoice ? (0, teifWorkflowService_1.enrichInvoiceWithCompliance)(invoice) : null;
+};
+const normalizeInvoiceLine = (line) => ({
+    productId: line.productId || null,
+    description: String(line.description || '').trim(),
+    quantity: Number(line.quantity || 0),
+    unitPrice: Number(line.unitPrice || 0),
+    tvaRate: Number(line.tvaRate || 0),
+});
+const buildInvoiceTotals = (normalizedLines, stampDuty = 1.0, withholdingTax = 0) => {
+    let totalHT = 0;
+    let totalTVA = 0;
+    const processedLines = normalizedLines.map((line) => {
+        const lineTotalHT = line.quantity * line.unitPrice;
+        const lineTVA = lineTotalHT * (line.tvaRate / 100);
+        totalHT += lineTotalHT;
+        totalTVA += lineTVA;
+        return {
+            productId: line.productId,
+            description: line.description,
+            quantity: line.quantity,
+            unitPrice: line.unitPrice,
+            tvaRate: line.tvaRate,
+            totalHT: lineTotalHT,
+        };
+    });
+    const totalTTC = totalHT + totalTVA;
+    const netToPay = totalTTC + stampDuty - withholdingTax;
+    return {
+        processedLines,
+        totalHT,
+        totalTVA,
+        totalTTC,
+        netToPay,
+    };
+};
 const getInvoices = async (req, res) => {
     try {
         const invoices = await prisma_1.default.invoice.findMany({
             where: { companyId: req.company.id },
             include: {
+                company: true,
                 client: true,
-                lines: true
+                lines: true,
             },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
         });
-        res.status(200).json(invoices);
+        const enriched = await Promise.all(invoices.map((invoice) => (0, teifWorkflowService_1.enrichInvoiceWithCompliance)(invoice)));
+        res.status(200).json(enriched);
     }
     catch (error) {
+        console.error('Error loading invoices:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -30,42 +78,36 @@ const getInvoiceById = async (req, res) => {
         const invoice = await prisma_1.default.invoice.findFirst({
             where: {
                 id: req.params.id,
-                companyId: req.company.id
+                companyId: req.company.id,
             },
             include: {
                 client: true,
-                lines: true
-            }
+                lines: true,
+                company: true,
+            },
         });
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
-        res.status(200).json(invoice);
+        res.status(200).json(await (0, teifWorkflowService_1.enrichInvoiceWithCompliance)(invoice));
     }
     catch (error) {
+        console.error('Error loading invoice:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 exports.getInvoiceById = getInvoiceById;
 const getInvoicePdf = async (req, res) => {
     try {
-        const invoice = await prisma_1.default.invoice.findFirst({
-            where: {
-                id: req.params.id,
-                companyId: req.company.id
-            },
-            include: {
-                company: true,
-                client: true,
-                lines: true
-            }
-        });
+        const invoice = await getOwnedInvoice(req.params.id, req.company.id);
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
-        const pdfBuffer = await (0, pdfGenerator_1.default)(invoice, 'FACTURE');
+        const enriched = await (0, teifWorkflowService_1.enrichInvoiceWithCompliance)(invoice);
+        const pdfBuffer = await (0, pdfGenerator_1.default)(invoice, 'FACTURE', enriched);
+        const invoiceNumber = (0, numberingService_1.sanitizeBusinessNumberForFileName)((0, numberingService_1.getInvoiceVisibleNumber)(invoice));
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=Invoice_${invoice.id}.pdf`);
+        res.setHeader('Content-Disposition', `attachment; filename=Invoice_${invoiceNumber}.pdf`);
         res.status(200).send(pdfBuffer);
     }
     catch (error) {
@@ -74,196 +116,312 @@ const getInvoicePdf = async (req, res) => {
     }
 };
 exports.getInvoicePdf = getInvoicePdf;
-const fs_extra_1 = __importDefault(require("fs-extra"));
-const signer_1 = require("../utils/signer");
-const getInvoiceXml = async (req, res) => {
+const getFinalInvoicePdf = async (req, res) => {
     try {
-        const invoice = await prisma_1.default.invoice.findFirst({
-            where: {
-                id: req.params.id,
-                companyId: req.company.id
-            },
-            include: {
-                company: true,
-                client: true,
-                lines: true
-            }
-        });
+        const invoice = await getOwnedInvoice(req.params.id, req.company.id);
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
-        let xmlContent = (0, teifGenerator_1.generateTeifXml)(invoice);
-        // If company has uploaded a certificate, sign the XML
-        if (invoice.company.certificatePath && invoice.company.certificatePassword) {
-            try {
-                const p12Buffer = await fs_extra_1.default.readFile(invoice.company.certificatePath);
-                xmlContent = (0, signer_1.signXml)({
-                    xmlString: xmlContent,
-                    p12Buffer: p12Buffer,
-                    password: invoice.company.certificatePassword
-                });
-            }
-            catch (signError) {
-                console.error('Signing failed:', signError.message);
-                // Fallback to sending unsigned if signing fails, or return error depending on strictness
-                // returning error since TTN requires signed
-                return res.status(500).json({ message: 'Failed to sign the invoice with the registered certificate: ' + signError.message });
-            }
+        const { pdfBuffer } = await (0, teifWorkflowService_1.finalizeInvoicePdf)(invoice);
+        const invoiceNumber = (0, numberingService_1.sanitizeBusinessNumberForFileName)((0, numberingService_1.getInvoiceVisibleNumber)(invoice));
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=Invoice_${invoiceNumber}_final.pdf`);
+        res.status(200).send(pdfBuffer);
+    }
+    catch (error) {
+        console.error('Error generating final invoice PDF', error);
+        res.status(400).json({ message: error.message || 'Final PDF is not available yet.' });
+    }
+};
+exports.getFinalInvoicePdf = getFinalInvoicePdf;
+const getInvoiceXml = async (req, res) => {
+    try {
+        const invoice = await getOwnedInvoice(req.params.id, req.company.id);
+        if (!invoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
         }
+        const xmlContent = await (0, teifWorkflowService_1.getDownloadableTeifXml)(invoice);
+        const invoiceNumber = (0, numberingService_1.sanitizeBusinessNumberForFileName)((0, numberingService_1.getInvoiceVisibleNumber)(invoice));
         res.setHeader('Content-Type', 'application/xml');
-        res.setHeader('Content-Disposition', `attachment; filename=TEIF_${invoice.id}.xml`);
+        res.setHeader('Content-Disposition', `attachment; filename=TEIF_${invoiceNumber}.xml`);
         res.status(200).send(xmlContent);
     }
     catch (error) {
         console.error('Error generating XML', error);
-        // Send back specialized error message for validation failures
         res.status(400).json({ message: error.message || 'Error generating TEIF XML' });
     }
 };
 exports.getInvoiceXml = getInvoiceXml;
+const validateInvoiceTeifController = async (req, res) => {
+    try {
+        const invoice = await getOwnedInvoice(req.params.id, req.company.id);
+        if (!invoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+        const validation = await (0, teifWorkflowService_1.validateTeifXml)(invoice);
+        if (!validation.valid) {
+            return res.status(400).json(validation);
+        }
+        res.status(200).json({
+            valid: true,
+            message: 'Les donnees de la facture sont pretes pour la generation TEIF.',
+        });
+    }
+    catch (error) {
+        console.error('Error validating TEIF XML', error);
+        res.status(500).json({ message: error.message || 'Server error' });
+    }
+};
+exports.validateInvoiceTeifController = validateInvoiceTeifController;
+const generateInvoiceTeifController = async (req, res) => {
+    try {
+        const invoice = await getOwnedInvoice(req.params.id, req.company.id);
+        if (!invoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+        const { metadata } = await (0, teifWorkflowService_1.generateInvoiceTeifXml)(invoice);
+        const updatedInvoice = await getSerializedInvoice(invoice.id, req.company.id);
+        res.status(200).json({
+            message: 'Le fichier XML TEIF a ete genere avec succes.',
+            teifXmlPath: metadata.teifXmlPath,
+            invoice: updatedInvoice,
+        });
+    }
+    catch (error) {
+        console.error('Error generating invoice TEIF', error);
+        res.status(400).json({ message: error.message || 'Failed to generate TEIF XML.' });
+    }
+};
+exports.generateInvoiceTeifController = generateInvoiceTeifController;
+const signInvoiceTeifController = async (req, res) => {
+    try {
+        const invoice = await getOwnedInvoice(req.params.id, req.company.id);
+        if (!invoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+        const { metadata } = await (0, teifWorkflowService_1.signInvoiceTeifXml)(invoice);
+        const updatedInvoice = await getSerializedInvoice(invoice.id, req.company.id);
+        res.status(200).json({
+            message: 'La facture a ete signee electroniquement.',
+            signedXmlPath: metadata.signedXmlPath,
+            signatureProvider: metadata.signatureProvider,
+            invoice: updatedInvoice,
+        });
+    }
+    catch (error) {
+        console.error('Error signing TEIF XML', error);
+        res.status(400).json({ message: error.message || 'Failed to sign TEIF XML.' });
+    }
+};
+exports.signInvoiceTeifController = signInvoiceTeifController;
 const createInvoice = async (req, res) => {
     try {
-        const { devisId, clientId, lines, status, stampDuty, withholdingTax } = req.body;
+        const { devisId, clientId, lines, stampDuty, withholdingTax } = req.body;
         const companyId = req.company.id;
-        const subscription = req.company.subscription;
-        // Check Plan Limits (Starter: 7 invoices / month)
-        if (subscription?.plan === 'starter') {
-            const startOfMonth = new Date();
-            startOfMonth.setDate(1);
-            startOfMonth.setHours(0, 0, 0, 0);
-            const invoiceCount = await prisma_1.default.invoice.count({
-                where: {
-                    companyId,
-                    createdAt: {
-                        gte: startOfMonth
-                    }
-                }
-            });
-            if (invoiceCount >= 7) {
-                return res.status(403).json({
-                    message: 'Limite du plan Starter atteinte (7 factures/mois). Veuillez passer au plan Professional pour une facturation illimitée.',
-                    limitReached: true
-                });
-            }
-        }
         if (!clientId || !lines || lines.length === 0) {
             return res.status(400).json({ message: 'Client ID and at least one line are required' });
         }
-        let totalHT = 0;
-        let totalTVA = 0;
-        const processedLines = lines.map((line) => {
-            const lineTotalHT = line.quantity * line.unitPrice;
-            const lineTVA = lineTotalHT * (line.tvaRate / 100);
-            totalHT += lineTotalHT;
-            totalTVA += lineTVA;
-            return {
-                description: line.description,
-                quantity: line.quantity,
-                unitPrice: line.unitPrice,
-                tvaRate: line.tvaRate,
-                totalHT: lineTotalHT
-            };
+        const client = await prisma_1.default.client.findFirst({
+            where: { id: clientId, companyId },
+            select: { id: true },
         });
-        const totalTTC = totalHT + totalTVA;
-        const netToPay = totalTTC + (stampDuty || 1.0) - (withholdingTax || 0);
-        const invoice = await prisma_1.default.invoice.create({
-            data: {
-                companyId: req.company.id,
-                clientId,
-                devisId: devisId || null,
-                status: status || 'DRAFT',
-                totalHT,
-                totalTVA,
-                totalTTC,
-                stampDuty: stampDuty || 1.0,
-                withholdingTax: withholdingTax || 0,
-                netToPay,
-                lines: {
-                    create: processedLines
-                }
-            },
-            include: {
-                lines: true
-            }
-        });
-        if (devisId) {
-            await prisma_1.default.devis.update({
-                where: { id: devisId },
-                data: { status: 'ACCEPTED' } // Auto-accept devis when turning to invoice
-            });
+        if (!client) {
+            return res.status(400).json({ message: 'Selected client does not belong to your company.' });
         }
+        const normalizedLines = lines.map(normalizeInvoiceLine);
+        if (normalizedLines.some((line) => !line.description || line.quantity <= 0 || line.unitPrice < 0)) {
+            return res.status(400).json({ message: 'Each invoice line must include a description, quantity and unit price.' });
+        }
+        const productIds = Array.from(new Set(normalizedLines
+            .map((line) => line.productId)
+            .filter((productId) => Boolean(productId))));
+        if (productIds.length > 0) {
+            const ownedProducts = await prisma_1.default.product.findMany({
+                where: { companyId, id: { in: productIds } },
+                select: { id: true },
+            });
+            if (ownedProducts.length !== productIds.length) {
+                return res.status(400).json({ message: 'One or more selected products do not belong to your company.' });
+            }
+        }
+        const safeStampDuty = Number(stampDuty ?? 1.0);
+        const safeWithholdingTax = Number(withholdingTax ?? 0);
+        const { processedLines, totalHT, totalTVA, totalTTC, netToPay } = buildInvoiceTotals(normalizedLines, safeStampDuty, safeWithholdingTax);
+        const createdInvoice = await prisma_1.default.$transaction(async (tx) => {
+            const invoice = await tx.invoice.create({
+                data: {
+                    companyId,
+                    clientId,
+                    devisId: devisId || null,
+                    status: 'DRAFT',
+                    ttnStatus: 'DRAFT',
+                    totalHT,
+                    totalTVA,
+                    totalTTC,
+                    stampDuty: safeStampDuty,
+                    withholdingTax: safeWithholdingTax,
+                    netToPay,
+                    lines: {
+                        create: processedLines,
+                    },
+                },
+            });
+            if (devisId) {
+                await tx.devis.update({
+                    where: { id: devisId },
+                    data: { status: 'ACCEPTED' },
+                });
+            }
+            return invoice;
+        });
+        const invoice = await getSerializedInvoice(createdInvoice.id, companyId);
         res.status(201).json(invoice);
     }
     catch (error) {
+        console.error('Error creating invoice:', error);
         res.status(500).json({ message: 'Server error', error });
     }
 };
 exports.createInvoice = createInvoice;
+const updateInvoice = async (req, res) => {
+    try {
+        const { clientId, lines, stampDuty, withholdingTax } = req.body;
+        const companyId = req.company.id;
+        const existingInvoice = await prisma_1.default.invoice.findFirst({
+            where: {
+                id: req.params.id,
+                companyId,
+            },
+            include: {
+                lines: true,
+            },
+        });
+        if (!existingInvoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+        if (!['DRAFT', 'REJECTED_TTN', 'REJECTED'].includes(existingInvoice.status)) {
+            return res.status(400).json({ message: 'Only draft or rejected invoices can be edited.' });
+        }
+        if (!clientId || !lines || lines.length === 0) {
+            return res.status(400).json({ message: 'Client ID and at least one line are required' });
+        }
+        const client = await prisma_1.default.client.findFirst({
+            where: { id: clientId, companyId },
+            select: { id: true },
+        });
+        if (!client) {
+            return res.status(400).json({ message: 'Selected client does not belong to your company.' });
+        }
+        const normalizedLines = lines.map(normalizeInvoiceLine);
+        if (normalizedLines.some((line) => !line.description || line.quantity <= 0 || line.unitPrice < 0)) {
+            return res.status(400).json({ message: 'Each invoice line must include a description, quantity and unit price.' });
+        }
+        const productIds = Array.from(new Set(normalizedLines
+            .map((line) => line.productId)
+            .filter((productId) => Boolean(productId))));
+        if (productIds.length > 0) {
+            const ownedProducts = await prisma_1.default.product.findMany({
+                where: { companyId, id: { in: productIds } },
+                select: { id: true },
+            });
+            if (ownedProducts.length !== productIds.length) {
+                return res.status(400).json({ message: 'One or more selected products do not belong to your company.' });
+            }
+        }
+        const safeStampDuty = Number(stampDuty ?? 1.0);
+        const safeWithholdingTax = Number(withholdingTax ?? 0);
+        const { processedLines, totalHT, totalTVA, totalTTC, netToPay } = buildInvoiceTotals(normalizedLines, safeStampDuty, safeWithholdingTax);
+        await prisma_1.default.$transaction(async (tx) => {
+            await tx.invoiceLine.deleteMany({ where: { invoiceId: existingInvoice.id } });
+            await tx.invoice.update({
+                where: { id: existingInvoice.id },
+                data: {
+                    clientId,
+                    status: 'DRAFT',
+                    ttnStatus: 'DRAFT',
+                    ttnId: null,
+                    totalHT,
+                    totalTVA,
+                    totalTTC,
+                    stampDuty: safeStampDuty,
+                    withholdingTax: safeWithholdingTax,
+                    netToPay,
+                    lines: {
+                        create: processedLines,
+                    },
+                },
+            });
+        });
+        await (0, complianceStorage_1.writeComplianceMetadata)(companyId, existingInvoice.id, {
+            workflowStatus: 'DRAFT',
+            teifXmlPath: null,
+            signedXmlPath: null,
+            finalizedPdfPath: null,
+            ttnSubmissionId: null,
+            ttnReference: null,
+            ttnRejectionReason: null,
+            ttnQrCode: null,
+            ttnAcceptedAt: null,
+            lastTtnSyncAt: null,
+            lastStatusAt: new Date().toISOString(),
+            statusHistory: [
+                {
+                    status: 'DRAFT',
+                    at: new Date().toISOString(),
+                    note: 'Invoice updated and reset to draft',
+                },
+            ],
+        });
+        const updated = await getSerializedInvoice(existingInvoice.id, companyId);
+        res.status(200).json(updated);
+    }
+    catch (error) {
+        console.error('Error updating invoice:', error);
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+exports.updateInvoice = updateInvoice;
 const deleteInvoice = async (req, res) => {
     try {
         const invoice = await prisma_1.default.invoice.findFirst({
             where: {
                 id: req.params.id,
-                companyId: req.company.id
-            }
+                companyId: req.company.id,
+            },
         });
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
         await prisma_1.default.invoice.delete({
-            where: { id: req.params.id }
+            where: { id: req.params.id },
         });
         res.status(200).json({ message: 'Invoice removed' });
     }
     catch (error) {
+        console.error('Error deleting invoice:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 exports.deleteInvoice = deleteInvoice;
-const mailer_1 = require("../utils/mailer");
-const nodemailer_1 = __importDefault(require("nodemailer"));
 const sendInvoiceEmailController = async (req, res) => {
     try {
-        const invoice = await prisma_1.default.invoice.findFirst({
-            where: {
-                id: req.params.id,
-                companyId: req.company.id
-            },
-            include: {
-                company: true,
-                client: true,
-                lines: true
-            }
-        });
+        const invoice = await getOwnedInvoice(req.params.id, req.company.id);
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
         if (!invoice.client.email) {
             return res.status(400).json({ message: 'Client does not have an email address' });
         }
-        // 1. Generate PDF
-        const pdfBuffer = await (0, pdfGenerator_1.default)(invoice, 'FACTURE');
-        // 2. Generate XML (signed if cert exists)
-        let xmlContent = (0, teifGenerator_1.generateTeifXml)(invoice);
-        if (invoice.company.certificatePath && invoice.company.certificatePassword) {
-            try {
-                const p12Buffer = await fs_extra_1.default.readFile(invoice.company.certificatePath);
-                xmlContent = (0, signer_1.signXml)({
-                    xmlString: xmlContent,
-                    p12Buffer: p12Buffer,
-                    password: invoice.company.certificatePassword
-                });
-            }
-            catch (signError) {
-                console.warn('Signing failed for email attachment:', signError.message);
-            }
-        }
-        // 3. Send Email
-        const subject = `Invoice ${invoice.id} from ${invoice.company.name}`;
+        const enriched = await (0, teifWorkflowService_1.enrichInvoiceWithCompliance)(invoice);
+        const pdfBuffer = await (0, pdfGenerator_1.default)(invoice, 'FACTURE', enriched);
+        const xmlContent = await (0, teifWorkflowService_1.getDownloadableTeifXml)(invoice);
+        const invoiceNumber = (0, numberingService_1.getInvoiceVisibleNumber)(invoice);
+        const safeInvoiceNumber = (0, numberingService_1.sanitizeBusinessNumberForFileName)(invoiceNumber);
+        const subject = `Invoice ${invoiceNumber} from ${invoice.company.name}`;
         const html = `
       <div style="font-family: Arial, sans-serif; color: #333;">
         <p>Dear ${invoice.client.name},</p>
-        <p>Please find attached your invoice <b>#${invoice.id}</b>.</p>
+        <p>Please find attached your invoice <b>${invoiceNumber}</b>.</p>
         <p>Total amount due: <strong>${invoice.netToPay.toFixed(3)} TND</strong></p>
         <br/>
         <p>Thank you for your business!</p>
@@ -272,20 +430,22 @@ const sendInvoiceEmailController = async (req, res) => {
     `;
         const attachments = [
             {
-                filename: `Invoice_${invoice.id}.pdf`,
+                filename: `Invoice_${safeInvoiceNumber}.pdf`,
                 content: pdfBuffer,
-                contentType: 'application/pdf'
+                contentType: 'application/pdf',
             },
             {
-                filename: `TEIF_${invoice.id}.xml`,
+                filename: `TEIF_${safeInvoiceNumber}.xml`,
                 content: xmlContent,
-                contentType: 'application/xml'
-            }
+                contentType: 'application/xml',
+            },
         ];
         const info = await (0, mailer_1.sendEmail)(invoice.client.email, subject, html, attachments);
         res.status(200).json({
             message: 'Email sent successfully',
-            previewUrl: process.env.SMTP_HOST === 'smtp.ethereal.email' || !process.env.SMTP_HOST ? nodemailer_1.default.getTestMessageUrl(info) : undefined
+            previewUrl: process.env.SMTP_HOST === 'smtp.ethereal.email' || !process.env.SMTP_HOST
+                ? nodemailer_1.default.getTestMessageUrl(info)
+                : undefined,
         });
     }
     catch (error) {
@@ -294,98 +454,115 @@ const sendInvoiceEmailController = async (req, res) => {
     }
 };
 exports.sendInvoiceEmailController = sendInvoiceEmailController;
-const VALID_STATUSES = ['DRAFT', 'PENDING_VALIDATION', 'SENT_TO_TTN', 'VALIDATED', 'PAID', 'REJECTED'];
 const updateInvoiceStatus = async (req, res) => {
     try {
         const { status } = req.body;
         if (!status || !VALID_STATUSES.includes(status)) {
             return res.status(400).json({
-                message: `Statut invalide. Valeurs acceptées : ${VALID_STATUSES.join(', ')}`
+                message: `Statut invalide. Valeurs acceptees : ${VALID_STATUSES.join(', ')}`,
             });
         }
         const invoice = await prisma_1.default.invoice.findFirst({
             where: {
                 id: req.params.id,
-                companyId: req.company.id
-            }
+                companyId: req.company.id,
+            },
         });
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
-        const updated = await prisma_1.default.invoice.update({
-            where: { id: req.params.id },
-            data: { status }
-        });
+        if (status === 'VALIDATED') {
+            if (invoice.status !== 'DRAFT' && invoice.status !== 'REJECTED_TTN') {
+                return res.status(400).json({ message: 'Only draft or rejected invoices can be validated.' });
+            }
+            const ownedInvoice = await getOwnedInvoice(req.params.id, req.company.id);
+            if (!ownedInvoice) {
+                return res.status(404).json({ message: 'Invoice not found' });
+            }
+            const validation = await (0, teifWorkflowService_1.validateTeifXml)({
+                ...ownedInvoice,
+                status: 'VALIDATED',
+                number: ownedInvoice.number || 'PENDING_VALIDATION_NUMBER',
+            });
+            if (!validation.valid) {
+                return res.status(400).json({ message: validation.errors.join(' ') });
+            }
+            await prisma_1.default.$transaction(async (tx) => {
+                const number = invoice.number || await (0, numberingService_1.generateBusinessNumber)(tx, req.company.id, 'INVOICE');
+                await tx.invoice.update({
+                    where: { id: req.params.id },
+                    data: {
+                        number,
+                        status: 'VALIDATED',
+                        ttnStatus: 'VALIDATED',
+                    },
+                });
+            });
+            await (0, complianceStorage_1.appendComplianceStatus)(req.company.id, req.params.id, 'VALIDATED', {}, 'Invoice validated');
+        }
+        else {
+            await prisma_1.default.invoice.update({
+                where: { id: req.params.id },
+                data: { status },
+            });
+        }
+        const updated = await getSerializedInvoice(req.params.id, req.company.id);
         res.status(200).json(updated);
     }
     catch (error) {
+        console.error('Error updating invoice status:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
 exports.updateInvoiceStatus = updateInvoiceStatus;
-const ttnService_1 = require("../services/ttnService");
 const submitToTTNController = async (req, res) => {
     try {
-        const invoiceId = req.params.id;
-        const companyId = req.company.id;
-        const invoice = await prisma_1.default.invoice.findFirst({
-            where: { id: invoiceId, companyId },
-            include: {
-                company: true,
-                client: true,
-                lines: true
-            }
-        });
+        const invoice = await getOwnedInvoice(req.params.id, req.company.id);
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
-        if (invoice.status === 'VALIDATED') {
-            return res.status(400).json({ message: 'Invoice is already validated by TTN.' });
-        }
-        let xmlContent = (0, teifGenerator_1.generateTeifXml)(invoice);
-        if (invoice.company.certificatePath && invoice.company.certificatePassword) {
-            try {
-                const p12Buffer = await fs_extra_1.default.readFile(invoice.company.certificatePath);
-                xmlContent = (0, signer_1.signXml)({
-                    xmlString: xmlContent,
-                    p12Buffer: p12Buffer,
-                    password: invoice.company.certificatePassword
-                });
-            }
-            catch (signError) {
-                return res.status(500).json({ message: 'Failed to sign the invoice before sending to TTN. ' + signError.message });
-            }
-        }
-        else {
-            return res.status(400).json({ message: 'A digital certificate is required to submit to TTN. Please configure it in Settings.' });
-        }
-        // Call Mock TTN Service
-        const ttnResponse = await (0, ttnService_1.submitInvoiceToTTN)(xmlContent, invoice.company.matriculeFiscal, invoice.id);
-        // Update the invoice status
-        const updatedInvoice = await prisma_1.default.invoice.update({
-            where: { id: invoice.id },
-            data: { status: ttnResponse.status }
-        });
+        const result = await (0, teifWorkflowService_1.submitInvoiceToTTNWorkflow)(invoice);
+        const updatedInvoice = await getSerializedInvoice(invoice.id, req.company.id);
         res.status(200).json({
-            message: ttnResponse.message,
-            invoice: updatedInvoice
+            message: result.message,
+            invoice: updatedInvoice,
         });
     }
     catch (error) {
         console.error('Error submitting to TTN:', error);
-        res.status(500).json({ message: 'Server error during TTN submission' });
+        res.status(400).json({ message: error.message || 'Server error during TTN submission' });
     }
 };
 exports.submitToTTNController = submitToTTNController;
-// ── Import TEIF XML ──────────────────────────────────────────────────────────
-const xmlbuilder2_1 = require("xmlbuilder2");
+const checkTTNStatusController = async (req, res) => {
+    try {
+        const invoice = await getOwnedInvoice(req.params.id, req.company.id);
+        if (!invoice) {
+            return res.status(404).json({ message: 'Invoice not found' });
+        }
+        const { simulateDecision } = req.body || {};
+        const { result } = await (0, teifWorkflowService_1.syncInvoiceTTNStatus)(invoice, simulateDecision || null);
+        const updatedInvoice = await getSerializedInvoice(invoice.id, req.company.id);
+        res.status(200).json({
+            message: result.message,
+            status: result.status,
+            ttnReference: result.ttnReference,
+            rejectionReason: result.rejectionReason,
+            invoice: updatedInvoice,
+        });
+    }
+    catch (error) {
+        console.error('Error checking TTN status:', error);
+        res.status(400).json({ message: error.message || 'Unable to sync TTN status.' });
+    }
+};
+exports.checkTTNStatusController = checkTTNStatusController;
 const importInvoiceXml = async (req, res) => {
     try {
         const xmlString = req.file?.buffer?.toString('utf-8') ?? req.body?.xml;
         if (!xmlString) {
             return res.status(400).json({ message: 'Aucun fichier XML fourni.' });
         }
-        // Parse the XML into a plain JS object
         let doc;
         try {
             doc = (0, xmlbuilder2_1.convert)(xmlString, { format: 'object' });
@@ -395,21 +572,24 @@ const importInvoiceXml = async (req, res) => {
         }
         const invoice = doc?.Invoice ?? doc;
         const companyId = req.company.id;
-        // ── Extract client info ──────────────────────────────────────────────
         const customerParty = invoice?.['cac:AccountingCustomerParty']?.['cac:Party'];
         const clientMf = customerParty?.['cac:PartyIdentification']?.['cbc:ID']?.['#'] ??
             customerParty?.['cac:PartyIdentification']?.['cbc:ID'];
         const clientName = customerParty?.['cac:PartyName']?.['cbc:Name']?.['#'] ??
-            customerParty?.['cac:PartyName']?.['cbc:Name'] ?? 'Importé depuis XML';
+            customerParty?.['cac:PartyName']?.['cbc:Name'] ??
+            'Importe depuis XML';
         const clientAddress = customerParty?.['cac:PostalAddress']?.['cbc:StreetName']?.['#'] ??
-            customerParty?.['cac:PostalAddress']?.['cbc:StreetName'] ?? '';
+            customerParty?.['cac:PostalAddress']?.['cbc:StreetName'] ??
+            '';
         const clientCity = customerParty?.['cac:PostalAddress']?.['cbc:CityName']?.['#'] ??
-            customerParty?.['cac:PostalAddress']?.['cbc:CityName'] ?? '';
+            customerParty?.['cac:PostalAddress']?.['cbc:CityName'] ??
+            '';
         const clientEmail = customerParty?.['cac:Contact']?.['cbc:ElectronicMail']?.['#'] ??
-            customerParty?.['cac:Contact']?.['cbc:ElectronicMail'] ?? undefined;
+            customerParty?.['cac:Contact']?.['cbc:ElectronicMail'] ??
+            undefined;
         const clientPhone = customerParty?.['cac:Contact']?.['cbc:Telephone']?.['#'] ??
-            customerParty?.['cac:Contact']?.['cbc:Telephone'] ?? undefined;
-        // ── Find or create client ────────────────────────────────────────────
+            customerParty?.['cac:Contact']?.['cbc:Telephone'] ??
+            undefined;
         let client = null;
         if (clientMf && clientMf !== 'NOT_PROVIDED') {
             client = await prisma_1.default.client.findFirst({ where: { companyId, matriculeFiscal: String(clientMf) } });
@@ -424,59 +604,62 @@ const importInvoiceXml = async (req, res) => {
                     city: clientCity ? String(clientCity) : undefined,
                     email: clientEmail ? String(clientEmail) : undefined,
                     phone: clientPhone ? String(clientPhone) : undefined,
-                }
+                },
             });
         }
-        // ── Extract invoice lines ────────────────────────────────────────────
         const rawLines = invoice?.['cac:InvoiceLine'];
-        const lineArray = Array.isArray(rawLines) ? rawLines : (rawLines ? [rawLines] : []);
+        const lineArray = Array.isArray(rawLines) ? rawLines : rawLines ? [rawLines] : [];
         if (lineArray.length === 0) {
             return res.status(400).json({ message: 'Le XML ne contient aucune ligne de facture.' });
         }
-        const parsedLines = lineArray.map((l) => {
-            const qty = parseFloat(l?.['cbc:InvoicedQuantity']?.['#'] ?? l?.['cbc:InvoicedQuantity'] ?? '1');
-            const unitPrice = parseFloat(l?.['cac:Price']?.['cbc:PriceAmount']?.['#'] ?? '0');
-            const tvaRate = parseFloat(l?.['cac:Item']?.['cac:ClassifiedTaxCategory']?.['cbc:Percent']?.['#'] ??
-                l?.['cac:Item']?.['cac:ClassifiedTaxCategory']?.['cbc:Percent'] ?? '19');
-            const description = String(l?.['cac:Item']?.['cbc:Description']?.['#'] ??
-                l?.['cac:Item']?.['cbc:Description'] ??
-                l?.['cac:Item']?.['cbc:Name']?.['#'] ??
-                l?.['cac:Item']?.['cbc:Name'] ?? 'Article importé');
+        const parsedLines = lineArray.map((line) => {
+            const qty = parseFloat(line?.['cbc:InvoicedQuantity']?.['#'] ?? line?.['cbc:InvoicedQuantity'] ?? '1');
+            const unitPrice = parseFloat(line?.['cac:Price']?.['cbc:PriceAmount']?.['#'] ?? '0');
+            const tvaRate = parseFloat(line?.['cac:Item']?.['cac:ClassifiedTaxCategory']?.['cbc:Percent']?.['#'] ??
+                line?.['cac:Item']?.['cac:ClassifiedTaxCategory']?.['cbc:Percent'] ??
+                '19');
+            const description = String(line?.['cac:Item']?.['cbc:Description']?.['#'] ??
+                line?.['cac:Item']?.['cbc:Description'] ??
+                line?.['cac:Item']?.['cbc:Name']?.['#'] ??
+                line?.['cac:Item']?.['cbc:Name'] ??
+                'Article importe');
             const totalHT = parseFloat((qty * unitPrice).toFixed(3));
             return { description, quantity: qty, unitPrice, tvaRate, totalHT };
         });
-        // ── Compute totals ───────────────────────────────────────────────────
-        const totalHT = parseFloat(parsedLines.reduce((s, l) => s + l.totalHT, 0).toFixed(3));
-        const totalTVA = parseFloat(parsedLines.reduce((s, l) => s + l.totalHT * (l.tvaRate / 100), 0).toFixed(3));
-        const stampDuty = 1.000;
+        const totalHT = parseFloat(parsedLines.reduce((sum, line) => sum + line.totalHT, 0).toFixed(3));
+        const totalTVA = parseFloat(parsedLines.reduce((sum, line) => sum + line.totalHT * (line.tvaRate / 100), 0).toFixed(3));
+        const stampDuty = 1.0;
         const totalTTC = parseFloat((totalHT + totalTVA + stampDuty).toFixed(3));
         const netToPay = totalTTC;
-        // ── Create invoice ───────────────────────────────────────────────────
-        const created = await prisma_1.default.invoice.create({
-            data: {
-                companyId,
-                clientId: client.id,
-                status: 'PENDING_VALIDATION',
-                totalHT,
-                totalTVA,
-                totalTTC,
-                stampDuty,
-                netToPay,
-                lines: {
-                    create: parsedLines
-                }
-            },
-            include: { client: true, lines: true }
+        const created = await prisma_1.default.$transaction(async (tx) => {
+            const number = await (0, numberingService_1.generateBusinessNumber)(tx, companyId, 'INVOICE');
+            return tx.invoice.create({
+                data: {
+                    companyId,
+                    number,
+                    clientId: client.id,
+                    status: 'VALIDATED',
+                    ttnStatus: 'VALIDATED',
+                    totalHT,
+                    totalTVA,
+                    totalTTC,
+                    stampDuty,
+                    netToPay,
+                    lines: {
+                        create: parsedLines,
+                    },
+                },
+            });
         });
-        await (0, notificationHelper_1.createNotif)(companyId, 'Facture importée', `Facture importée depuis XML avec succès (client: ${created.client?.name ?? 'inconnu'}).`, 'XML_IMPORTED');
+        await (0, notificationHelper_1.createNotif)(companyId, 'Facture importee', `Facture importee depuis XML avec succes (client: ${client?.name ?? 'inconnu'}).`, 'XML_IMPORTED');
         res.status(201).json({
-            message: 'Facture importée avec succès.',
-            invoice: created
+            message: 'Facture importee avec succes.',
+            invoice: await getSerializedInvoice(created.id, companyId),
         });
     }
     catch (error) {
         console.error('Error importing XML:', error);
-        res.status(500).json({ message: 'Erreur serveur lors de l\'import XML.' });
+        res.status(500).json({ message: "Erreur serveur lors de l'import XML." });
     }
 };
 exports.importInvoiceXml = importInvoiceXml;

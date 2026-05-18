@@ -1,6 +1,20 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma';
 import { createNotif } from '../utils/notificationHelper';
+import {
+  generateBusinessNumber,
+  getDevisVisibleNumber,
+  getInvoiceVisibleNumber,
+  sanitizeBusinessNumberForFileName,
+} from '../services/numberingService';
+
+type NormalizedDevisLine = {
+  productId: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  tvaRate: number;
+};
 
 export const getDevis = async (req: Request, res: Response) => {
   try {
@@ -8,7 +22,8 @@ export const getDevis = async (req: Request, res: Response) => {
       where: { companyId: (req as any).company.id },
       include: {
         client: true,
-        lines: true
+        lines: true,
+        invoice: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -27,7 +42,8 @@ export const getDevisById = async (req: Request, res: Response) => {
       },
       include: {
         client: true,
-        lines: true
+        lines: true,
+        invoice: true
       }
     });
 
@@ -44,15 +60,53 @@ export const getDevisById = async (req: Request, res: Response) => {
 export const createDevis = async (req: Request, res: Response) => {
   try {
     const { clientId, lines, status, stampDuty, withholdingTax, note } = req.body;
+    const companyId = (req as any).company.id;
 
     if (!clientId || !lines || lines.length === 0) {
       return res.status(400).json({ message: 'Client ID and at least one line are required' });
     }
 
+    const client = await prisma.client.findFirst({
+      where: { id: clientId, companyId },
+      select: { id: true },
+    });
+    if (!client) {
+      return res.status(400).json({ message: 'Selected client does not belong to your company.' });
+    }
+
+    const normalizedLines: NormalizedDevisLine[] = lines.map((line: any) => ({
+      productId: line.productId || null,
+      description: String(line.description || '').trim(),
+      quantity: Number(line.quantity || 0),
+      unitPrice: Number(line.unitPrice || 0),
+      tvaRate: Number(line.tvaRate || 0),
+    }));
+
+    if (normalizedLines.some((line) => !line.description || line.quantity <= 0 || line.unitPrice < 0)) {
+      return res.status(400).json({ message: 'Each quote line must include a description, quantity and unit price.' });
+    }
+
+    const productIds = Array.from(
+      new Set(
+        normalizedLines
+          .map((line) => line.productId)
+          .filter((productId): productId is string => Boolean(productId))
+      )
+    );
+    if (productIds.length > 0) {
+      const ownedProducts = await prisma.product.findMany({
+        where: { companyId, id: { in: productIds } },
+        select: { id: true },
+      });
+      if (ownedProducts.length !== productIds.length) {
+        return res.status(400).json({ message: 'One or more selected products do not belong to your company.' });
+      }
+    }
+
     let totalHT = 0;
     let totalTVA = 0;
 
-    const processedLines = lines.map((line: any) => {
+    const processedLines = normalizedLines.map((line: NormalizedDevisLine) => {
       const lineTotalHT = line.quantity * line.unitPrice;
       const lineTVA = lineTotalHT * (line.tvaRate / 100);
       
@@ -60,6 +114,7 @@ export const createDevis = async (req: Request, res: Response) => {
       totalTVA += lineTVA;
 
       return {
+        productId: line.productId,
         description: line.description,
         quantity: line.quantity,
         unitPrice: line.unitPrice,
@@ -71,33 +126,44 @@ export const createDevis = async (req: Request, res: Response) => {
     const totalTTC = totalHT + totalTVA;
     const netToPay = totalTTC + (stampDuty || 1.0) - (withholdingTax || 0);
 
-    const devis = await prisma.devis.create({
-      data: {
-        companyId: (req as any).company.id,
-        clientId,
-        status: status || 'PENDING',
-        note: note || null,
-        totalHT,
-        totalTVA,
-        totalTTC,
-        stampDuty: stampDuty || 1.0,
-        withholdingTax: withholdingTax || 0,
-        netToPay,
-        lines: {
-          create: processedLines
+    const normalizedStatus =
+      status === 'ACCEPTED' ? 'ACCEPTED' :
+      status === 'REJECTED' || status === 'REFUSED' ? 'REJECTED' :
+      'PENDING';
+
+    const devis = await prisma.$transaction(async (tx) => {
+      const number = await generateBusinessNumber(tx, companyId, 'DEVIS');
+      return tx.devis.create({
+        data: {
+          companyId,
+          number,
+          clientId,
+          status: normalizedStatus,
+          note: note || null,
+          totalHT,
+          totalTVA,
+          totalTTC,
+          stampDuty: stampDuty || 1.0,
+          withholdingTax: withholdingTax || 0,
+          netToPay,
+          lines: {
+            create: processedLines
+          }
+        },
+        include: {
+          lines: true,
+          client: true,
+          invoice: true
         }
-      },
-      include: {
-        lines: true
-      }
+      });
     });
 
     // Notification
-    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    const clientRecord = await prisma.client.findUnique({ where: { id: clientId } });
     await createNotif(
       (req as any).company.id,
       'Demande envoyée',
-      `Demande envoyée au client ${client?.name ?? clientId}.`,
+      `Demande envoyée au client ${clientRecord?.name ?? clientId}.`,
       'DEMANDE_SENT'
     );
 
@@ -174,7 +240,8 @@ export const convertDevisToInvoice = async (req: Request, res: Response) => {
     }
 
     // Create Invoice from Devis data
-    const invoiceLinesToCreate = devis.lines.map(line => ({
+    const invoiceLinesToCreate = devis.lines.map((line) => ({
+      productId: line.productId,
       description: line.description,
       quantity: line.quantity,
       unitPrice: line.unitPrice,
@@ -182,28 +249,34 @@ export const convertDevisToInvoice = async (req: Request, res: Response) => {
       totalHT: line.totalHT
     }));
 
-    const newInvoice = await prisma.invoice.create({
-      data: {
-        companyId: devis.companyId,
-        clientId: devis.clientId,
-        devisId: devis.id,
-        status: 'DRAFT',
-        totalHT: devis.totalHT,
-        totalTVA: devis.totalTVA,
-        totalTTC: devis.totalTTC,
-        stampDuty: devis.stampDuty,
-        withholdingTax: devis.withholdingTax,
-        netToPay: devis.netToPay,
-        lines: {
-          create: invoiceLinesToCreate
+    const newInvoice = await prisma.$transaction(async (tx) => {
+      const number = await generateBusinessNumber(tx, devis.companyId, 'INVOICE');
+      const createdInvoice = await tx.invoice.create({
+        data: {
+          companyId: devis.companyId,
+          clientId: devis.clientId,
+          devisId: devis.id,
+          number,
+          status: 'DRAFT',
+          ttnStatus: 'DRAFT',
+          totalHT: devis.totalHT,
+          totalTVA: devis.totalTVA,
+          totalTTC: devis.totalTTC,
+          stampDuty: devis.stampDuty,
+          withholdingTax: devis.withholdingTax,
+          netToPay: devis.netToPay,
+          lines: {
+            create: invoiceLinesToCreate
+          }
         }
-      }
-    });
+      });
 
-    // Mark devis as accepted
-    await prisma.devis.update({
-      where: { id: devis.id },
-      data: { status: 'ACCEPTED' }
+      await tx.devis.update({
+        where: { id: devis.id },
+        data: { status: 'ACCEPTED' }
+      });
+
+      return createdInvoice;
     });
 
     res.status(201).json(newInvoice);
@@ -261,7 +334,7 @@ export const getDevisPdf = async (req: Request, res: Response) => {
     const pdfBuffer = await generatePdf(devis, 'DEVIS');
     
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=Devis_${devis.id}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=Devis_${sanitizeBusinessNumberForFileName(getDevisVisibleNumber(devis))}.pdf`);
     
     res.status(200).send(pdfBuffer);
   } catch (error) {
@@ -296,11 +369,12 @@ export const sendDevisEmailController = async (req: Request, res: Response) => {
     const pdfBuffer = await generatePdf(devis, 'DEVIS');
     
     // 2. Send Email
-    const subject = `Devis ${devis.id} from ${devis.company.name}`;
+    const devisNumber = getDevisVisibleNumber(devis);
+    const subject = `Devis ${devisNumber} from ${devis.company.name}`;
     const html = `
       <div style="font-family: Arial, sans-serif; color: #333;">
         <p>Dear ${devis.client.name},</p>
-        <p>Please find attached your Devis <b>#${devis.id}</b>.</p>
+        <p>Please find attached your Devis <b>${devisNumber}</b>.</p>
         <p>Total amount due: <strong>${devis.netToPay.toFixed(3)} TND</strong></p>
         <br/>
         <p>Thank you for your business!</p>
@@ -310,7 +384,7 @@ export const sendDevisEmailController = async (req: Request, res: Response) => {
 
     const attachments = [
       {
-        filename: `Devis_${devis.id}.pdf`,
+        filename: `Devis_${sanitizeBusinessNumberForFileName(devisNumber)}.pdf`,
         content: pdfBuffer,
         contentType: 'application/pdf'
       }

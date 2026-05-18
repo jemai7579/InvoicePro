@@ -1,8 +1,21 @@
 import { Router } from 'express';
-import { getClients, getClientById, createClient, updateClient, deleteClient } from '../controllers/clientController';
+import {
+  getClients,
+  getClientById,
+  createClient,
+  updateClient,
+  deleteClient,
+  getClientInvitations,
+  createClientInvitation,
+  respondToClientInvitation
+} from '../controllers/clientController';
 import { protect } from '../middleware/authMiddleware';
 
 const router = Router();
+
+router.get('/invitations', protect, getClientInvitations);
+router.post('/invitations', protect, createClientInvitation);
+router.post('/invitations/:id/respond', protect, respondToClientInvitation);
 
 router.route('/')
   .get(protect, getClients)

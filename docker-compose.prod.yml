@@ -1,5 +1,14 @@
 version: '3.8'
 
+# Production Docker Compose
+# Prerequisites:
+#   1. Create backend/.env.production from backend/.env.example
+#   2. Set DB_PASSWORD and VITE_API_URL in the shell or a root-level .env file
+#      export DB_PASSWORD=<strong-random-password>
+#      export VITE_API_URL=https://your-domain.com/api
+#
+# Run: docker-compose -f docker-compose.prod.yml up -d --build
+
 services:
   # 1. Database Production
   postgres:
@@ -8,7 +17,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: elfatoora
-      POSTGRES_PASSWORD: secretpassword # REMPLACER PAR UN MOT DE PASSE SECRET
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
       POSTGRES_DB: elfatooradb
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -32,8 +41,7 @@ services:
       - ./backend/.env.production
     volumes:
       - ./backend/uploads:/app/uploads
-    # Le port 5005 est retiré des ports publics pour plus de sécurité.
-    # Il reste accessible à Nginx via le réseau 'elfatoora_network'.
+    # Port 5005 is NOT exposed publicly — Nginx reaches it via the internal network.
     networks:
       - elfatoora_network
 
@@ -43,8 +51,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # VITE_API_URL pointant vers le domaine final par défaut ou IP
-        - VITE_API_URL=http://localhost:5005/api 
+        # Must point to the public API URL (e.g. https://api.your-domain.com/api)
+        - VITE_API_URL=${VITE_API_URL:?VITE_API_URL must be set}
     container_name: elfatoora_frontend
     restart: always
     depends_on:

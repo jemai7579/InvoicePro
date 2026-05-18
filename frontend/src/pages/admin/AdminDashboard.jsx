@@ -1,171 +1,265 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../services/api';
-import { 
-  Users, 
-  Receipt, 
-  TrendingUp, 
-  Activity,
-  ArrowUpRight,
-  ArrowDownRight,
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  Building2,
+  CreditCard,
   Loader2,
-  AlertCircle
+  Receipt,
+  TrendingUp,
+  Users,
+  Wifi,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 
-const StatCard = ({ title, value, icon: Icon, trend, trendValue, color }) => (
-  <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-    <div className="flex items-center justify-between mb-4">
-      <div className={`p-3 rounded-2xl ${color} bg-opacity-10 group-hover:scale-110 transition-transform`}>
-        <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
-      </div>
-      {trend && (
-        <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-full ${trend === 'up' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-          {trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-          {trendValue}
+const ChartBars = ({ items, color = 'bg-premium-600' }) => (
+  <div className="flex items-end gap-3 h-40">
+    {items.map((item) => {
+      const max = Math.max(...items.map((entry) => entry.value || 0), 1);
+      const height = `${Math.max(((item.value || 0) / max) * 100, 8)}%`;
+      return (
+        <div key={item.period || item.status || item.plan} className="flex-1 flex flex-col items-center gap-2">
+          <div className="w-full rounded-t-2xl bg-slate-100 overflow-hidden h-full flex items-end">
+            <div className={`w-full rounded-t-2xl ${color}`} style={{ height }} />
+          </div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+            {item.period || item.status || item.plan}
+          </div>
         </div>
-      )}
-    </div>
-    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{title}</p>
-    <p className="text-2xl font-black text-slate-900 mt-1 tracking-tight">{value}</p>
+      );
+    })}
   </div>
 );
 
+const StatCard = ({ label, value, icon, tone = 'bg-slate-50 text-slate-700' }) => {
+  const IconComponent = icon;
+
+  return (
+    <div className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</div>
+          <div className="mt-2 text-2xl font-black text-slate-900 tracking-tight">{value}</div>
+        </div>
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tone}`}>
+          <IconComponent className="w-5 h-5" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminDashboard = () => {
-  const [stats, setStats] = useState(null);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [data, setData] = useState(null);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const load = async () => {
       try {
-        const token = localStorage.getItem('adminToken');
-        const res = await api.get('/admin/stats', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setStats(res.data);
-      } catch (err) {
-        setError('Impossible de charger les statistiques globales.');
+        const res = await api.get('/admin/overview');
+        setData(res.data);
+      } catch (error) {
+        console.error('Unable to load admin overview', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchStats();
+    load();
   }, []);
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-4">
-      <Loader2 className="w-8 h-8 text-premium-600 animate-spin" />
-      <p className="text-sm font-bold text-slate-500 animate-pulse uppercase tracking-widest">Calcul des données globales...</p>
-    </div>
+  const kpis = data?.kpis || {};
+  const charts = data?.charts || {};
+  const alerts = useMemo(() => data?.alerts || {}, [data]);
+
+  const priorityItems = useMemo(
+    () => [
+      ...(alerts.failedTtn || []).map((invoice) => ({
+        key: `ttn-${invoice.id}`,
+        label: `Echec TTN pour ${invoice.company?.name || 'une entreprise'}`,
+        path: '/admin/ttn',
+      })),
+      ...(alerts.nearQuota || []).map((company) => ({
+        key: `quota-${company.companyId}`,
+        label: `${company.companyName} proche du quota`,
+        path: '/admin/companies',
+      })),
+      ...(alerts.missingSignatures || []).map((company) => ({
+        key: `signature-${company.companyId}`,
+        label: `Signature manquante pour ${company.companyName}`,
+        path: '/admin/compliance',
+      })),
+      ...(alerts.failedPayments || []).map((payment) => ({
+        key: `payment-${payment.id}`,
+        label: `Paiement en echec pour ${payment.companyName || payment.companyId}`,
+        path: '/admin/payments',
+      })),
+      ...(alerts.unresolvedTickets || []).map((ticket) => ({
+        key: `ticket-${ticket.id}`,
+        label: `Ticket ouvert: ${ticket.subject}`,
+        path: '/admin/support',
+      })),
+    ].slice(0, 10),
+    [alerts]
   );
 
-  if (error) return (
-    <div className="bg-red-50 border border-red-100 p-6 rounded-3xl flex items-center gap-4 text-red-600">
-      <AlertCircle className="w-6 h-6" />
-      <p className="font-bold">{error}</p>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <Loader2 className="w-8 h-8 text-premium-600 animate-spin" />
+        <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Chargement du centre de controle...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      
-      {/* Header Info */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Vue d'ensemble</h2>
-          <p className="text-slate-500 font-medium text-sm">Surveillance du réseau El Fatoora en temps réel.</p>
-        </div>
-        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-100">
-          <Activity className="w-4 h-4 text-premium-500" />
-          <span className="text-xs font-bold text-slate-700">Mise à jour activée</span>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Vue globale</h2>
+          <p className="text-slate-500 font-medium text-sm">Comprenez l'etat de la plateforme en moins de 30 secondes.</p>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Entreprises Totales" 
-          value={stats.totalCompanies} 
-          icon={Users} 
-          color="bg-blue-500"
-          trend="up"
-          trendValue="+12%"
-        />
-        <StatCard 
-          title="Volume de Facturation" 
-          value={`${stats.totalVolume.toLocaleString()} DT`} 
-          icon={TrendingUp} 
-          color="bg-premium-600"
-          trend="up"
-          trendValue="+24%"
-        />
-        <StatCard 
-          title="Factures Générées" 
-          value={stats.totalInvoices} 
-          icon={Receipt} 
-          color="bg-orange-500"
-        />
-        <StatCard 
-          title="Taux de Validation" 
-          value="98.2%" 
-          icon={Activity} 
-          color="bg-emerald-500"
-        />
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <StatCard label="Entreprises" value={kpis.totalCompanies || 0} icon={Building2} tone="bg-blue-50 text-blue-600" />
+        <StatCard label="Actives" value={kpis.activeCompanies || 0} icon={Building2} tone="bg-emerald-50 text-emerald-600" />
+        <StatCard label="Essai" value={kpis.trialCompanies || 0} icon={Users} tone="bg-amber-50 text-amber-600" />
+        <StatCard label="Payantes" value={kpis.paidCompanies || 0} icon={CreditCard} tone="bg-premium-50 text-premium-600" />
+        <StatCard label="Utilisateurs" value={kpis.totalUsers || 0} icon={Users} tone="bg-slate-100 text-slate-700" />
+        <StatCard label="Factures TTN OK" value={kpis.ttnAcceptedInvoices || 0} icon={Receipt} tone="bg-emerald-50 text-emerald-600" />
+        <StatCard label="Erreurs du jour" value={kpis.systemErrorsToday || 0} icon={AlertTriangle} tone="bg-rose-50 text-rose-600" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Statuts TTN */}
-        <div className="lg:col-span-1 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
-          <h3 className="text-lg font-black text-slate-900 mb-6 tracking-tight">Répartition TTN</h3>
-          <div className="space-y-4">
-            {Object.entries(stats.statsByStatus).map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${
-                    status === 'VALIDATED' ? 'bg-emerald-500' : 
-                    status === 'REJECTED' ? 'bg-red-500' : 
-                    'bg-amber-500'
-                  }`} />
-                  <span className="text-xs font-bold text-slate-700">{status}</span>
-                </div>
-                <span className="text-sm font-black text-slate-900">{count}</span>
+      <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-6">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Revenus dans le temps</h3>
+                <TrendingUp className="w-4 h-4 text-premium-600" />
               </div>
-            ))}
+              <ChartBars items={charts.revenueOverTime || []} color="bg-premium-600" />
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Nouvelles entreprises</h3>
+                <Building2 className="w-4 h-4 text-blue-600" />
+              </div>
+              <ChartBars items={charts.newCompaniesOverTime || []} color="bg-blue-500" />
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Factures creees</h3>
+                <Receipt className="w-4 h-4 text-emerald-600" />
+              </div>
+              <ChartBars items={charts.invoicesCreatedOverTime || []} color="bg-emerald-500" />
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Repartition des plans</h3>
+                <CreditCard className="w-4 h-4 text-amber-600" />
+              </div>
+              <ChartBars items={charts.subscriptionDistribution || []} color="bg-amber-500" />
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Acceptation TTN vs rejet</h3>
+              <Wifi className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {(charts.ttnAcceptanceVsRejection || []).map((item) => (
+                <div key={item.status} className="rounded-2xl bg-slate-50/70 border border-slate-100 p-5">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.status}</div>
+                  <div className="mt-2 text-2xl font-black text-slate-900">{item.value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Dernières Activités */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-             <h3 className="text-lg font-black text-slate-900 tracking-tight">Dernières Activités</h3>
-             <button onClick={() => window.location.href='/admin/activity'} className="text-[10px] font-black text-premium-600 uppercase tracking-widest hover:underline">Voir tout</button>
-          </div>
-          <div className="flex-1 space-y-4">
-            {stats.recentLogs && stats.recentLogs.length > 0 ? (
-              stats.recentLogs.map((log) => (
-                <div key={log.id} className="flex items-start gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-hover hover:border-premium-100">
-                  <div className="p-2 bg-white rounded-xl shadow-sm">
-                    <Activity className="w-4 h-4 text-premium-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between">
-                      <p className="text-xs font-black text-slate-900 truncate uppercase tracking-tight">{log.action}</p>
-                      <span className="text-[9px] font-bold text-slate-400">{new Date(log.createdAt).toLocaleTimeString('fr-TN')}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-medium italic line-clamp-1">{log.details}</p>
-                    <p className="text-[9px] font-black text-slate-400 uppercase mt-1">Par: {log.admin.name}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center h-48 text-slate-400">
-                <Activity className="w-12 h-12 mb-4 opacity-10" />
-                <p className="text-sm font-medium italic text-center px-8">Aucune activité récente enregistrée dans le journal d'audit.</p>
+        <div className="space-y-6">
+          <div className="rounded-[2rem] border border-rose-100 bg-rose-50/60 p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-white border border-rose-100 text-rose-600 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5" />
               </div>
-            )}
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Actions importantes</h3>
+                <p className="text-sm text-slate-500 font-medium">Ce que l'administrateur doit traiter en priorite.</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {priorityItems.length > 0 ? (
+                priorityItems.map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => navigate(item.path)}
+                    className="w-full rounded-2xl bg-white border border-rose-100 px-4 py-3 flex items-center justify-between text-left hover:border-rose-200 transition-all"
+                  >
+                    <span className="text-sm font-bold text-slate-700">{item.label}</span>
+                    <ArrowRight className="w-4 h-4 text-rose-500" />
+                  </button>
+                ))
+              ) : (
+                <div className="rounded-2xl bg-white border border-emerald-100 px-4 py-4 text-sm font-bold text-emerald-700">
+                  Aucun sujet critique en attente.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">Alertes plateforme</h3>
+            <div className="space-y-3 text-sm">
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex justify-between gap-4">
+                <span className="text-slate-600 font-medium">Entreprises proches du quota</span>
+                <span className="font-black text-slate-900">{alerts.nearQuota?.length || 0}</span>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex justify-between gap-4">
+                <span className="text-slate-600 font-medium">Echecs de soumission TTN</span>
+                <span className="font-black text-slate-900">{alerts.failedTtn?.length || 0}</span>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex justify-between gap-4">
+                <span className="text-slate-600 font-medium">Signatures manquantes</span>
+                <span className="font-black text-slate-900">{alerts.missingSignatures?.length || 0}</span>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex justify-between gap-4">
+                <span className="text-slate-600 font-medium">Paiements en echec</span>
+                <span className="font-black text-slate-900">{alerts.failedPayments?.length || 0}</span>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex justify-between gap-4">
+                <span className="text-slate-600 font-medium">Tickets non resolus</span>
+                <span className="font-black text-slate-900">{alerts.unresolvedTickets?.length || 0}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">Resume financier</h3>
+            <div className="space-y-3">
+              <div className="rounded-2xl bg-premium-50 border border-premium-100 px-4 py-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-premium-500">Revenu mensuel</div>
+                <div className="mt-2 text-2xl font-black text-premium-700">{kpis.monthlyRevenue || 0} TND</div>
+              </div>
+              <div className="rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-amber-500">Paiements en attente</div>
+                <div className="mt-2 text-2xl font-black text-amber-700">{kpis.pendingPayments || 0}</div>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500">TTN acceptees</div>
+                <div className="mt-2 text-2xl font-black text-emerald-700">{kpis.ttnAcceptedInvoices || 0}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
     </div>
   );
 };

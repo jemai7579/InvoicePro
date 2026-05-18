@@ -1,0 +1,54 @@
+{
+  "workflowStatus": "ACCEPTED_TTN",
+  "lastStatusAt": "2026-04-20T00:26:48.615Z",
+  "statusHistory": [
+    {
+      "status": "VALIDATED",
+      "at": "2026-04-20T00:26:48.334Z",
+      "note": "Invoice validated"
+    },
+    {
+      "status": "TEIF_GENERATED",
+      "at": "2026-04-20T00:26:48.359Z",
+      "note": "TEIF XML generated"
+    },
+    {
+      "status": "SIGNED",
+      "at": "2026-04-20T00:26:48.384Z",
+      "note": "Electronic signature completed"
+    },
+    {
+      "status": "SENT_TO_TTN",
+      "at": "2026-04-20T00:26:48.406Z",
+      "note": "TTN integration is not configured yet. Simulation mode enabled."
+    },
+    {
+      "status": "PENDING_TTN",
+      "at": "2026-04-20T00:26:48.432Z",
+      "note": "TTN integration is not configured yet. Simulation mode enabled."
+    },
+    {
+      "status": "ACCEPTED_TTN",
+      "at": "2026-04-20T00:26:48.451Z",
+      "note": "TTN integration is not configured yet. Simulation mode enabled."
+    },
+    {
+      "status": "ACCEPTED_TTN",
+      "at": "2026-04-20T00:26:48.615Z",
+      "note": "Final PDF generated"
+    }
+  ],
+  "teifXmlPath": "/uploads/compliance/7514bac2-d438-42d5-a47b-c7d89e050127/638c446a-371c-407c-8070-de1eae89f888/teif.xml",
+  "complianceMode": "mock",
+  "signedXmlPath": "/uploads/compliance/7514bac2-d438-42d5-a47b-c7d89e050127/638c446a-371c-407c-8070-de1eae89f888/teif.approved.xml",
+  "signatureProvider": "TunTrust / ANCE",
+  "certificateType": "USB token",
+  "lastSignatureTestDate": "2026-04-20T00:26:48.382Z",
+  "ttnSubmissionId": "MOCK-SUB-638C446A-1776644808405",
+  "lastTtnSyncAt": "2026-04-20T00:26:48.451Z",
+  "ttnReference": "TTN-2026-638C446A",
+  "ttnQrCode": "{\"mode\":\"mock\",\"invoiceId\":\"638c446a-371c-407c-8070-de1eae89f888\",\"reference\":\"TTN-2026-638C446A\",\"acceptedAt\":\"2026-04-20T00:26:48.449Z\"}",
+  "ttnAcceptedAt": "2026-04-20T00:26:48.451Z",
+  "mockDecision": "accept",
+  "finalizedPdfPath": "/uploads/compliance/7514bac2-d438-42d5-a47b-c7d89e050127/638c446a-371c-407c-8070-de1eae89f888/invoice.final.pdf"
+}

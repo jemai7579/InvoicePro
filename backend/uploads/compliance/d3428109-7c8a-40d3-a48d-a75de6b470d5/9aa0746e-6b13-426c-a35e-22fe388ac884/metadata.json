@@ -1,0 +1,49 @@
+{
+  "teifXmlPath": "/uploads/compliance/d3428109-7c8a-40d3-a48d-a75de6b470d5/9aa0746e-6b13-426c-a35e-22fe388ac884/teif.xml",
+  "complianceMode": "mock",
+  "workflowStatus": "FINALIZED",
+  "lastStatusAt": "2026-04-20T00:03:18.031Z",
+  "statusHistory": [
+    {
+      "status": "TEIF_GENERATED",
+      "at": "2026-04-20T00:03:17.555Z",
+      "note": "TEIF XML generated"
+    },
+    {
+      "status": "SIGNED",
+      "at": "2026-04-20T00:03:17.581Z",
+      "note": "Electronic signature completed"
+    },
+    {
+      "status": "SUBMITTED_TO_TTN",
+      "at": "2026-04-20T00:03:17.607Z",
+      "note": "Votre facture a ete envoyee a TTN. Le traitement peut prendre quelques minutes."
+    },
+    {
+      "status": "TTN_PROCESSING",
+      "at": "2026-04-20T00:03:17.635Z",
+      "note": "Votre facture est encore en traitement TTN."
+    },
+    {
+      "status": "TTN_ACCEPTED",
+      "at": "2026-04-20T00:03:17.655Z",
+      "note": "TTN a accepte la facture. Vous pouvez maintenant telecharger la facture finale."
+    },
+    {
+      "status": "FINALIZED",
+      "at": "2026-04-20T00:03:18.031Z",
+      "note": "Final PDF generated"
+    }
+  ],
+  "signedXmlPath": "/uploads/compliance/d3428109-7c8a-40d3-a48d-a75de6b470d5/9aa0746e-6b13-426c-a35e-22fe388ac884/teif.approved.xml",
+  "signatureProvider": "TunTrust / ANCE",
+  "certificateType": "USB token",
+  "lastSignatureTestDate": "2026-04-20T00:03:17.579Z",
+  "ttnSubmissionId": "MOCK-SUB-9AA0746E-1776643397606",
+  "lastTtnSyncAt": "2026-04-20T00:03:17.654Z",
+  "ttnReference": "TTN-2026-9AA0746E",
+  "ttnQrCode": "{\"mode\":\"mock\",\"invoiceId\":\"9aa0746e-6b13-426c-a35e-22fe388ac884\",\"reference\":\"TTN-2026-9AA0746E\",\"acceptedAt\":\"2026-04-20T00:03:17.653Z\"}",
+  "ttnAcceptedAt": "2026-04-20T00:03:17.654Z",
+  "mockDecision": "accept",
+  "finalizedPdfPath": "/uploads/compliance/d3428109-7c8a-40d3-a48d-a75de6b470d5/9aa0746e-6b13-426c-a35e-22fe388ac884/invoice.final.pdf"
+}

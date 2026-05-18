@@ -3,79 +3,109 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generatePdf = void 0;
-exports.invoiceRef = invoiceRef;
+exports.generatePdf = exports.getPdfFileSafeNumber = exports.getPdfDocumentNumber = void 0;
 const pdfkit_1 = __importDefault(require("pdfkit"));
 const qrcode_1 = __importDefault(require("qrcode"));
 const numberToWords_1 = require("./numberToWords");
-// ── helpers ─────────────────────────────────────────────────────────────────
-const fmt = (n, d = 3) => Number(n).toLocaleString('fr-TN', { minimumFractionDigits: d, maximumFractionDigits: d });
-function statusLabel(s) {
-    const map = {
-        DRAFT: 'Brouillon',
-        SENT_TO_TTN: 'Envoyé à TTN',
-        PENDING_VALIDATION: 'En attente de validation',
-        VALIDATED: 'Validée',
-        PAID: 'Payée',
-        REJECTED: 'Rejetée',
-    };
-    return map[s] ?? s.replace(/_/g, ' ');
-}
-function invoiceRef(id, createdAt) {
-    const y = createdAt.getFullYear();
-    const m = String(createdAt.getMonth() + 1).padStart(2, '0');
-    return `F-${y}${m}-${id.slice(0, 8).toUpperCase()}`;
-}
-function groupByTva(lines) {
-    const map = new Map();
-    for (const l of lines) {
-        const prev = map.get(l.tvaRate) ?? { baseHT: 0, montantTVA: 0 };
-        map.set(l.tvaRate, {
-            baseHT: prev.baseHT + l.totalHT,
-            montantTVA: prev.montantTVA + l.totalHT * (l.tvaRate / 100),
-        });
-    }
-    return Array.from(map.entries())
-        .sort((a, b) => b[0] - a[0])
-        .map(([rate, v]) => ({ rate, ...v }));
-}
-// ── Layout ─────────────────────────────────────────────────────────────────
+const numberingService_1 = require("../services/numberingService");
+const fmt = (n, digits = 3) => Number(n || 0).toLocaleString('fr-TN', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+});
 const PAGE_W = 595.28;
 const MARGIN = 45;
-const CONT_W = PAGE_W - MARGIN * 2;
+const CONTENT_W = PAGE_W - MARGIN * 2;
 const HEADER_H = 112;
 const FOOTER_H = 22;
 const FOOTER_Y = 841.89 - FOOTER_H;
 const BODY_MAX = FOOTER_Y - 14;
 const C = {
     primary: '#003F88',
-    light: '#E8F0FC',
-    border: '#BED0EC',
+    accent: '#0057B8',
     text: '#1A1A2E',
     muted: '#6B7280',
+    border: '#BED0EC',
+    light: '#E8F0FC',
     white: '#FFFFFF',
     rowAlt: '#F5F8FF',
-    accent: '#0057B8',
 };
-// ── main generator ─────────────────────────────────────────────────────────
-const generatePdf = async (docData, _type = 'FACTURE') => {
-    const ref = invoiceRef(docData.id, new Date(docData.createdAt));
+function statusLabel(status) {
+    const map = {
+        DRAFT: 'Brouillon',
+        VALIDATED: 'Validee',
+        TEIF_GENERATED: 'XML TEIF genere',
+        SIGNED: 'Signee electroniquement',
+        SENT_TO_TTN: 'Envoyee a TTN',
+        PENDING_TTN: 'En attente TTN',
+        ACCEPTED_TTN: 'Acceptee par TTN',
+        REJECTED_TTN: 'Rejetee par TTN',
+        CANCELLED: 'Annulee',
+        READY_FOR_TEIF: 'Validee',
+        SIGNATURE_REQUIRED: 'TEIF genere',
+        SUBMITTED_TO_TTN: 'Envoyee a TTN',
+        TTN_PROCESSING: 'En attente TTN',
+        TTN_ACCEPTED: 'Acceptee par TTN',
+        TTN_REJECTED: 'Rejetee par TTN',
+        FINALIZED: 'Acceptee par TTN',
+        PENDING_VALIDATION: 'En attente de validation',
+        PAID: 'Payee',
+        REJECTED: 'Rejetee',
+        ACCEPTED: 'Acceptee',
+        REFUSED: 'Refusee',
+    };
+    return map[status] ?? status.replace(/_/g, ' ');
+}
+const getPdfDocumentNumber = (docData, type) => type === 'DEVIS' ? (0, numberingService_1.getDevisVisibleNumber)(docData) : (0, numberingService_1.getInvoiceVisibleNumber)(docData);
+exports.getPdfDocumentNumber = getPdfDocumentNumber;
+const getPdfFileSafeNumber = (docData, type) => (0, numberingService_1.sanitizeBusinessNumberForFileName)((0, exports.getPdfDocumentNumber)(docData, type));
+exports.getPdfFileSafeNumber = getPdfFileSafeNumber;
+function groupByTva(lines) {
+    const map = new Map();
+    for (const line of lines || []) {
+        const previous = map.get(line.tvaRate) ?? { baseHT: 0, montantTVA: 0 };
+        map.set(line.tvaRate, {
+            baseHT: previous.baseHT + Number(line.totalHT || 0),
+            montantTVA: previous.montantTVA + Number(line.totalHT || 0) * (Number(line.tvaRate || 0) / 100),
+        });
+    }
+    return Array.from(map.entries())
+        .sort((a, b) => b[0] - a[0])
+        .map(([rate, value]) => ({ rate, ...value }));
+}
+const generatePdf = async (docData, type = 'FACTURE', compliance) => {
+    const createdAt = new Date(docData.createdAt);
+    const ref = (0, exports.getPdfDocumentNumber)(docData, type);
     const company = docData.company ?? {};
     const client = docData.client ?? {};
-    const hasCert = !!(company.certificatePath && company.certificatePassword);
-    const issueDate = new Date(docData.createdAt).toLocaleDateString('fr-TN');
-    const dueDate = new Date(new Date(docData.createdAt).getTime() + 30 * 86400000).toLocaleDateString('fr-TN');
-    // ── QR (JSON, internal verification) ─────────────────────────────────────
+    const lines = docData.lines ?? [];
+    const issueDate = createdAt.toLocaleDateString('fr-TN');
+    const dueDate = new Date(createdAt.getTime() + 30 * 86400000).toLocaleDateString('fr-TN');
+    const complianceStatus = compliance?.complianceStatus || docData.ttnStatus || docData.status || 'DRAFT';
+    const complianceLabel = compliance?.complianceLabelFr || statusLabel(complianceStatus);
+    const isFinalInvoice = type === 'FACTURE' && complianceStatus === 'ACCEPTED_TTN';
+    const isMockMode = compliance?.complianceMode === 'mock' || compliance?.complianceMode === 'test';
+    const headerTitle = type === 'DEVIS'
+        ? 'DEVIS'
+        : isFinalInvoice
+            ? 'FACTURE FISCALE ELECTRONIQUE'
+            : 'FACTURE EN PREPARATION';
     const qrPayload = JSON.stringify({
         reference: ref,
-        mf: company.matriculeFiscal ?? '',
-        total_ttc: Math.round(docData.netToPay * 1000) / 1000,
-        date: new Date(docData.createdAt).toISOString().split('T')[0],
-        status: docData.status,
+        fiscalId: company.matriculeFiscal ?? '',
+        totalTTC: Math.round(Number(docData.netToPay || 0) * 1000) / 1000,
+        date: createdAt.toISOString().split('T')[0],
+        status: complianceStatus,
+        ttnReference: compliance?.ttnReference ?? null,
+        mode: compliance?.complianceMode ?? 'draft',
     });
-    const qrPng = await qrcode_1.default.toBuffer(qrPayload, {
-        type: 'png', width: 88, margin: 1, errorCorrectionLevel: 'M',
-    });
+    const qrPng = isFinalInvoice && compliance?.ttnQrCode
+        ? await qrcode_1.default.toBuffer(compliance.ttnQrCode, {
+            type: 'png',
+            width: 88,
+            margin: 1,
+            errorCorrectionLevel: 'M',
+        })
+        : null;
     return new Promise((resolve, reject) => {
         const doc = new pdfkit_1.default({
             margin: MARGIN,
@@ -84,62 +114,55 @@ const generatePdf = async (docData, _type = 'FACTURE') => {
             bufferPages: true,
         });
         const chunks = [];
-        doc.on('data', (c) => chunks.push(c));
+        doc.on('data', (chunk) => chunks.push(chunk));
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
-        let pageNum = 1;
-        // ── Header ───────────────────────────────────────────────────────────────
+        let y = HEADER_H + 12;
         const addHeader = () => {
-            // Background
             doc.rect(0, 0, PAGE_W, HEADER_H).fill(C.primary);
-            // Thin accent stripe at bottom of header
             doc.rect(0, HEADER_H - 3, PAGE_W, 3).fill(C.accent);
-            // ── Left block: title + reference + status ────────────────────────────
-            doc
-                .fillColor(C.white)
-                .font('Helvetica-Bold')
-                .fontSize(19)
-                .text('FACTURE ÉLECTRONIQUE', MARGIN, 16);
+            doc.fillColor(C.white).font('Helvetica-Bold').fontSize(19).text(headerTitle, MARGIN, 16);
             doc
                 .font('Helvetica')
                 .fontSize(7.5)
-                .fillColor('#A8C4F0') // light blue sub-text
-                .text('Plateforme El Fatoora  ·  Gestion TTN interne', MARGIN, 40);
+                .fillColor('#A8C4F0')
+                .text(type === 'FACTURE'
+                ? isFinalInvoice
+                    ? 'Plateforme El Fatoora · Conformite TTN'
+                    : 'Plateforme El Fatoora · Preparation TTN'
+                : 'Plateforme El Fatoora · Document commercial', MARGIN, 40);
             doc
                 .fillColor(C.white)
                 .fontSize(8.5)
-                .text(`Référence :  ${ref}`, MARGIN, 53)
-                .text(`N° interne : ${docData.id.slice(0, 8).toUpperCase()}`, MARGIN, 65)
-                .text(`Statut :        ${statusLabel(docData.status)}`, MARGIN, 77);
-            // ── Centre/Right block: dates ─────────────────────────────────────────
+                .text(`Reference : ${ref}`, MARGIN, 53)
+                .text(`No interne : ${docData.id.slice(0, 8).toUpperCase()}`, MARGIN, 65)
+                .text(`Statut : ${complianceLabel}`, MARGIN, 77);
             const dateX = MARGIN + 230;
-            doc
-                .font('Helvetica-Bold')
-                .fontSize(8)
-                .fillColor('#A8C4F0')
-                .text("Date d'émission", dateX, 53);
-            doc
-                .font('Helvetica')
-                .fontSize(9)
-                .fillColor(C.white)
-                .text(issueDate, dateX, 64);
-            doc
-                .font('Helvetica-Bold')
-                .fontSize(8)
-                .fillColor('#A8C4F0')
-                .text("Date d'échéance", dateX, 80);
-            doc
-                .font('Helvetica')
-                .fontSize(9)
-                .fillColor(C.white)
-                .text(dueDate, dateX, 91);
-            // ── QR code (far right) ───────────────────────────────────────────────
+            doc.fillColor('#A8C4F0').font('Helvetica-Bold').fontSize(8).text("Date d'emission", dateX, 53);
+            doc.fillColor(C.white).font('Helvetica').fontSize(9).text(issueDate, dateX, 64);
+            doc.fillColor('#A8C4F0').font('Helvetica-Bold').fontSize(8).text("Date d'echeance", dateX, 80);
+            doc.fillColor(C.white).font('Helvetica').fontSize(9).text(dueDate, dateX, 91);
             const qrX = PAGE_W - MARGIN - 88;
-            doc.image(qrPng, qrX, 9, { width: 88, height: 88 });
-            doc
-                .fontSize(6)
-                .fillColor('#A8C4F0')
-                .text('Vérification interne', qrX, 99, { width: 88, align: 'center' });
+            if (qrPng) {
+                doc.image(qrPng, qrX, 9, { width: 88, height: 88 });
+                doc
+                    .fontSize(6)
+                    .fillColor('#A8C4F0')
+                    .text(isMockMode ? 'QR fiscal mock' : 'QR fiscal TTN', qrX, 99, {
+                    width: 88,
+                    align: 'center',
+                });
+            }
+            else {
+                doc.roundedRect(qrX, 9, 88, 88, 8).stroke('#7EA7DE');
+                doc
+                    .fontSize(7)
+                    .fillColor('#A8C4F0')
+                    .text('QR TTN disponible apres acceptation', qrX + 8, 40, {
+                    width: 72,
+                    align: 'center',
+                });
+            }
         };
         const addFooter = (page, total) => {
             doc.rect(0, FOOTER_Y, PAGE_W, FOOTER_H).fill(C.primary);
@@ -147,225 +170,220 @@ const generatePdf = async (docData, _type = 'FACTURE') => {
                 .fillColor(C.white)
                 .font('Helvetica')
                 .fontSize(7)
-                .text(`El Fatoora — Facturation Électronique TTN  ·  Réf. ${ref}  ·  Page ${page} / ${total}`, 0, FOOTER_Y + 7, { width: PAGE_W, align: 'center' });
+                .text(`El Fatoora · ${type === 'FACTURE' ? 'Facturation electronique' : 'Devis'} · Ref. ${ref} · Page ${page} / ${total}`, 0, FOOTER_Y + 7, { width: PAGE_W, align: 'center' });
         };
-        addHeader();
-        let y = HEADER_H + 12;
         const ensureSpace = (needed) => {
-            if (y + needed > BODY_MAX) {
-                doc.addPage();
-                pageNum++;
-                addHeader();
-                y = HEADER_H + 12;
-            }
+            if (y + needed <= BODY_MAX)
+                return;
+            doc.addPage();
+            addHeader();
+            y = HEADER_H + 12;
         };
-        // ── Section label helper ──────────────────────────────────────────────────
         const sectionLabel = (label) => {
             ensureSpace(22);
-            doc.rect(MARGIN, y, CONT_W, 16).fill(C.light);
-            doc
-                .fillColor(C.primary)
-                .font('Helvetica-Bold')
-                .fontSize(8)
-                .text(label, MARGIN + 8, y + 4);
+            doc.rect(MARGIN, y, CONTENT_W, 16).fill(C.light);
+            doc.fillColor(C.primary).font('Helvetica-Bold').fontSize(8).text(label, MARGIN + 8, y + 4);
             y += 20;
         };
-        // ── Parties ───────────────────────────────────────────────────────────────
-        ensureSpace(145);
-        const colW = (CONT_W - 10) / 2;
-        const rightX = MARGIN + colW + 10;
-        const drawParty = (boxX, title, name, mf, rc, address, zip, city, country, phone, email) => {
-            const BOX_H = 138;
-            const PAD = 10;
-            const TW = colW - PAD * 2; // full usable text width
-            const X = boxX + PAD;
-            const LINE = 11; // line-height in points
-            /* ── Box + title bar ────────────────────────────────────── */
-            doc.roundedRect(boxX, y, colW, BOX_H, 4).fill(C.white).stroke(C.border);
-            doc.rect(boxX, y, colW, 15).fill(C.primary);
-            doc.fillColor(C.white).font('Helvetica-Bold').fontSize(7.5);
-            doc.text(title, X, y + 4, { width: TW, lineBreak: false, ellipsis: true });
-            /* ── Name ────────────────────────────────────────────────── */
-            doc.fillColor(C.text).font('Helvetica-Bold').fontSize(9.5);
-            doc.text(name || '—', X, y + 19, { width: TW, lineBreak: false, ellipsis: true });
-            /* ── Info lines — one complete string per row ─────────────
-               Each doc.text() call is fully self-contained:
-                 • absolute (X, rowY) position
-                 • width: TW  ← full box width, never too narrow
-                 • lineBreak: false  ← no line break at end
-                 • ellipsis: true    ← '...' instead of wrapping
-               Result: text NEVER splits mid-word.                      */
+        const drawParty = (boxX, title, name, mf, rne, address, zip, city, country, phone, email) => {
+            const boxW = (CONTENT_W - 10) / 2;
+            const boxH = 138;
+            const pad = 10;
+            const textW = boxW - pad * 2;
+            const x = boxX + pad;
             const info = [
-                { label: 'MF', value: mf },
-                { label: 'RC', value: rc },
-                { label: 'Adresse', value: address },
-                { label: 'Ville', value: [zip, city, country].filter(Boolean).join(' ') },
-                { label: 'Tél', value: phone },
-                { label: 'Email', value: email },
+                `MF : ${mf || '-'}`,
+                `RNE : ${rne || '-'}`,
+                `Adresse : ${address || '-'}`,
+                `Ville : ${[zip, city, country].filter(Boolean).join(' ') || '-'}`,
+                `Tel : ${phone || '-'}`,
+                `Email : ${email || '-'}`,
             ];
-            let iy = y + 33;
-            for (const { label, value } of info) {
-                const line = value?.trim() ? `${label} : ${value.trim()}` : `${label} : —`;
-                doc.fillColor(C.muted).font('Helvetica').fontSize(8);
-                doc.text(line, X, iy, { width: TW, lineBreak: false, ellipsis: true });
-                iy += LINE;
+            doc.roundedRect(boxX, y, boxW, boxH, 4).fill(C.white).stroke(C.border);
+            doc.rect(boxX, y, boxW, 15).fill(C.primary);
+            doc.fillColor(C.white).font('Helvetica-Bold').fontSize(7.5).text(title, x, y + 4, { width: textW });
+            doc.fillColor(C.text).font('Helvetica-Bold').fontSize(9.5).text(name || '-', x, y + 19, {
+                width: textW,
+                lineBreak: false,
+                ellipsis: true,
+            });
+            let infoY = y + 33;
+            for (const line of info) {
+                doc.fillColor(C.muted).font('Helvetica').fontSize(8).text(line, x, infoY, {
+                    width: textW,
+                    lineBreak: false,
+                    ellipsis: true,
+                });
+                infoY += 11;
             }
         };
-        drawParty(MARGIN, 'ÉMETTEUR', company.name, company.matriculeFiscal ?? '', company.registreCommerce ?? '', company.address ?? '', company.zipCode ?? '', company.city ?? '', company.country ?? 'Tunisie', company.phone ?? '', company.email ?? '');
-        drawParty(rightX, 'DESTINATAIRE / CLIENT', client.name, client.matriculeFiscal ?? '', '', client.address ?? '', client.zipCode ?? '', client.city ?? '', client.country ?? 'Tunisie', client.phone ?? '', client.email ?? '');
-        y += 138; // BOX_H (128) + 10 gap
-        // ── Articles table ─────────────────────────────────────────────────────
-        sectionLabel('LIGNES DE FACTURE');
+        addHeader();
+        ensureSpace(145);
+        const colW = (CONTENT_W - 10) / 2;
+        const rightX = MARGIN + colW + 10;
+        drawParty(MARGIN, 'EMETTEUR', company.name, company.matriculeFiscal ?? '', company.registreCommerce ?? '', company.address ?? '', company.zipCode ?? '', company.city ?? '', company.country ?? 'Tunisie', company.phone ?? '', company.email ?? '');
+        drawParty(rightX, type === 'DEVIS' ? 'DESTINATAIRE' : 'CLIENT', client.name, client.matriculeFiscal ?? '', '', client.address ?? '', client.zipCode ?? '', client.city ?? '', client.country ?? 'Tunisie', client.phone ?? '', client.email ?? '');
+        y += 138;
+        if (type === 'FACTURE') {
+            ensureSpace(52);
+            doc
+                .rect(MARGIN, y, CONTENT_W, 40)
+                .fill(isFinalInvoice ? '#ECFDF5' : '#FFF7ED')
+                .stroke(isFinalInvoice ? '#A7F3D0' : '#FED7AA');
+            doc
+                .fillColor(isFinalInvoice ? '#065F46' : '#9A3412')
+                .font('Helvetica-Bold')
+                .fontSize(9)
+                .text(isFinalInvoice ? 'VALIDITE FISCALE' : 'STATUT FISCAL', MARGIN + 10, y + 8);
+            const finalText = isFinalInvoice
+                ? `${compliance?.ttnReference ? `Reference TTN : ${compliance.ttnReference}` : 'TTN acceptee'}${compliance?.ttnAcceptedAt
+                    ? ` · Date d'acceptation : ${new Date(compliance.ttnAcceptedAt).toLocaleDateString('fr-TN')}`
+                    : ''}${isMockMode ? ' · Mode test' : ''}`
+                : 'Votre facture est encore en preparation. Elle ne devient fiscalement valide qu apres signature electronique et acceptation TTN.';
+            doc
+                .fillColor(isFinalInvoice ? '#065F46' : '#7C2D12')
+                .font('Helvetica')
+                .fontSize(8.5)
+                .text(finalText, MARGIN + 10, y + 20, { width: CONTENT_W - 20 });
+            y += 48;
+        }
+        sectionLabel(type === 'DEVIS' ? 'LIGNES DU DEVIS' : 'LIGNES DE FACTURE');
         ensureSpace(22);
-        // Column definitions
-        const TC = {
+        const cols = {
             num: { x: MARGIN, w: 24 },
             desc: { x: MARGIN + 24, w: 178 },
             qty: { x: MARGIN + 202, w: 42 },
             pu: { x: MARGIN + 244, w: 68 },
             tva: { x: MARGIN + 312, w: 38 },
             mva: { x: MARGIN + 350, w: 66 },
-            total: { x: MARGIN + 416, w: CONT_W - 416 },
+            total: { x: MARGIN + 416, w: CONTENT_W - 416 },
         };
-        // Header bar
-        doc.rect(MARGIN, y, CONT_W, 20).fill(C.primary);
-        const hY = y + 6;
+        doc.rect(MARGIN, y, CONTENT_W, 20).fill(C.primary);
+        const headerY = y + 6;
         doc.fillColor(C.white).font('Helvetica-Bold').fontSize(8);
-        doc.text('#', TC.num.x + 4, hY);
-        doc.text('Désignation', TC.desc.x + 4, hY);
-        doc.text('Qté', TC.qty.x, hY, { width: TC.qty.w, align: 'right' });
-        doc.text('P.U. HT', TC.pu.x, hY, { width: TC.pu.w, align: 'right' });
-        doc.text('TVA', TC.tva.x, hY, { width: TC.tva.w, align: 'right' });
-        doc.text('Mt. TVA', TC.mva.x, hY, { width: TC.mva.w, align: 'right' });
-        doc.text('Total HT', TC.total.x, hY, { width: TC.total.w, align: 'right' });
+        doc.text('#', cols.num.x + 4, headerY);
+        doc.text('Designation', cols.desc.x + 4, headerY);
+        doc.text('Qte', cols.qty.x, headerY, { width: cols.qty.w, align: 'right' });
+        doc.text('P.U. HT', cols.pu.x, headerY, { width: cols.pu.w, align: 'right' });
+        doc.text('TVA', cols.tva.x, headerY, { width: cols.tva.w, align: 'right' });
+        doc.text('Mt. TVA', cols.mva.x, headerY, { width: cols.mva.w, align: 'right' });
+        doc.text('Total HT', cols.total.x, headerY, { width: cols.total.w, align: 'right' });
         y += 20;
-        // Rows
-        docData.lines.forEach((line, idx) => {
+        lines.forEach((line, index) => {
             doc.font('Helvetica').fontSize(9);
-            const descH = doc.heightOfString(line.description, { width: TC.desc.w - 8 });
+            const descH = doc.heightOfString(line.description || '-', { width: cols.desc.w - 8 });
             const rowH = Math.max(20, descH + 10);
             ensureSpace(rowH);
-            // Alternating background
-            doc.rect(MARGIN, y, CONT_W, rowH).fill(idx % 2 === 0 ? C.white : C.rowAlt);
-            // Bottom rule for each row
-            doc.rect(MARGIN, y + rowH - 1, CONT_W, 1).fill(C.border);
-            const mva = line.totalHT * (line.tvaRate / 100);
+            doc.rect(MARGIN, y, CONTENT_W, rowH).fill(index % 2 === 0 ? C.white : C.rowAlt);
+            doc.rect(MARGIN, y + rowH - 1, CONTENT_W, 1).fill(C.border);
             const lineY = y + 5;
-            doc.fillColor(C.muted).font('Helvetica').fontSize(9)
-                .text(String(idx + 1), TC.num.x + 4, lineY);
-            doc.fillColor(C.text).font('Helvetica').fontSize(9)
-                .text(line.description, TC.desc.x + 4, lineY, { width: TC.desc.w - 8 });
-            doc.fillColor(C.text).font('Helvetica').fontSize(9)
-                .text(fmt(line.quantity, 2), TC.qty.x, lineY, { width: TC.qty.w, align: 'right' })
-                .text(fmt(line.unitPrice), TC.pu.x, lineY, { width: TC.pu.w, align: 'right' })
-                .text(`${line.tvaRate} %`, TC.tva.x, lineY, { width: TC.tva.w, align: 'right' })
-                .text(fmt(mva), TC.mva.x, lineY, { width: TC.mva.w, align: 'right' })
+            const tvaAmount = Number(line.totalHT || 0) * (Number(line.tvaRate || 0) / 100);
+            doc.fillColor(C.muted).font('Helvetica').fontSize(9).text(String(index + 1), cols.num.x + 4, lineY);
+            doc.fillColor(C.text).font('Helvetica').fontSize(9).text(line.description || '-', cols.desc.x + 4, lineY, {
+                width: cols.desc.w - 8,
+            });
+            doc
+                .text(fmt(Number(line.quantity || 0), 2), cols.qty.x, lineY, { width: cols.qty.w, align: 'right' })
+                .text(fmt(Number(line.unitPrice || 0)), cols.pu.x, lineY, { width: cols.pu.w, align: 'right' })
+                .text(`${Number(line.tvaRate || 0)} %`, cols.tva.x, lineY, { width: cols.tva.w, align: 'right' })
+                .text(fmt(tvaAmount), cols.mva.x, lineY, { width: cols.mva.w, align: 'right' })
                 .font('Helvetica-Bold')
-                .text(fmt(line.totalHT), TC.total.x, lineY, { width: TC.total.w, align: 'right' });
+                .text(fmt(Number(line.totalHT || 0)), cols.total.x, lineY, { width: cols.total.w, align: 'right' });
             y += rowH;
         });
         y += 10;
-        // ── TVA detail + Totals ────────────────────────────────────────────────
-        const tvaGroups = groupByTva(docData.lines);
-        const tvaRows = tvaGroups.length;
-        const totalRows = 3 + (docData.withholdingTax > 0 ? 1 : 0);
-        const blockH = Math.max(tvaRows * 16 + 38, totalRows * 18 + 24) + 20;
+        const tvaGroups = groupByTva(lines);
+        const blockH = Math.max(tvaGroups.length * 16 + 38, 96) + 20;
         ensureSpace(blockH);
-        sectionLabel('RÉCAPITULATIF FISCAL');
-        const tvaW = CONT_W * 0.48;
-        const sumX = MARGIN + tvaW + 12;
-        const sumW = CONT_W - tvaW - 12;
-        const ySnap = y;
-        // TVA table header
+        sectionLabel('RECAPITULATIF FISCAL');
+        const tvaW = CONTENT_W * 0.48;
+        const summaryX = MARGIN + tvaW + 12;
+        const summaryW = CONTENT_W - tvaW - 12;
+        const snapshotY = y;
         doc.rect(MARGIN, y, tvaW, 16).fill(C.light);
-        doc.fillColor(C.muted).font('Helvetica-Bold').fontSize(8)
-            .text('Taux', MARGIN + 6, y + 4, { width: 36 })
-            .text('Base imposable HT', MARGIN + 44, y + 4, { width: 110 })
-            .text('Montant TVA', MARGIN + tvaW - 76, y + 4, { width: 74, align: 'right' });
+        doc.fillColor(C.muted).font('Helvetica-Bold').fontSize(8);
+        doc.text('Taux', MARGIN + 6, y + 4, { width: 36 });
+        doc.text('Base imposable HT', MARGIN + 44, y + 4, { width: 110 });
+        doc.text('Montant TVA', MARGIN + tvaW - 76, y + 4, { width: 74, align: 'right' });
         y += 16;
-        for (const g of tvaGroups) {
+        for (const group of tvaGroups) {
             doc.rect(MARGIN, y, tvaW, 16).fill(C.white).stroke(C.border);
-            doc.fillColor(C.text).font('Helvetica').fontSize(9)
-                .text(`${g.rate} %`, MARGIN + 6, y + 3, { width: 36 })
-                .text(fmt(g.baseHT), MARGIN + 44, y + 3, { width: 110 })
-                .font('Helvetica-Bold')
-                .text(fmt(g.montantTVA), MARGIN + tvaW - 76, y + 3, { width: 74, align: 'right' });
+            doc.fillColor(C.text).font('Helvetica').fontSize(9);
+            doc.text(`${group.rate} %`, MARGIN + 6, y + 3, { width: 36 });
+            doc.text(fmt(group.baseHT), MARGIN + 44, y + 3, { width: 110 });
+            doc.font('Helvetica-Bold').text(fmt(group.montantTVA), MARGIN + tvaW - 76, y + 3, {
+                width: 74,
+                align: 'right',
+            });
             y += 16;
         }
-        // Totals block (right side, aligned with tva section start)
-        let tY = ySnap;
+        let totalY = snapshotY;
         const drawTotal = (label, value, bold = false, highlight = false) => {
-            const h = highlight ? 24 : 18;
-            const bg = highlight ? C.primary : (bold ? C.light : C.white);
-            doc.rect(sumX, tY, sumW, h).fill(bg).stroke(C.border);
+            const height = highlight ? 24 : 18;
+            doc.rect(summaryX, totalY, summaryW, height).fill(highlight ? C.primary : bold ? C.light : C.white).stroke(C.border);
             doc
                 .fillColor(highlight ? C.white : C.text)
                 .font(bold || highlight ? 'Helvetica-Bold' : 'Helvetica')
                 .fontSize(highlight ? 10.5 : 9)
-                .text(label, sumX + 8, tY + (highlight ? 7 : 4), { width: sumW * 0.55 })
-                .text(value, sumX + 8, tY + (highlight ? 7 : 4), { width: sumW - 12, align: 'right' });
-            tY += h;
+                .text(label, summaryX + 8, totalY + (highlight ? 7 : 4), { width: summaryW * 0.55 })
+                .text(value, summaryX + 8, totalY + (highlight ? 7 : 4), { width: summaryW - 12, align: 'right' });
+            totalY += height;
         };
-        drawTotal('Total HT', `${fmt(docData.totalHT)}  TND`);
-        drawTotal('Total TVA', `${fmt(docData.totalTVA)} TND`);
-        drawTotal('Droit de timbre fiscal', `${fmt(docData.stampDuty)} TND`);
-        if (docData.withholdingTax > 0) {
-            drawTotal('Retenue à la source', `- ${fmt(docData.withholdingTax)} TND`);
+        drawTotal('Total HT', `${fmt(Number(docData.totalHT || 0))} TND`);
+        drawTotal('Total TVA', `${fmt(Number(docData.totalTVA || 0))} TND`);
+        drawTotal('Droit de timbre fiscal', `${fmt(Number(docData.stampDuty || 0))} TND`);
+        if (Number(docData.withholdingTax || 0) > 0) {
+            drawTotal('Retenue a la source', `- ${fmt(Number(docData.withholdingTax || 0))} TND`);
         }
-        drawTotal('NET À PAYER (TTC)', `${fmt(docData.netToPay)} TND`, true, true);
-        y = Math.max(y, tY) + 14;
-        // ── Arrêté en lettres ─────────────────────────────────────────────────
+        drawTotal('NET A PAYER (TTC)', `${fmt(Number(docData.netToPay || 0))} TND`, true, true);
+        y = Math.max(y, totalY) + 14;
         ensureSpace(32);
-        const words = (0, numberToWords_1.numberToWordsTND)(docData.netToPay);
-        doc.rect(MARGIN, y, CONT_W, 26).fill(C.light).stroke(C.border);
+        const words = (0, numberToWords_1.numberToWordsTND)(Number(docData.netToPay || 0));
+        doc.rect(MARGIN, y, CONTENT_W, 26).fill(C.light).stroke(C.border);
         doc
-            .fillColor(C.primary).font('Helvetica-Bold').fontSize(7.5)
-            .text("Arrêté la présente facture à la somme de :", MARGIN + 10, y + 5);
-        doc
-            .fillColor(C.text).font('Helvetica-Oblique').fontSize(9)
-            .text(words, MARGIN + 10, y + 15, { width: CONT_W - 20 });
+            .fillColor(C.primary)
+            .font('Helvetica-Bold')
+            .fontSize(7.5)
+            .text('Arrete le present document a la somme de :', MARGIN + 10, y + 5);
+        doc.fillColor(C.text).font('Helvetica-Oblique').fontSize(9).text(words, MARGIN + 10, y + 15, {
+            width: CONTENT_W - 20,
+        });
         y += 34;
-        // ── RIB ──────────────────────────────────────────────────────────────
-        if (company.rib) {
-            ensureSpace(16);
-            doc
-                .fillColor(C.muted).font('Helvetica').fontSize(8.5)
-                .text(`Virement bancaire  —  RIB : ${company.rib}`, MARGIN, y);
-            y += 14;
+        ensureSpace(16);
+        doc.fillColor(C.muted).font('Helvetica').fontSize(8.5).text('Mode de paiement : Espèce', MARGIN, y);
+        y += 14;
+        ensureSpace(70);
+        y += 8;
+        doc.rect(MARGIN, y, CONTENT_W, 1).fill(C.border);
+        y += 8;
+        let legalText = 'Ce document est genere par la plateforme El Fatoora dans le cadre du workflow de facturation electronique TTN. ' +
+            'Les donnees de montant, client, reference et statut sont tracees dans le systeme.';
+        if (type === 'FACTURE' && isFinalInvoice) {
+            legalText += ` La facture a ete acceptee par TTN${compliance?.ttnReference ? ` sous la reference ${compliance.ttnReference}` : ''}.`;
+            if (isMockMode) {
+                legalText += ' Ce document a ete produit en mode test et ne doit pas etre utilise comme justificatif fiscal de production.';
+            }
         }
-        // ── Mentions légales ──────────────────────────────────────────────────
-        ensureSpace(60);
-        y += 8;
-        doc.rect(MARGIN, y, CONT_W, 1).fill(C.border);
-        y += 8;
-        let legalText = 'Ce document est une facture électronique générée par la plateforme El Fatoora, ' +
-            'système de gestion et de préparation des factures électroniques conforme au cadre TTN ' +
-            '(Tunisie Trade Net). ' +
-            'Les données de cette facture (montants, références, statut) font foi à la date d\'émission indiquée. ' +
-            'Tout rectificatif ultérieur du statut est consigné dans le système et traçable à des fins de contrôle interne.';
-        if (hasCert) {
-            legalText +=
-                ' Cette facture est signée électroniquement (XAdES-B / RSA-SHA256) ' +
-                    "avec le certificat numérique enregistré de l'émetteur.";
+        else if (type === 'FACTURE') {
+            legalText += ' Cette version reste un brouillon ou une version intermediaire tant que la signature electronique et la validation TTN ne sont pas terminees.';
         }
         else {
-            legalText +=
-                ' Aucune signature électronique n\'a été appliquée à ce document — ' +
-                    'veuillez configurer un certificat TunTrust dans les Paramètres pour activer la signature.';
+            legalText += ' Ce devis n a pas valeur de facture fiscale.';
         }
+        doc.fillColor(C.muted).font('Helvetica-Oblique').fontSize(7.5).text(legalText, MARGIN, y, {
+            width: CONTENT_W,
+            align: 'justify',
+        });
+        y += doc.heightOfString(legalText, { width: CONTENT_W }) + 10;
         doc
-            .fillColor(C.muted).font('Helvetica-Oblique').fontSize(7.5)
-            .text(legalText, MARGIN, y, { width: CONT_W, align: 'justify' });
-        y += doc.heightOfString(legalText, { width: CONT_W }) + 10;
-        doc
-            .fillColor(C.muted).font('Helvetica').fontSize(7.5)
-            .text("Conditions de paiement : Paiement à réception de la facture.  |  Pénalité de retard : 1 % par mois.", MARGIN, y, { width: CONT_W, align: 'center' });
-        // ── Footers on all pages ──────────────────────────────────────────────
+            .fillColor(C.muted)
+            .font('Helvetica')
+            .fontSize(7.5)
+            .text("Conditions de paiement : paiement a reception. Une facture est fiscalement valide uniquement apres acceptation TTN.", MARGIN, y, { width: CONTENT_W, align: 'center' });
         const range = doc.bufferedPageRange();
-        const total = range.count;
-        for (let i = 0; i < total; i++) {
+        for (let i = 0; i < range.count; i += 1) {
             doc.switchToPage(range.start + i);
-            addFooter(i + 1, total);
+            addFooter(i + 1, range.count);
         }
         doc.end();
     });

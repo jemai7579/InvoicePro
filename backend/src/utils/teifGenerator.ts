@@ -1,4 +1,5 @@
 import { create } from 'xmlbuilder2';
+import { getInvoiceVisibleNumber } from '../services/numberingService';
 
 export const generateTeifXml = (invoice: any) => {
   // Validate basic requirements before generation
@@ -42,7 +43,7 @@ export const generateTeifXml = (invoice: any) => {
       },
 
       // Document Metadata
-      'cbc:ID': invoice.id,
+      'cbc:ID': getInvoiceVisibleNumber(invoice),
       'cbc:IssueDate': new Date(invoice.createdAt).toISOString().split('T')[0],
       'cbc:InvoiceTypeCode': '380', // Commercial Invoice
       'cbc:DocumentCurrencyCode': 'TND',
@@ -98,8 +99,12 @@ export const generateTeifXml = (invoice: any) => {
       },
 
       // Payment Terms
+      'cac:PaymentMeans': {
+        'cbc:PaymentMeansCode': '10',
+        'cbc:InstructionNote': 'Paiement en espece'
+      },
       'cac:PaymentTerms': {
-        'cbc:Note': 'Paiement à réception'
+        'cbc:Note': 'Paiement en espece'
       },
 
       // Tax Totals

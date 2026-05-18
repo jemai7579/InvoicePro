@@ -1,0 +1,59 @@
+{
+  "workflowStatus": "ACCEPTED_TTN",
+  "lastStatusAt": "2026-05-02T14:42:18.354Z",
+  "statusHistory": [
+    {
+      "status": "VALIDATED",
+      "at": "2026-04-28T23:45:51.321Z",
+      "note": "Invoice validated"
+    },
+    {
+      "status": "TEIF_GENERATED",
+      "at": "2026-04-28T23:45:52.205Z",
+      "note": "TEIF XML generated"
+    },
+    {
+      "status": "SIGNED",
+      "at": "2026-04-28T23:45:54.212Z",
+      "note": "Electronic signature completed"
+    },
+    {
+      "status": "SENT_TO_TTN",
+      "at": "2026-04-28T23:45:56.975Z",
+      "note": "TTN integration is not configured yet. Simulation mode enabled."
+    },
+    {
+      "status": "PENDING_TTN",
+      "at": "2026-04-28T23:46:01.378Z",
+      "note": "TTN integration is not configured yet. Simulation mode enabled."
+    },
+    {
+      "status": "ACCEPTED_TTN",
+      "at": "2026-04-28T23:47:59.545Z",
+      "note": "TTN integration is not configured yet. Simulation mode enabled."
+    },
+    {
+      "status": "ACCEPTED_TTN",
+      "at": "2026-04-28T23:48:04.872Z",
+      "note": "Final PDF generated"
+    },
+    {
+      "status": "ACCEPTED_TTN",
+      "at": "2026-05-02T14:42:18.354Z",
+      "note": "Final PDF generated"
+    }
+  ],
+  "teifXmlPath": "/uploads/compliance/3b76f9eb-21c2-4792-8bdf-b125f5259d6f/3c058fd8-84b3-4bce-ade8-ee181a854858/teif.xml",
+  "complianceMode": "mock",
+  "signedXmlPath": "/uploads/compliance/3b76f9eb-21c2-4792-8bdf-b125f5259d6f/3c058fd8-84b3-4bce-ade8-ee181a854858/teif.approved.xml",
+  "signatureProvider": "TunTrust / ANCE",
+  "certificateType": "USB token",
+  "lastSignatureTestDate": "2026-04-28T23:45:54.209Z",
+  "ttnSubmissionId": "MOCK-SUB-3C058FD8-1777419956973",
+  "lastTtnSyncAt": "2026-04-28T23:47:59.544Z",
+  "ttnReference": "TTN-2026-3C058FD8",
+  "ttnQrCode": "{\"mode\":\"mock\",\"invoiceId\":\"3c058fd8-84b3-4bce-ade8-ee181a854858\",\"reference\":\"TTN-2026-3C058FD8\",\"acceptedAt\":\"2026-04-28T23:47:59.543Z\"}",
+  "ttnAcceptedAt": "2026-04-28T23:47:59.544Z",
+  "mockDecision": "accept",
+  "finalizedPdfPath": "/uploads/compliance/3b76f9eb-21c2-4792-8bdf-b125f5259d6f/3c058fd8-84b3-4bce-ade8-ee181a854858/invoice.final.pdf"
+}

@@ -77,7 +77,7 @@ const Settings = () => {
         rib: data.rib || '',
         logo: data.logo || ''
       });
-      setHasCert(!!(data.certificatePath && data.certificatePassword));
+      setHasCert(!!data.hasCertificate);
     } catch (error) {
       console.error('Error fetching settings', error);
     } finally {
@@ -142,7 +142,7 @@ const Settings = () => {
     setIsChangingPwd(true);
     setPwdMsg(null);
     try {
-      await api.put('/settings/password', { currentPassword, newPassword });
+      await api.put('/settings', { currentPassword, newPassword });
       setPwdMsg({ text: t('settings.security.success'), type: 'success' });
       setCurrentPassword(''); setNewPassword(''); setConfirmNewPassword('');
     } catch (error) {
@@ -236,7 +236,7 @@ const Settings = () => {
                   <div className="relative group">
                      <div className="w-32 h-32 rounded-[2.5rem] border-4 border-white bg-white flex items-center justify-center overflow-hidden shadow-2xl shadow-indigo-100/50 transition-all group-hover:scale-105 group-hover:rotate-1">
                         {formData.logo ? (
-                          <img src={`http://localhost:5000${formData.logo}`} alt="Logo" className="w-full h-full object-contain p-4" />
+                          <img src={`${(import.meta.env.VITE_API_URL || 'http://localhost:5005/api').replace('/api', '')}${formData.logo}`} alt="Logo" className="w-full h-full object-contain p-4" />
                         ) : (
                           <Building2 className="w-12 h-12 text-slate-200" />
                         )}
@@ -289,11 +289,11 @@ const Settings = () => {
                         className="font-mono uppercase"
                      />
                      <Input 
-                        label={t('settings.profile.rc')}
+                        label="RNE"
                         value={formData.registreCommerce}
                         onChange={(e) => handleInputChange('registreCommerce', e.target.value)}
                         icon={FileText}
-                        placeholder="B1234562024"
+                        placeholder="RNE 0000000"
                      />
                   </div>
 
@@ -344,14 +344,14 @@ const Settings = () => {
                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{t('settings.profile.last_updated')} {new Date().toLocaleDateString()}</p>
                   </div>
                   <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <Button 
-                      type="button" 
+                    <Button
+                      type="button"
                       onClick={() => setIsHistoryModalOpen(true)}
-                      variant="secondary" 
-                      className="flex-1 sm:w-auto px-8 py-4 !bg-white !text-slate-900 border border-slate-200 hover:border-indigo-600 shadow-xl shadow-slate-100 transition-all active:scale-95" 
+                      variant="secondary"
+                      className="flex-1 sm:w-auto px-8 py-4 !bg-white !text-slate-900 border border-slate-200 hover:border-indigo-600 shadow-xl shadow-slate-100 transition-all active:scale-95"
                       icon={History}
                     >
-                      {lang === 'fr' ? 'Historique' : 'History'}
+                      {lang === 'ar' ? 'السجل' : lang === 'en' ? 'History' : 'Historique'}
                     </Button>
                     <Button 
                       type="submit" 
@@ -457,7 +457,7 @@ const Settings = () => {
                     <p className="text-sm text-slate-600 leading-relaxed font-bold">
                       {t('settings.compliance.explanation')}
                     </p>
-                    <a href="https://www.tuntrust.tn" target="_blank" className="inline-flex items-center gap-2 text-[11px] font-black text-indigo-600 hover:text-slate-900 transition-colors group">
+                    <a href="https://www.tuntrust.tn" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[11px] font-black text-indigo-600 hover:text-slate-900 transition-colors group">
                       {t('settings.compliance.order_cert')} <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </a>
                   </div>

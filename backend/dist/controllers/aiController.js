@@ -7,13 +7,6 @@ const genAI = new generative_ai_1.GoogleGenerativeAI(process.env.GEMINI_API_KEY 
 const handleAiChat = async (req, res) => {
     try {
         const { message, contextHistory } = req.body;
-        const subscription = req.company.subscription;
-        if (subscription?.plan === 'starter') {
-            return res.status(403).json({
-                message: "L'Assistant IA est une fonctionnalité exclusive aux plans Professional et Enterprise. Veuillez mettre à jour votre plan pour en profiter.",
-                requiresUpgrade: true
-            });
-        }
         if (!message) {
             return res.status(400).json({ message: 'Message is required' });
         }

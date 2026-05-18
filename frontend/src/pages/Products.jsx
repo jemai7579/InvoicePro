@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, X, Loader, Package, Tag, Info, DollarSign, BarChart2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Loader, Package, Tag, Info, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -21,6 +21,7 @@ const Products = () => {
 
   const [formData, setFormData] = useState({
     code: '',
+    category: '',
     name: '',
     description: '',
     priceHT: '',
@@ -48,6 +49,7 @@ const Products = () => {
       setEditingProduct(product);
       setFormData({
         code: product.code || '',
+        category: product.category || '',
         name: product.name,
         description: product.description || '',
         priceHT: product.priceHT.toString(),
@@ -55,7 +57,7 @@ const Products = () => {
       });
     } else {
       setEditingProduct(null);
-      setFormData({ code: '', name: '', description: '', priceHT: '', tvaRate: 19 });
+      setFormData({ code: '', category: '', name: '', description: '', priceHT: '', tvaRate: 19 });
     }
     setErrors({});
     setIsModalOpen(true);
@@ -241,7 +243,14 @@ const Products = () => {
 
         {/* Mobile View */}
         <div className="md:hidden p-4 space-y-4">
-          {filteredProducts.map(product => (
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <Loader className="w-8 h-8 animate-spin text-indigo-600" />
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="py-16 text-center text-slate-400 italic text-sm">{t('products.empty')}</div>
+          ) : null}
+          {!loading && filteredProducts.map((product) => (
             <div key={product.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col gap-4">
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
@@ -292,7 +301,7 @@ const Products = () => {
           >
              <form onSubmit={handleSubmit} className="p-8 space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <Input 
+                  <Input
                     label={t('products.table.code')}
                     placeholder="ex: PRD-001"
                     value={formData.code}
@@ -301,7 +310,7 @@ const Products = () => {
                     icon={Tag}
                     className="uppercase"
                   />
-                  <Input 
+                  <Input
                     label={t('products.table.name')}
                     placeholder="Nom du produit"
                     value={formData.name}
@@ -311,6 +320,14 @@ const Products = () => {
                     required
                   />
                 </div>
+
+                <Input
+                  label="Catégorie"
+                  placeholder="ex: Services, Matériel..."
+                  value={formData.category}
+                  onChange={(e) => handleInputChange('category', e.target.value)}
+                  icon={Tag}
+                />
 
                 <Input 
                    label={t('form.desc')}

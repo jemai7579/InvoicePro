@@ -1,151 +1,176 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Activity, Filter, Loader2, Search, ShieldCheck } from 'lucide-react';
 import api from '../../services/api';
-import { 
-  Activity, 
-  User, 
-  Terminal, 
-  Clock, 
-  Search,
-  Filter,
-  Loader2,
-  AlertCircle,
-  ShieldCheck,
-  Globe,
-  Settings,
-  LogIn
-} from 'lucide-react';
+import Badge from '../../components/ui/Badge';
+import Card from '../../components/ui/Card';
+
+const ACTION_VARIANTS = {
+  LOGIN: 'success',
+  UPDATE_COMPANY_STATUS: 'warning',
+  UPDATE_COMPANY_PLAN: 'primary',
+  SEND_GLOBAL_NOTIFICATION: 'info',
+  UPDATE_SYSTEM_SETTING: 'secondary',
+};
 
 const AdminActivity = () => {
-  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
+  const [rows, setRows] = useState([]);
+  const [query, setQuery] = useState('');
+  const [actionFilter, setActionFilter] = useState('all');
 
-  useEffect(() => {
-    fetchLogs();
-  }, []);
-
-  const fetchLogs = async () => {
+  const load = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await api.get('/admin/logs', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setLogs(res.data);
-    } catch (err) {
-      setError('Erreur lors du chargement des logs d\'activité.');
+      const res = await api.get('/admin/activity-logs');
+      setRows(res.data || []);
+    } catch (error) {
+      console.error('Unable to fetch admin logs', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getActionIcon = (action) => {
-    switch (action) {
-      case 'LOGIN': return <LogIn className="w-4 h-4 text-emerald-500" />;
-      case 'UPDATE_COMPANY_STATUS': return <Activity className="w-4 h-4 text-amber-500" />;
-      case 'UPDATE_SYSTEM_SETTING': return <Settings className="w-4 h-4 text-premium-500" />;
-      case 'SEND_GLOBAL_NOTIFICATION': return <Globe className="w-4 h-4 text-blue-500" />;
-      default: return <Terminal className="w-4 h-4 text-slate-500" />;
-    }
-  };
+  useEffect(() => {
+    load();
+  }, []);
 
-  const filteredLogs = logs.filter(log => 
-    log.action.toLowerCase().includes(search.toLowerCase()) || 
-    log.details.toLowerCase().includes(search.toLowerCase()) ||
-    log.admin.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const actions = ['all', ...Array.from(new Set(rows.map((row) => row.action).filter(Boolean)))];
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-4 text-slate-400">
-      <Loader2 className="w-8 h-8 text-premium-600 animate-spin" />
-      <p className="text-sm font-bold uppercase tracking-widest animate-pulse">Consultation de l'audit trail...</p>
-    </div>
-  );
+  const filtered = rows.filter((row) => {
+    const haystack = `${row.actor || ''} ${row.actorEmail || ''} ${row.action || ''} ${row.details || ''}`.toLowerCase();
+    return haystack.includes(query.toLowerCase()) && (actionFilter === 'all' || row.action === actionFilter);
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-premium-600" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700">
-      
-      {/* Header & Filter */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
-        <div className="flex items-center gap-3">
-           <div className="p-3 bg-slate-100 rounded-2xl text-slate-500">
-              <ShieldCheck className="w-6 h-6" />
-           </div>
-           <div>
-              <h3 className="text-sm font-black text-slate-900 uppercase">Journal d'Audit Système</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Traçabilité complète des actions administratives</p>
-           </div>
-        </div>
-        <div className="relative w-full md:w-80 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-premium-500 transition-colors" />
-          <input 
-            type="text" 
-            placeholder="Rechercher par action, admin..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-2 ps-10 pe-4 text-xs font-bold focus:ring-4 focus:ring-premium-500/10 focus:border-premium-500 outline-none transition-all"
-          />
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Logs d'activite</h2>
+        <p className="text-sm text-slate-500 font-medium">
+          Suivez les actions sensibles de la plateforme et conservez une piste d'audit claire.
+        </p>
       </div>
 
-      {/* Activity Timeline */}
-      <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-           <div className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
-              <Clock className="w-4 h-4" />
-              Chronologie des événements
-           </div>
-           <span className="px-3 py-1 bg-premium-50 text-premium-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-premium-100/50">
-              {filteredLogs.length} événements
-           </span>
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total logs</div><div className="mt-2 text-2xl font-black text-slate-900">{rows.length}</div></Card>
+        <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Connexions admin</div><div className="mt-2 text-2xl font-black text-emerald-600">{rows.filter((row) => row.action === 'LOGIN').length}</div></Card>
+        <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Actions systeme</div><div className="mt-2 text-2xl font-black text-premium-600">{rows.filter((row) => (row.action || '').includes('SETTING')).length}</div></Card>
+        <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Actions recentes</div><div className="mt-2 text-2xl font-black text-amber-600">{rows.filter((row) => Date.now() - new Date(row.date).getTime() < 86400000).length}</div></Card>
+      </div>
+
+      <Card>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Acteur, action, detail..."
+              className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-11 py-3 text-sm outline-none focus:ring-4 focus:ring-premium-100"
+            />
+          </div>
+          <select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm outline-none">
+            {actions.map((action) => <option key={action} value={action}>{action === 'all' ? 'Toutes les actions' : action}</option>)}
+          </select>
+          <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-500 flex items-center gap-2">
+            <Filter className="w-4 h-4" />
+            Audit live
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50/30">
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Horodatage</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Administrateur</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Action</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Détails</th>
+      </Card>
+
+      <Card noPadding className="overflow-hidden">
+        <div className="hidden xl:block overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-50/60 border-b border-slate-100">
+              <tr>
+                {['Acteur', 'Entreprise', 'Action', 'Type', 'Date', 'IP', 'Details'].map((label) => (
+                  <th key={label} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-slate-900">{new Date(log.createdAt).toLocaleDateString('fr-TN')}</span>
-                      <span className="text-[10px] font-medium text-slate-400">{new Date(log.createdAt).toLocaleTimeString('fr-TN')}</span>
-                    </div>
+              {filtered.map((row) => (
+                <tr key={row.id} className="hover:bg-slate-50/40 align-top">
+                  <td className="px-5 py-4">
+                    <div className="font-black text-slate-900">{row.actor}</div>
+                    <div className="text-sm text-slate-500">{row.actorEmail || '-'}</div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                       <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center text-[10px] font-black">
-                          {log.admin.name.charAt(0)}
-                       </div>
-                       <span className="text-xs font-bold text-slate-700">{log.admin.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {getActionIcon(log.action)}
-                      <span className="text-[10px] font-black text-slate-600 text-xs tracking-tight">{log.action}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-xs text-slate-500 font-medium italic line-clamp-1">{log.details}</p>
+                  <td className="px-5 py-4 text-sm text-slate-600">{row.company || 'Plateforme'}</td>
+                  <td className="px-5 py-4"><Badge variant={ACTION_VARIANTS[row.action] || 'secondary'}>{row.action}</Badge></td>
+                  <td className="px-5 py-4 text-sm text-slate-600">{row.entityType || '-'}</td>
+                  <td className="px-5 py-4 text-sm text-slate-600">{new Date(row.date).toLocaleString()}</td>
+                  <td className="px-5 py-4 text-sm text-slate-600">{row.ipAddress || '-'}</td>
+                  <td className="px-5 py-4 text-sm text-slate-600 max-w-[420px]">
+                    <div className="line-clamp-2">{row.details || '-'}</div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {filteredLogs.length === 0 && (
-            <div className="p-16 text-center text-slate-300">
-               <Activity className="w-12 h-12 mx-auto mb-4 opacity-10" />
-               <p className="text-sm font-bold italic tracking-tight">Aucun log correspondant à vos critères.</p>
-            </div>
-          )}
         </div>
+
+        <div className="xl:hidden p-4 space-y-4">
+          {filtered.map((row) => (
+            <div key={row.id} className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm space-y-4">
+              <div className="flex justify-between gap-4">
+                <div>
+                  <div className="text-lg font-black text-slate-900">{row.actor}</div>
+                  <div className="text-sm text-slate-500">{row.actorEmail || 'Plateforme'}</div>
+                </div>
+                <Badge variant={ACTION_VARIANTS[row.action] || 'secondary'}>{row.action}</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Date:</strong> {new Date(row.date).toLocaleDateString()}</div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>IP:</strong> {row.ipAddress || '-'}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{row.details || '-'}</div>
+            </div>
+          ))}
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="p-16 text-center">
+            <Activity className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+            <p className="text-sm font-bold text-slate-500">Aucun log ne correspond a vos filtres.</p>
+          </div>
+        ) : null}
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="w-10 h-10 p-2 rounded-2xl bg-emerald-50 text-emerald-600" />
+            <div>
+              <div className="text-sm font-black text-slate-900">Journal sensible</div>
+              <div className="text-sm text-slate-500">Les actions admin importantes sont centralisees ici pour faciliter les revues de conformite.</div>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-3">
+            <Activity className="w-10 h-10 p-2 rounded-2xl bg-premium-50 text-premium-600" />
+            <div>
+              <div className="text-sm font-black text-slate-900">Recherche rapide</div>
+              <div className="text-sm text-slate-500">Utilisez les filtres pour retrouver une action precise sans ouvrir les serveurs.</div>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-3">
+            <Filter className="w-10 h-10 p-2 rounded-2xl bg-slate-100 text-slate-700" />
+            <div>
+              <div className="text-sm font-black text-slate-900">Audit exploitable</div>
+              <div className="text-sm text-slate-500">L'objectif est que l'admin voie l'essentiel en quelques secondes, meme sur mobile.</div>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );

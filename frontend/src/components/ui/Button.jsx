@@ -7,8 +7,10 @@ const Button = ({
   className = '', 
   isLoading = false, 
   icon: Icon,
+  loading = false,
   ...props 
 }) => {
+  const busy = isLoading || loading;
   const baseStyles = 'inline-flex items-center justify-center font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none rounded-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-premium-100';
   
   const variants = {
@@ -28,15 +30,15 @@ const Button = ({
   return (
     <button 
       className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
-      disabled={isLoading}
+      disabled={busy}
       {...props}
     >
-      {isLoading ? (
+      {busy ? (
         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
-      ) : Icon && <Icon className={sizes[size].includes('sm') ? 'w-4 h-4' : 'w-5 h-5'} />}
+      ) : Icon && <Icon className={size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'} />}
       {children}
     </button>
   );

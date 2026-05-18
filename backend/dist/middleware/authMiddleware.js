@@ -6,15 +6,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.protect = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = __importDefault(require("../prisma"));
+const jwtSecret_1 = require("../utils/jwtSecret");
 const protect = async (req, res, next) => {
     let token;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
             token = req.headers.authorization.split(' ')[1];
-            const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'supersecret');
+            const decoded = jsonwebtoken_1.default.verify(token, (0, jwtSecret_1.getJwtSecret)());
             const company = await prisma_1.default.company.findUnique({
                 where: { id: decoded.id },
-                include: { subscription: true }
             });
             if (!company) {
                 return res.status(401).json({ message: 'Not authorized, user not found' });

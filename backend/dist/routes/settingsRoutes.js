@@ -25,4 +25,5 @@ router.route('/')
     .put(authMiddleware_1.protect, settingsController_1.updateSettings);
 router.post('/certificate', authMiddleware_1.protect, upload.single('certificate'), settingsController_1.uploadCertificate);
 router.post('/logo', authMiddleware_1.protect, upload.single('logo'), settingsController_1.uploadLogo);
+router.get('/history', authMiddleware_1.protect, settingsController_1.getSettingsHistory);
 exports.default = router;

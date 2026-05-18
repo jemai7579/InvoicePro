@@ -1,0 +1,35 @@
+{
+  "teifXmlPath": "/uploads/compliance/3b76f9eb-21c2-4792-8bdf-b125f5259d6f/52f514e5-a243-46cd-84e4-20c5ba9b1781/teif.xml",
+  "complianceMode": "mock",
+  "workflowStatus": "TTN_REJECTED",
+  "lastStatusAt": "2026-04-20T00:09:19.990Z",
+  "statusHistory": [
+    {
+      "status": "TEIF_GENERATED",
+      "at": "2026-04-20T00:09:06.821Z",
+      "note": "TEIF XML generated"
+    },
+    {
+      "status": "SIGNED",
+      "at": "2026-04-20T00:09:11.247Z",
+      "note": "Electronic signature completed"
+    },
+    {
+      "status": "SUBMITTED_TO_TTN",
+      "at": "2026-04-20T00:09:14.335Z",
+      "note": "Votre facture a ete envoyee a TTN. Le traitement peut prendre quelques minutes."
+    },
+    {
+      "status": "TTN_REJECTED",
+      "at": "2026-04-20T00:09:19.990Z",
+      "note": "TTN a rejete la facture. Veuillez corriger les informations et renvoyer le document."
+    }
+  ],
+  "signedXmlPath": "/uploads/compliance/3b76f9eb-21c2-4792-8bdf-b125f5259d6f/52f514e5-a243-46cd-84e4-20c5ba9b1781/teif.signed.xml",
+  "signatureProvider": "TunTrust / ANCE",
+  "certificateType": "USB token",
+  "lastSignatureTestDate": "2026-04-20T00:09:11.242Z",
+  "ttnSubmissionId": "MOCK-SUB-52F514E5-1776643754334",
+  "lastTtnSyncAt": "2026-04-20T00:09:19.990Z",
+  "ttnRejectionReason": "Simulation test : numero fiscal client incomplet ou incoherence de donnees."
+}

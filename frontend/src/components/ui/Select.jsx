@@ -18,11 +18,12 @@ const Select = ({
       <div className="relative group">
         <select
           className={`
-            w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm 
+            w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 pe-10 text-sm text-slate-900
             transition-all outline-none 
             focus:bg-white focus:border-premium-500 focus:ring-4 focus:ring-premium-500/10 
             group-hover:border-slate-300
-            appearance-none cursor-pointer font-medium text-slate-700
+            appearance-none cursor-pointer font-semibold
+            disabled:bg-slate-100 disabled:text-slate-500
             ${error ? 'border-red-500 bg-red-50/30' : ''}
             ${className}
           `}
