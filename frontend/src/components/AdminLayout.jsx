@@ -36,7 +36,24 @@ const NAV_ITEMS = [
   { id: 'activity', path: '/admin/activity-logs', label: "Logs d'activite", icon: Activity, aliases: ['/admin/activity'] },
   { id: 'errors', path: '/admin/system-errors', label: 'Erreurs systeme', icon: AlertTriangle },
   { id: 'settings', path: '/admin/settings', label: 'Parametres plateforme', icon: Settings },
+  { id: 'analyticsSeo', path: '/admin/analytics-seo', label: 'Analytics & SEO', icon: BarChart3 },
 ];
+
+const SUBTITLES = {
+  overview: 'Vue executif des entreprises, factures, conformite et alertes.',
+  companies: 'Pilotez les entreprises, statuts, dossiers et notes internes.',
+  users: 'Consultez les admins plateforme et comptes entreprises.',
+  subscriptions: 'Suivez plans, quotas, renouvellements et risques abonnement.',
+  invoices: 'Surveillez les factures et leur cycle de conformite.',
+  ttn: 'Controlez le suivi TTN sans supposer de reponse officielle.',
+  compliance: 'Visualisez TEIF, signature et readiness de production.',
+  payments: 'Suivez paiements plateforme et factures client.',
+  support: 'Gerez les tickets entre clients et admin.',
+  activity: 'Recherchez les actions sensibles et exportez la piste audit.',
+  errors: 'Suivez les erreurs operationnelles et leur resolution.',
+  settings: 'Configurez parametres, integrations et notifications globales.',
+  analyticsSeo: 'Analysez trafic, conversions, SEO et opportunites de contenu.',
+};
 
 const AdminLayout = () => {
   const { admin, adminLogout } = useContext(AdminAuthContext);
@@ -133,7 +150,7 @@ const AdminLayout = () => {
             </button>
             <div>
               <h1 className="text-lg font-black text-slate-900 tracking-tight">{currentItem.label}</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Centre de controle plateforme</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{SUBTITLES[currentItem.id]}</p>
             </div>
           </div>
 

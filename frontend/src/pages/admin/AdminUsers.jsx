@@ -128,6 +128,23 @@ const AdminUsers = () => {
             <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bloques</div><div className="mt-2 text-2xl font-black text-rose-600">{users.filter((user) => user.status !== 'Active').length}</div></Card>
           </div>
 
+          <Card title="Modele de comptes actuel" subtitle="Gestion multi-utilisateurs avancee a finaliser">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4">
+                <strong>Modele courant:</strong> compte entreprise / proprietaire.
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4">
+                <strong>Roles avances:</strong> planifies / partiels.
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4">
+                <strong>Guards existants:</strong> signature, TTN, parametres sensibles.
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4">
+                <strong>Futurs roles:</strong> owner, admin, accountant, viewer, signer.
+              </div>
+            </div>
+          </Card>
+
           <Card noPadding className="overflow-hidden">
             <div className="hidden xl:block overflow-x-auto">
               <table className="w-full">

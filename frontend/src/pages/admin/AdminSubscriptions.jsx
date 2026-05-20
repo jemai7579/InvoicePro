@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarClock, CreditCard, Gift, Loader2, Percent, RefreshCcw, Search, Sparkles } from 'lucide-react';
+import { CalendarClock, CreditCard, Eye, Gift, Loader2, Percent, RefreshCcw, Search, X } from 'lucide-react';
 import api from '../../services/api';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -13,17 +13,68 @@ const PLAN_META = {
 };
 
 const statusVariant = (status) => {
-  if (status === 'ACTIVE') return 'success';
-  if (status === 'CANCELLED') return 'rejected';
-  if (status === 'EXPIRED') return 'warning';
+  if (['ACTIVE', 'healthy'].includes(status)) return 'success';
+  if (['CANCELLED', 'SUSPENDED', 'suspended', 'failed', 'over_quota'].includes(status)) return 'rejected';
+  if (['EXPIRED', 'expired', 'near_quota', 'payment_missing', 'pending'].includes(status)) return 'warning';
   return 'secondary';
 };
+
+const DetailModal = ({ row, onClose }) => (
+  <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] bg-white shadow-2xl">
+      <div className="sticky top-0 bg-white border-b border-slate-100 px-8 py-5 flex items-center justify-between rounded-t-[2.5rem]">
+        <div>
+          <h3 className="text-lg font-black text-slate-900">Detail abonnement</h3>
+          <p className="text-sm text-slate-500">{row.company?.name}</p>
+        </div>
+        <button onClick={onClose} className="p-2 rounded-xl text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
+      </div>
+      <div className="p-8 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Plan</div><div className="mt-2 font-black text-slate-900">{getPlanLabel(row.plan)}</div></Card>
+          <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Statut</div><div className="mt-2"><Badge variant={statusVariant(row.status)}>{row.status}</Badge></div></Card>
+          <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Paiement</div><div className="mt-2"><Badge variant={statusVariant(row.lastPaymentStatus)}>{row.lastPaymentStatus}</Badge></div></Card>
+          <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sante</div><div className="mt-2"><Badge variant={statusVariant(row.subscriptionHealth)}>{row.subscriptionHealth}</Badge></div></Card>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <Card title="Historique abonnement">
+            <div className="space-y-3">
+              {(row.history || []).length > 0 ? row.history.map((entry) => (
+                <div key={entry.id} className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+                  <div className="text-sm font-black text-slate-900">{entry.actionType}</div>
+                  <div className="text-sm text-slate-500">{entry.oldValue || '-'} {'->'} {entry.newValue}</div>
+                  <div className="text-[11px] text-slate-400 mt-1">{new Date(entry.createdAt).toLocaleString()}</div>
+                </div>
+              )) : <div className="text-sm text-slate-400">Aucun historique abonnement.</div>}
+            </div>
+          </Card>
+          <Card title="Historique paiements">
+            <div className="space-y-3">
+              {(row.paymentHistory || []).length > 0 ? row.paymentHistory.map((payment) => (
+                <div key={payment.id} className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">{Number(payment.amount || 0).toFixed(2)} {payment.currency || 'TND'}</div>
+                    <div className="text-xs text-slate-500">{payment.method || 'Manual'} - {payment.note || '-'}</div>
+                  </div>
+                  <Badge variant={statusVariant(payment.status)}>{payment.status}</Badge>
+                </div>
+              )) : <div className="text-sm text-slate-400">Aucun paiement plateforme enregistre.</div>}
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const AdminSubscriptions = () => {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [query, setQuery] = useState('');
   const [planFilter, setPlanFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedRow, setSelectedRow] = useState(null);
 
   const load = async () => {
     try {
@@ -42,7 +93,14 @@ const AdminSubscriptions = () => {
 
   const filtered = rows.filter((row) => {
     const haystack = `${row.company?.name || ''} ${row.company?.email || ''} ${row.plan || ''} ${row.status || ''}`.toLowerCase();
-    return haystack.includes(query.toLowerCase()) && (planFilter === 'all' || row.plan === planFilter);
+    const statusMatches =
+      statusFilter === 'all' ||
+      row.status === statusFilter ||
+      (statusFilter === 'trial' && row.plan === 'STARTER') ||
+      row.subscriptionHealth === statusFilter ||
+      (statusFilter === 'near_quota' && row.nearQuota) ||
+      (statusFilter === 'payment_missing' && row.paymentMissing);
+    return haystack.includes(query.toLowerCase()) && (planFilter === 'all' || row.plan === planFilter) && statusMatches;
   });
 
   const counts = useMemo(
@@ -75,6 +133,7 @@ const AdminSubscriptions = () => {
 
   return (
     <div className="space-y-6">
+      {selectedRow ? <DetailModal row={selectedRow} onClose={() => setSelectedRow(null)} /> : null}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Abonnements</h2>
@@ -94,7 +153,7 @@ const AdminSubscriptions = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
         <Card>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
@@ -106,6 +165,16 @@ const AdminSubscriptions = () => {
             </div>
             <select value={planFilter} onChange={(event) => setPlanFilter(event.target.value)} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm outline-none">
               {['all', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE'].map((plan) => <option key={plan} value={plan}>{plan === 'all' ? 'Tous les plans' : getPlanLabel(plan)}</option>)}
+            </select>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm outline-none">
+              <option value="all">Tous statuts</option>
+              <option value="ACTIVE">Actifs</option>
+              <option value="trial">Trial</option>
+              <option value="expired">Expires</option>
+              <option value="CANCELLED">Annules</option>
+              <option value="suspended">Suspendus</option>
+              <option value="near_quota">Proches quota</option>
+              <option value="payment_missing">Paiement manquant</option>
             </select>
           </div>
         </Card>
@@ -131,7 +200,7 @@ const AdminSubscriptions = () => {
           <table className="w-full">
             <thead className="bg-slate-50/60 border-b border-slate-100">
               <tr>
-                {['Entreprise', 'Plan', 'Quota', 'IA', 'TTN', 'Rapports', 'Statut', 'Debut', 'Fin', 'Actions'].map((label) => (
+                {['Entreprise', 'Plan', 'Usage quota', 'IA', 'TTN', 'Dernier paiement', 'Sante', 'Statut', 'Debut', 'Renouvellement', 'Actions'].map((label) => (
                   <th key={label} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</th>
                 ))}
               </tr>
@@ -146,15 +215,17 @@ const AdminSubscriptions = () => {
                       <div className="text-sm text-slate-500">{row.company?.email}</div>
                     </td>
                     <td className="px-5 py-4"><Badge variant={meta.tone}>{meta.label}</Badge></td>
-                    <td className="px-5 py-4 text-sm text-slate-600">{row.invoiceQuota}</td>
+                    <td className="px-5 py-4 text-sm text-slate-600">{row.quotaUsage || 0} / {row.invoiceQuota}</td>
                     <td className="px-5 py-4"><Badge variant={row.aiAccess ? 'success' : 'secondary'}>{row.aiAccess ? 'Oui' : 'Non'}</Badge></td>
                     <td className="px-5 py-4"><Badge variant={row.ttnAccess ? 'success' : 'secondary'}>{row.ttnAccess ? 'Oui' : 'Non'}</Badge></td>
-                    <td className="px-5 py-4"><Badge variant={row.reportsAccess ? 'success' : 'secondary'}>{row.reportsAccess ? 'Oui' : 'Non'}</Badge></td>
+                    <td className="px-5 py-4"><Badge variant={statusVariant(row.lastPaymentStatus)}>{row.lastPaymentStatus}</Badge></td>
+                    <td className="px-5 py-4"><Badge variant={statusVariant(row.subscriptionHealth)}>{row.subscriptionHealth}</Badge></td>
                     <td className="px-5 py-4"><Badge variant={statusVariant(row.status)}>{row.status}</Badge></td>
                     <td className="px-5 py-4 text-sm text-slate-600">{row.startDate ? new Date(row.startDate).toLocaleDateString() : '-'}</td>
-                    <td className="px-5 py-4 text-sm text-slate-600">{row.endDate ? new Date(row.endDate).toLocaleDateString() : '-'}</td>
+                    <td className="px-5 py-4 text-sm text-slate-600">{row.renewalDate ? new Date(row.renewalDate).toLocaleDateString() : '-'}</td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-2">
+                        <button onClick={() => setSelectedRow(row)} className="p-2 rounded-xl bg-slate-50 text-slate-500 hover:text-premium-600" title="Voir detail"><Eye className="w-4 h-4" /></button>
                         <button onClick={() => mutatePlan(row.companyId, 'STARTER')} className="px-3 py-2 rounded-xl bg-slate-50 text-xs font-bold text-slate-600 hover:text-slate-900">Démarrage</button>
                         <button onClick={() => mutatePlan(row.companyId, 'PROFESSIONAL')} className="px-3 py-2 rounded-xl bg-premium-50 text-xs font-bold text-premium-700">Pro</button>
                         <button onClick={() => mutatePlan(row.companyId, 'ENTERPRISE')} className="px-3 py-2 rounded-xl bg-amber-50 text-xs font-bold text-amber-700">Max</button>

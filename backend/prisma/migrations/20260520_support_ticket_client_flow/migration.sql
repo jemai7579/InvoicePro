@@ -1,0 +1,6 @@
+ALTER TABLE "AdminSupportTicket"
+ADD COLUMN IF NOT EXISTS "message" TEXT NOT NULL DEFAULT '',
+ADD COLUMN IF NOT EXISTS "category" TEXT NOT NULL DEFAULT 'general';
+
+ALTER TABLE "AdminSupportTicket"
+ALTER COLUMN "priority" SET DEFAULT 'normal';

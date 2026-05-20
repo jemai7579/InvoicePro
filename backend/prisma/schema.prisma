@@ -49,6 +49,13 @@ model Company {
   partnerConnectionsB         PartnerConnection[]  @relation("PartnerConnectionB")
   sentPartnerMessages         PartnerMessage[]     @relation("PartnerMessageSender")
   receivedPartnerMessages     PartnerMessage[]     @relation("PartnerMessageRecipient")
+  adminProfile                AdminCompanyProfile?
+  adminNotes                  AdminCompanyNote[]
+  adminSupportTickets         AdminSupportTicket[]
+  adminSystemErrors           AdminSystemError[]
+  adminPlatformPayments       AdminPlatformPayment[]
+  adminDossierStatusHistory   AdminDossierStatusHistory[]
+  adminCompanyStatusHistory   AdminCompanyStatusHistory[]
 }
 
 model Admin {
@@ -59,6 +66,10 @@ model Admin {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   logs      ActivityLog[]
+  adminNotes AdminCompanyNote[]
+  supportReplies AdminSupportReply[]
+  dossierStatusHistory AdminDossierStatusHistory[]
+  companyStatusHistory AdminCompanyStatusHistory[]
 }
 
 model Subscription {
@@ -78,6 +89,174 @@ model ActivityLog {
   details   String?
   createdAt DateTime @default(now())
   admin     Admin    @relation(fields: [adminId], references: [id])
+}
+
+model IntegrationSecret {
+  id            String   @id @default(uuid())
+  key           String   @unique
+  encryptedValue String?
+  publicValue   String?
+  valueType     String   @default("secret")
+  lastUpdatedBy String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([key])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(uuid())
+  eventType  String
+  path       String
+  referrer   String?
+  userAgent  String?
+  deviceType String?
+  country    String?
+  city       String?
+  companyId  String?
+  sessionId  String
+  visitorId  String
+  ipHash     String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([eventType, createdAt])
+  @@index([path, createdAt])
+  @@index([companyId, createdAt])
+  @@index([visitorId, createdAt])
+}
+
+model AdminCompanyProfile {
+  id            String   @id @default(uuid())
+  companyId     String   @unique
+  status        String   @default("active")
+  dossierStatus String   @default("incomplete")
+  requestedDocuments Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([dossierStatus])
+}
+
+model AdminCompanyNote {
+  id          String   @id @default(uuid())
+  targetType  String   @default("company")
+  targetId    String
+  companyId   String?
+  adminId     String?
+  authorName  String
+  content     String
+  createdAt   DateTime @default(now())
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  admin       Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId, createdAt])
+  @@index([companyId, createdAt])
+}
+
+model AdminSupportTicket {
+  id          String   @id @default(uuid())
+  companyId   String?
+  userLabel   String   @default("Company owner")
+  subject     String
+  message     String   @default("")
+  category    String   @default("general")
+  priority    String   @default("normal")
+  status      String   @default("open")
+  assignedTo  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  replies     AdminSupportReply[]
+
+  @@index([companyId, status])
+  @@index([status, createdAt])
+}
+
+model AdminSupportReply {
+  id        String   @id @default(uuid())
+  ticketId  String
+  adminId   String?
+  authorName String
+  message   String
+  createdAt DateTime @default(now())
+  ticket    AdminSupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+}
+
+model AdminSystemError {
+  id        String   @id @default(uuid())
+  type      String
+  companyId String?
+  severity  String
+  message   String
+  status    String   @default("new")
+  note      String?
+  route     String?
+  stack     String?
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@index([status, severity])
+  @@index([companyId, createdAt])
+}
+
+model AdminPlatformPayment {
+  id              String   @id @default(uuid())
+  companyId       String
+  plan            String
+  amount          Float
+  currency        String   @default("TND")
+  status          String
+  paymentDate     DateTime?
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  nextBillingDate DateTime?
+  method          String?
+  providerReference String?
+  createdByAdminId String?
+  note            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
+  @@index([status, createdAt])
+}
+
+model AdminDossierStatusHistory {
+  id        String   @id @default(uuid())
+  companyId String
+  adminId   String?
+  oldStatus String?
+  newStatus String
+  note      String?
+  createdAt DateTime @default(now())
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
+}
+
+model AdminCompanyStatusHistory {
+  id         String   @id @default(uuid())
+  companyId  String
+  adminId    String?
+  actionType String   @default("status_change")
+  oldValue   String?
+  newValue   String
+  note       String?
+  createdAt  DateTime @default(now())
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  admin      Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, actionType, createdAt])
 }
 
 model SystemSetting {

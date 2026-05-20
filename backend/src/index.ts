@@ -57,6 +57,8 @@ import auditTrailRoutes from './routes/auditTrailRoutes';
 import onboardingRoutes from './routes/onboardingRoutes';
 import networkRoutes from './routes/networkRoutes';
 import messageRoutes from './routes/messageRoutes';
+import supportRoutes from './routes/supportRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
 
 import { errorHandler } from './middleware/errorMiddleware';
 
@@ -132,6 +134,12 @@ app.use('/api/audit-trail', auditTrailRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/network', networkRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
+app.get('/', (req, res) => {
+  res.status(200).json({ success: true, message: 'InvoicePro API is running' });
+});
 
 app.get('/health', (req, res) => {
   res.status(200).json({ success: true, status: 'OK' });

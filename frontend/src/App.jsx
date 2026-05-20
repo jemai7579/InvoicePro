@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -48,16 +48,39 @@ import AdminSubscriptions from './pages/admin/AdminSubscriptions';
 import AdminActivity from './pages/admin/AdminActivity';
 import AdminSystemErrors from './pages/admin/AdminSystemErrors';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminAnalyticsSeo from './pages/admin/AdminAnalyticsSeo';
 import AdminLayout from './components/AdminLayout';
 import AdminPrivateRoute from './components/AdminPrivateRoute';
 
 import { AdminAuthProvider } from './context/AdminAuthContext';
+import { trackEvent, trackPageView } from './services/analytics';
 
 const routerBaseName = (import.meta.env.VITE_BASE_PATH || '/').replace(/\/$/, '');
+
+const AnalyticsTracker = () => {
+  const location = useLocation();
+  React.useEffect(() => {
+    if (!location.pathname.startsWith('/admin')) trackPageView(location.pathname);
+  }, [location.pathname]);
+  React.useEffect(() => {
+    const handler = (event) => {
+      const target = event.target.closest?.('a,button');
+      const text = `${target?.textContent || ''} ${target?.getAttribute?.('href') || ''}`.toLowerCase();
+      if (text.includes('register') || text.includes('inscription')) trackEvent('register_button_clicked');
+      if (text.includes('login') || text.includes('connexion')) trackEvent('login_button_clicked');
+      if (text.includes('support') || text.includes('contact')) trackEvent('contact_support_clicked');
+      if (text.includes('e-invoice-guide') || text.includes('guide')) trackEvent('e_invoice_guide_viewed');
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
+  return null;
+};
 
 function App() {
   return (
     <Router basename={routerBaseName === '' ? undefined : routerBaseName}>
+      <AnalyticsTracker />
       <AdminAuthProvider>
         <Routes>
           {/* Public Routes */}
@@ -93,6 +116,7 @@ function App() {
               <Route path="/admin/activity-logs" element={<AdminActivity />} />
               <Route path="/admin/system-errors" element={<AdminSystemErrors />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/analytics-seo" element={<AdminAnalyticsSeo />} />
             </Route>
           </Route>
 
@@ -128,6 +152,7 @@ function App() {
               <Route path="/signature-ttn" element={<SignatureTTN />} />
               <Route path="/ai" element={<AI />} />
               <Route path="/help" element={<Help />} />
+              <Route path="/support" element={<Help />} />
             </Route>
           </Route>
 

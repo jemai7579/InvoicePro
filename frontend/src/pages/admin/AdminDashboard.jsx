@@ -126,11 +126,21 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
         <StatCard label="Entreprises" value={kpis.totalCompanies || 0} icon={Building2} tone="bg-blue-50 text-blue-600" />
         <StatCard label="Actives" value={kpis.activeCompanies || 0} icon={Building2} tone="bg-emerald-50 text-emerald-600" />
+        <StatCard label="Suspendues" value={kpis.suspendedCompanies || 0} icon={AlertTriangle} tone="bg-rose-50 text-rose-600" />
         <StatCard label="Essai" value={kpis.trialCompanies || 0} icon={Users} tone="bg-amber-50 text-amber-600" />
-        <StatCard label="Payantes" value={kpis.paidCompanies || 0} icon={CreditCard} tone="bg-premium-50 text-premium-600" />
-        <StatCard label="Utilisateurs" value={kpis.totalUsers || 0} icon={Users} tone="bg-slate-100 text-slate-700" />
+        <StatCard label="Factures mois" value={kpis.invoicesThisMonth || 0} icon={Receipt} tone="bg-slate-100 text-slate-700" />
         <StatCard label="Factures TTN OK" value={kpis.ttnAcceptedInvoices || 0} icon={Receipt} tone="bg-emerald-50 text-emerald-600" />
         <StatCard label="Erreurs du jour" value={kpis.systemErrorsToday || 0} icon={AlertTriangle} tone="bg-rose-50 text-rose-600" />
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        <StatCard label="Paiements collectes" value={`${kpis.manualCollectedPayments || 0} TND`} icon={CreditCard} tone="bg-premium-50 text-premium-600" />
+        <StatCard label="Paiements echoues" value={kpis.failedPayments || 0} icon={AlertTriangle} tone="bg-rose-50 text-rose-600" />
+        <StatCard label="Abos expires" value={kpis.expiredSubscriptions || 0} icon={CreditCard} tone="bg-amber-50 text-amber-600" />
+        <StatCard label="Proches quota" value={kpis.companiesNearQuota || 0} icon={Users} tone="bg-amber-50 text-amber-600" />
+        <StatCard label="TEIF generes" value={kpis.teifGeneratedInvoices || 0} icon={Receipt} tone="bg-indigo-50 text-indigo-600" />
+        <StatCard label="Signees" value={kpis.signedInvoices || 0} icon={Receipt} tone="bg-emerald-50 text-emerald-600" />
+        <StatCard label="Bloquees prod" value={kpis.companiesBlockedByReadiness || 0} icon={AlertTriangle} tone="bg-rose-50 text-rose-600" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-6">
@@ -181,6 +191,38 @@ const AdminDashboard = () => {
                   <div className="mt-2 text-2xl font-black text-slate-900">{item.value}</div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">Entreprises recentes</h3>
+              <div className="space-y-3">
+                {(data?.recentCompanies || []).map((company) => (
+                  <div key={company.id} className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black text-slate-900">{company.name}</div>
+                      <div className="text-xs text-slate-500">{company.email}</div>
+                    </div>
+                    <div className="text-right text-xs font-bold text-slate-500">{company.dossierStatus}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">Factures recentes</h3>
+              <div className="space-y-3">
+                {(data?.recentInvoices || []).map((invoice) => (
+                  <div key={invoice.id} className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black text-slate-900">{invoice.invoiceNumber || invoice.id.slice(0, 8)}</div>
+                      <div className="text-xs text-slate-500">{invoice.companyName || '-'}</div>
+                    </div>
+                    <div className="text-right text-xs font-bold text-slate-500">{invoice.complianceStatus}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -257,6 +299,30 @@ const AdminDashboard = () => {
                 <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500">TTN acceptees</div>
                 <div className="mt-2 text-2xl font-black text-emerald-700">{kpis.ttnAcceptedInvoices || 0}</div>
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-amber-100 bg-amber-50/70 p-6 shadow-sm">
+            <h3 className="text-sm font-black uppercase tracking-widest text-amber-900 mb-4">Readiness TTN</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between gap-3"><span>Mode e-facture</span><strong>{data?.ttnReadiness?.mode || 'mock'}</strong></div>
+              <div className="flex justify-between gap-3"><span>Entreprises pretes</span><strong>{data?.ttnReadiness?.readyCompanies || 0}</strong></div>
+              <div className="flex justify-between gap-3"><span>Entreprises bloquees</span><strong>{data?.ttnReadiness?.blockedCompanies || 0}</strong></div>
+              <div className="rounded-2xl bg-white border border-amber-100 px-4 py-3 font-bold text-amber-800">
+                {data?.ttnReadiness?.documentationRequired ? 'Documentation officielle TTN requise avant integration reelle.' : 'Documentation TTN renseignee.'}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">Statut systeme</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {Object.entries(data?.systemStatus || {}).map(([key, value]) => (
+                <div key={key} className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex justify-between gap-3">
+                  <span className="text-slate-500 font-bold">{key}</span>
+                  <span className={`font-black ${value === 'configured' || value === 'ok' ? 'text-emerald-600' : 'text-amber-600'}`}>{value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

@@ -9,13 +9,18 @@
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "node -e \"console.log('No backend test runner configured. Run npm run build, then follow PLATFORM_FUNCTIONALITY_AUDIT.md API smoke checks.')\"",
-    "smoke": "node -e \"console.log('Backend smoke: start the server and request /health plus the protected-route checks in PLATFORM_FUNCTIONALITY_AUDIT.md.')\"",
-    "start": "node dist/index.js"
+    "smoke": "node scripts/admin-smoke-test.js",
+    "admin:import-ops": "node scripts/import-admin-ops-json.js",
+    "start": "node dist/index.js",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.19.2",

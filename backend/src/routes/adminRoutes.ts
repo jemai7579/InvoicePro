@@ -4,11 +4,16 @@ import {
   getGlobalStats,
   getCompanies,
   updateCompanyStatus,
+  updateCompanyDossierStatus,
   getAllInvoices,
   getSubscriptions,
   getSystemSettings,
   updateSystemSetting,
+  getIntegrationsStatus,
+  updateIntegration,
+  testIntegration,
   getAdminLogs,
+  exportAdminLogsCsv,
   sendGlobalNotification,
   deleteCompany,
   updateCompanyPlan,
@@ -23,10 +28,17 @@ import {
   updateSupportTicket,
   replySupportTicket,
   getSystemErrors,
+  getSystemHealth,
   upsertSystemErrorController,
   addCompanyAdminNote,
   addUserAdminNote,
   resetCompanyQuota,
+  getAdminAnalyticsOverview,
+  getAdminAnalyticsPages,
+  getAdminAnalyticsReferrers,
+  getAdminAnalyticsEvents,
+  getSearchConsole,
+  getSeoPagesAudit,
 } from '../controllers/adminController';
 import { adminProtect } from '../middleware/adminMiddleware';
 import { validateRequest } from '../middleware/validationMiddleware';
@@ -52,6 +64,7 @@ router.get('/overview', getGlobalStats);
 router.get('/companies', getCompanies);
 router.get('/companies/:id', getCompanyById);
 router.put('/companies/:id/status', updateCompanyStatus);
+router.put('/companies/:id/dossier-status', updateCompanyDossierStatus);
 router.put('/companies/:id/plan', updateCompanyPlan);
 router.post('/companies/:id/reset-quota', resetCompanyQuota);
 router.post('/companies/:id/notes', addCompanyAdminNote);
@@ -85,16 +98,29 @@ router.post('/support/:id/reply', replySupportTicket);
 
 // System errors
 router.get('/system-errors', getSystemErrors);
+router.get('/system-health', getSystemHealth);
 router.post('/system-errors', upsertSystemErrorController);
 router.put('/system-errors/:id', upsertSystemErrorController);
 
 // System Settings
 router.get('/settings', getSystemSettings);
 router.put('/settings/:id', updateSettingValidator, validateRequest, updateSystemSetting);
+router.get('/integrations/status', getIntegrationsStatus);
+router.put('/integrations/:id', updateIntegration);
+router.post('/integrations/:id/test', testIntegration);
+
+// Analytics & SEO
+router.get('/analytics/overview', getAdminAnalyticsOverview);
+router.get('/analytics/pages', getAdminAnalyticsPages);
+router.get('/analytics/referrers', getAdminAnalyticsReferrers);
+router.get('/analytics/events', getAdminAnalyticsEvents);
+router.get('/seo/search-console', getSearchConsole);
+router.get('/seo/pages-audit', getSeoPagesAudit);
 
 // Logs & Notifications
 router.get('/logs', getAdminLogs);
 router.get('/activity-logs', getAdminLogs);
+router.get('/activity-logs/export.csv', exportAdminLogsCsv);
 router.post('/notifications', notificationValidator, validateRequest, sendGlobalNotification);
 
 export default router;

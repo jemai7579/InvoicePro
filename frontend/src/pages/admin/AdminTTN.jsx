@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Clock3, Loader2, RefreshCcw, ShieldAlert, Wifi, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, RefreshCcw, ShieldAlert, XCircle } from 'lucide-react';
 import api from '../../services/api';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -100,12 +100,39 @@ const AdminTTN = () => {
         </Card>
       </div>
 
+      <div className="grid grid-cols-1 xl:grid-cols-[0.8fr_1.2fr] gap-6">
+        <Card title="Configuration globale" subtitle="Aucun secret n'est affiche">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4"><strong>Mode:</strong> {data.configuration?.eInvoiceMode || 'mock'}</div>
+            <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4"><strong>Environnement:</strong> {data.configuration?.environment || '-'}</div>
+            <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4"><strong>Sandbox:</strong> {data.configuration?.ttn?.sandboxConfigured ? 'Configure' : 'Manquant'}</div>
+            <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4"><strong>Production:</strong> {data.configuration?.ttn?.productionConfigured ? 'Configure' : 'Manquant'}</div>
+            <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4"><strong>Signature:</strong> {data.configuration?.signature?.configured ? 'Configuree' : 'Manquante'}</div>
+            <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4"><strong>XSD TEIF:</strong> {data.configuration?.teif?.xsdConfigured ? 'Configure' : 'Manquant'}</div>
+          </div>
+          <div className="mt-4 rounded-2xl bg-amber-50 border border-amber-100 px-4 py-4 text-sm font-bold text-amber-800">
+            {data.readiness?.missingDocumentationMessage || 'Documentation officielle TTN requise avant integration reelle.'}
+          </div>
+        </Card>
+
+        <Card title="Checklist integration TTN" subtitle="Dependances officielles a obtenir avant production">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {(data.checklist || []).map((item) => (
+              <div key={item.key} className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 flex items-center gap-3">
+                {item.ready ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> : <XCircle className="w-5 h-5 text-amber-600" />}
+                <span className="text-sm font-bold text-slate-700">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
       <Card noPadding className="overflow-hidden">
         <div className="hidden xl:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50/60 border-b border-slate-100">
               <tr>
-                {['Entreprise', 'Facture', 'ID soumission', 'Reference TTN', 'Statut', 'Erreur', 'Derniere synchro', 'Action'].map((label) => (
+                {['Entreprise', 'Facture', 'ID soumission', 'Reference TTN', 'Statut', 'Erreur', 'Derniere synchro'].map((label) => (
                   <th key={label} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</th>
                 ))}
               </tr>
@@ -120,12 +147,6 @@ const AdminTTN = () => {
                   <td className="px-5 py-4"><Badge variant={statusVariant(row.status)}>{row.status}</Badge></td>
                   <td className="px-5 py-4 text-sm text-slate-600 max-w-[280px]"><div className="line-clamp-2">{row.errorMessage || '-'}</div></td>
                   <td className="px-5 py-4 text-sm text-slate-600">{row.lastSync ? new Date(row.lastSync).toLocaleString() : '-'}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-2">
-                      <button className="px-3 py-2 rounded-xl bg-slate-50 text-xs font-bold text-slate-700">Verifier</button>
-                      <button className="px-3 py-2 rounded-xl bg-amber-50 text-xs font-bold text-amber-700">Relancer</button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>

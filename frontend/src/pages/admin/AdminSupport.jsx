@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Headset, Loader2, MessageSquareReply, RefreshCcw, Search, Ticket } from 'lucide-react';
+import { Headset, Loader2, MessageSquareReply, RefreshCcw, Search, Ticket, X } from 'lucide-react';
 import api from '../../services/api';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -14,21 +14,67 @@ const statusVariant = (status) => {
 
 const priorityVariant = (priority) => {
   if (priority === 'urgent' || priority === 'high') return 'rejected';
-  if (priority === 'medium') return 'warning';
+  if (priority === 'normal' || priority === 'medium') return 'warning';
   return 'secondary';
+};
+
+const ReplyModal = ({ ticket, onClose, onSubmit }) => {
+  const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!message.trim()) return;
+    setSaving(true);
+    await onSubmit(ticket, message.trim());
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl rounded-[2rem] bg-white shadow-2xl border border-slate-100 overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div>
+            <h3 className="text-lg font-black text-slate-900">Repondre au ticket</h3>
+            <p className="text-sm text-slate-500">{ticket.subject}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl bg-slate-50 text-slate-500"><X className="w-4 h-4" /></button>
+        </div>
+        <form onSubmit={submit} className="p-6 space-y-4">
+          <textarea
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            rows={6}
+            className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-4 focus:ring-premium-100"
+            placeholder="Ecrire la reponse visible par le client..."
+            required
+          />
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="secondary" onClick={onClose}>Annuler</Button>
+            <Button type="submit" disabled={saving}>{saving ? 'Envoi...' : 'Envoyer la reponse'}</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 };
 
 const AdminSupport = () => {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [query, setQuery] = useState('');
+  const [error, setError] = useState('');
+  const [replyTarget, setReplyTarget] = useState(null);
 
   const load = async () => {
     try {
+      setError('');
       const res = await api.get('/admin/support');
       setRows(res.data || []);
-    } catch (error) {
-      console.error('Unable to fetch support tickets', error);
+    } catch (err) {
+      console.error('Unable to fetch support tickets', err);
+      setError('Impossible de charger les tickets support.');
     } finally {
       setLoading(false);
     }
@@ -39,7 +85,7 @@ const AdminSupport = () => {
   }, []);
 
   const filtered = rows.filter((row) =>
-    `${row.companyName || ''} ${row.userLabel || ''} ${row.subject || ''} ${row.status || ''}`.toLowerCase().includes(query.toLowerCase())
+    `${row.companyName || ''} ${row.userLabel || ''} ${row.subject || ''} ${row.message || ''} ${row.category || ''} ${row.status || ''}`.toLowerCase().includes(query.toLowerCase())
   );
 
   const updateTicket = async (row, updates) => {
@@ -47,8 +93,8 @@ const AdminSupport = () => {
     await load();
   };
 
-  const replyTicket = async (row) => {
-    await api.post(`/admin/support/${row.id}/reply`, { message: 'Reponse admin enregistree depuis le centre support.' });
+  const replyTicket = async (row, message) => {
+    await api.post(`/admin/support/${row.id}/reply`, { message });
     await load();
   };
 
@@ -79,18 +125,20 @@ const AdminSupport = () => {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Entreprise, utilisateur, sujet..."
+            placeholder="Entreprise, utilisateur, sujet, categorie..."
             className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-11 py-3 text-sm outline-none focus:ring-4 focus:ring-premium-100"
           />
         </div>
       </Card>
+
+      {error ? <Card><div className="text-sm font-bold text-red-600">{error}</div></Card> : null}
 
       <Card noPadding className="overflow-hidden">
         <div className="hidden xl:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50/60 border-b border-slate-100">
               <tr>
-                {['Entreprise', 'Utilisateur', 'Sujet', 'Priorite', 'Statut', 'Creation', 'Derniere reponse', 'Actions'].map((label) => (
+                {['Entreprise', 'Utilisateur', 'Categorie', 'Sujet', 'Priorite', 'Statut', 'Creation', 'Derniere reponse', 'Actions'].map((label) => (
                   <th key={label} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</th>
                 ))}
               </tr>
@@ -100,7 +148,12 @@ const AdminSupport = () => {
                 <tr key={row.id} className="hover:bg-slate-50/40">
                   <td className="px-5 py-4 text-sm font-bold text-slate-800">{row.companyName || row.companyId}</td>
                   <td className="px-5 py-4 text-sm text-slate-600">{row.userLabel || '-'}</td>
-                  <td className="px-5 py-4 text-sm text-slate-600">{row.subject}</td>
+                  <td className="px-5 py-4"><Badge variant="secondary">{row.category || 'general'}</Badge></td>
+                  <td className="px-5 py-4 text-sm text-slate-600">
+                    <div className="font-bold text-slate-900">{row.subject}</div>
+                    <div className="text-xs text-slate-500 line-clamp-2">{row.message}</div>
+                    <div className="mt-2 text-xs text-premium-600 font-bold">{(row.replies || []).length} reponse(s)</div>
+                  </td>
                   <td className="px-5 py-4"><Badge variant={priorityVariant(row.priority)}>{row.priority}</Badge></td>
                   <td className="px-5 py-4"><Badge variant={statusVariant(row.status)}>{row.status}</Badge></td>
                   <td className="px-5 py-4 text-sm text-slate-600">{new Date(row.createdAt).toLocaleDateString()}</td>
@@ -108,8 +161,9 @@ const AdminSupport = () => {
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => updateTicket(row, { status: 'in_progress' })} className="px-3 py-2 rounded-xl bg-premium-50 text-xs font-bold text-premium-700">Prendre</button>
-                      <button onClick={() => replyTicket(row)} className="px-3 py-2 rounded-xl bg-slate-50 text-xs font-bold text-slate-700">Repondre</button>
+                      <button onClick={() => setReplyTarget(row)} className="px-3 py-2 rounded-xl bg-slate-50 text-xs font-bold text-slate-700">Repondre</button>
                       <button onClick={() => updateTicket(row, { status: 'resolved' })} className="px-3 py-2 rounded-xl bg-emerald-50 text-xs font-bold text-emerald-700">Resoudre</button>
+                      <button onClick={() => updateTicket(row, { status: 'closed' })} className="px-3 py-2 rounded-xl bg-slate-100 text-xs font-bold text-slate-700">Clore</button>
                     </div>
                   </td>
                 </tr>
@@ -125,17 +179,32 @@ const AdminSupport = () => {
                 <div>
                   <div className="text-lg font-black text-slate-900">{row.companyName || row.companyId}</div>
                   <div className="text-sm text-slate-500">{row.subject}</div>
+                  <div className="text-xs text-slate-400 mt-1">{row.message}</div>
                 </div>
                 <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Priorite:</strong> {row.priority}</div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Utilisateur:</strong> {row.userLabel || '-'}</div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Categorie:</strong> {row.category || 'general'}</div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => updateTicket(row, { status: 'in_progress' })} className="px-3 py-2 rounded-xl bg-premium-50 text-xs font-bold text-premium-700">Prendre</button>
+                <button onClick={() => setReplyTarget(row)} className="px-3 py-2 rounded-xl bg-slate-50 text-xs font-bold text-slate-700">Repondre</button>
+                <button onClick={() => updateTicket(row, { status: 'resolved' })} className="px-3 py-2 rounded-xl bg-emerald-50 text-xs font-bold text-emerald-700">Resoudre</button>
               </div>
             </div>
           ))}
         </div>
       </Card>
+
+      {filtered.length === 0 ? (
+        <Card>
+          <div className="text-center py-8">
+            <div className="text-sm font-black text-slate-900">Aucun ticket trouve</div>
+            <div className="text-sm text-slate-500 mt-1">Les demandes envoyees par les clients apparaitront ici.</div>
+          </div>
+        </Card>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -160,12 +229,13 @@ const AdminSupport = () => {
           <div className="flex items-center gap-3">
             <MessageSquareReply className="w-10 h-10 p-2 rounded-2xl bg-emerald-50 text-emerald-600" />
             <div>
-              <div className="text-sm font-black text-slate-900">Traite en equipe</div>
-              <div className="text-sm text-slate-500">La page est concue pour rester lisible sur desktop comme sur mobile.</div>
+              <div className="text-sm font-black text-slate-900">Reponses visibles client</div>
+              <div className="text-sm text-slate-500">Les reponses admin sont consultees depuis la page support client.</div>
             </div>
           </div>
         </Card>
       </div>
+      {replyTarget ? <ReplyModal ticket={replyTarget} onClose={() => setReplyTarget(null)} onSubmit={replyTicket} /> : null}
     </div>
   );
 };

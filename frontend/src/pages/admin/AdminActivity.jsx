@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Activity, Filter, Loader2, Search, ShieldCheck } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Activity, Download, Eye, Filter, Loader2, Search, ShieldCheck } from 'lucide-react';
 import api from '../../services/api';
 import Badge from '../../components/ui/Badge';
 import Card from '../../components/ui/Card';
@@ -17,28 +17,62 @@ const AdminActivity = () => {
   const [rows, setRows] = useState([]);
   const [query, setQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
+  const [range, setRange] = useState('30d');
+  const [severity, setSeverity] = useState('all');
+  const [selected, setSelected] = useState(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
-      const res = await api.get('/admin/activity-logs');
+      const params = new URLSearchParams();
+      if (range !== 'all') {
+        const days = range === 'today' ? 0 : range === '7d' ? 7 : 30;
+        const from = new Date();
+        from.setDate(from.getDate() - days);
+        if (range === 'today') from.setHours(0, 0, 0, 0);
+        params.set('from', from.toISOString());
+      }
+      if (actionFilter !== 'all') params.set('actionType', actionFilter);
+      if (query) params.set('search', query);
+      const res = await api.get(`/admin/activity-logs?${params.toString()}`);
       setRows(res.data || []);
     } catch (error) {
       console.error('Unable to fetch admin logs', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [actionFilter, query, range]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
-  const actions = ['all', ...Array.from(new Set(rows.map((row) => row.action).filter(Boolean)))];
+  const actions = [
+    'all',
+    'login',
+    'company_status',
+    'dossier_status',
+    'plan_change',
+    'quota_reset',
+    'payment',
+    'support',
+    'notification',
+    'settings',
+    'ttn',
+    'signature',
+    'system_error',
+  ];
 
   const filtered = rows.filter((row) => {
     const haystack = `${row.actor || ''} ${row.actorEmail || ''} ${row.action || ''} ${row.details || ''}`.toLowerCase();
-    return haystack.includes(query.toLowerCase()) && (actionFilter === 'all' || row.action === actionFilter);
+    return haystack.includes(query.toLowerCase()) && (severity === 'all' || row.severity === severity);
   });
+
+  const exportCsv = () => {
+    const params = new URLSearchParams();
+    if (actionFilter !== 'all') params.set('actionType', actionFilter);
+    if (query) params.set('search', query);
+    window.open(`${api.defaults.baseURL}/admin/activity-logs/export.csv?${params.toString()}`, '_blank');
+  };
 
   if (loading) {
     return (
@@ -65,7 +99,7 @@ const AdminActivity = () => {
       </div>
 
       <Card>
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto_auto] gap-3">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -78,10 +112,20 @@ const AdminActivity = () => {
           <select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm outline-none">
             {actions.map((action) => <option key={action} value={action}>{action === 'all' ? 'Toutes les actions' : action}</option>)}
           </select>
-          <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-500 flex items-center gap-2">
-            <Filter className="w-4 h-4" />
-            Audit live
-          </div>
+          <select value={range} onChange={(event) => setRange(event.target.value)} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm outline-none">
+            <option value="today">Aujourd'hui</option>
+            <option value="7d">7 derniers jours</option>
+            <option value="30d">30 derniers jours</option>
+            <option value="all">Toutes les dates</option>
+          </select>
+          <select value={severity} onChange={(event) => setSeverity(event.target.value)} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm outline-none">
+            <option value="all">Tous statuts</option>
+            <option value="info">Info</option>
+            <option value="warning">Warning</option>
+            <option value="error">Error</option>
+            <option value="success">Success</option>
+          </select>
+          <button onClick={exportCsv} className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white flex items-center gap-2"><Download className="w-4 h-4" />CSV</button>
         </div>
       </Card>
 
@@ -90,7 +134,7 @@ const AdminActivity = () => {
           <table className="w-full">
             <thead className="bg-slate-50/60 border-b border-slate-100">
               <tr>
-                {['Acteur', 'Entreprise', 'Action', 'Type', 'Date', 'IP', 'Details'].map((label) => (
+                {['Date', 'Acteur', 'Entreprise', 'Action en francais', 'Ancien', 'Nouveau', 'IP', 'Details'].map((label) => (
                   <th key={label} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</th>
                 ))}
               </tr>
@@ -98,17 +142,18 @@ const AdminActivity = () => {
             <tbody className="divide-y divide-slate-50">
               {filtered.map((row) => (
                 <tr key={row.id} className="hover:bg-slate-50/40 align-top">
+                  <td className="px-5 py-4 text-sm text-slate-600">{new Date(row.date).toLocaleString()}</td>
                   <td className="px-5 py-4">
                     <div className="font-black text-slate-900">{row.actor}</div>
                     <div className="text-sm text-slate-500">{row.actorEmail || '-'}</div>
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-600">{row.company || 'Plateforme'}</td>
-                  <td className="px-5 py-4"><Badge variant={ACTION_VARIANTS[row.action] || 'secondary'}>{row.action}</Badge></td>
-                  <td className="px-5 py-4 text-sm text-slate-600">{row.entityType || '-'}</td>
-                  <td className="px-5 py-4 text-sm text-slate-600">{new Date(row.date).toLocaleString()}</td>
+                  <td className="px-5 py-4 text-sm font-bold text-slate-800">{row.actionLabel || row.action}</td>
+                  <td className="px-5 py-4 text-sm text-slate-600">{row.oldValue || '-'}</td>
+                  <td className="px-5 py-4 text-sm text-slate-600">{row.newValue || '-'}</td>
                   <td className="px-5 py-4 text-sm text-slate-600">{row.ipAddress || '-'}</td>
-                  <td className="px-5 py-4 text-sm text-slate-600 max-w-[420px]">
-                    <div className="line-clamp-2">{row.details || '-'}</div>
+                  <td className="px-5 py-4 text-sm text-slate-600">
+                    <button onClick={() => setSelected(row)} className="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700"><Eye className="w-4 h-4" />Details</button>
                   </td>
                 </tr>
               ))}
@@ -142,6 +187,29 @@ const AdminActivity = () => {
           </div>
         ) : null}
       </Card>
+
+      {selected ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setSelected(null)}>
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="mb-4 text-xl font-black text-slate-900">Details du log</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div><strong>Acteur:</strong> {selected.actor} {selected.actorEmail}</div>
+              <div><strong>Entreprise:</strong> {selected.company || 'Plateforme'}</div>
+              <div><strong>Action:</strong> {selected.actionLabel || selected.action}</div>
+              <div><strong>Date:</strong> {new Date(selected.date).toLocaleString()}</div>
+              <div><strong>Ancien:</strong> {selected.oldValue || '-'}</div>
+              <div><strong>Nouveau:</strong> {selected.newValue || '-'}</div>
+              <div><strong>IP:</strong> {selected.ipAddress || '-'}</div>
+              <div><strong>User agent:</strong> {selected.userAgent || '-'}</div>
+            </div>
+            <details className="mt-4 rounded-2xl bg-slate-50 p-4 text-xs text-slate-500">
+              <summary className="cursor-pointer font-black text-slate-700">Section technique</summary>
+              <pre className="mt-3 whitespace-pre-wrap">{JSON.stringify(selected.metadata || selected.details, null, 2)}</pre>
+            </details>
+            <button onClick={() => setSelected(null)} className="mt-5 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white">Fermer</button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
