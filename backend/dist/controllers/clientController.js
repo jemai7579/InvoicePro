@@ -3,12 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.respondToClientInvitation = exports.createClientInvitation = exports.getClientInvitations = exports.deleteClient = exports.updateClient = exports.createClient = exports.getClientById = exports.getClients = void 0;
+exports.respondToClientInvitation = exports.createClientInvitation = exports.getClientInvitations = exports.deleteClient = exports.updateClient = exports.importClients = exports.createClient = exports.getClientById = exports.getClients = void 0;
 const prisma_1 = __importDefault(require("../prisma"));
-const notificationHelper_1 = require("../utils/notificationHelper");
-const mailer_1 = require("../utils/mailer");
-const nodemailer_1 = __importDefault(require("nodemailer"));
 const numberingService_1 = require("../services/numberingService");
+const auditTrailService_1 = require("../services/auditTrailService");
+const networkController_1 = require("./networkController");
 const INVITATION_KIND = 'INVITATION';
 const PRIVATE_PROJECT_CLIENT_NAME = '__PRIVATE_PROJECTS__';
 const getJsonObject = (value) => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -71,7 +70,7 @@ const getClientById = async (req, res) => {
 exports.getClientById = getClientById;
 const createClient = async (req, res) => {
     try {
-        const { name, email, matriculeFiscal, address, phone } = req.body;
+        const { name, email, matriculeFiscal, address, phone, city, rne, notes } = req.body;
         if (!name) {
             return res.status(400).json({ message: 'Name is required' });
         }
@@ -85,9 +84,22 @@ const createClient = async (req, res) => {
                     email,
                     matriculeFiscal,
                     address,
-                    phone
+                    phone,
+                    city,
+                    rne,
+                    notes
                 }
             });
+        });
+        await (0, auditTrailService_1.logActivity)({
+            companyId: req.company.id,
+            actorId: req.company.id,
+            actorType: 'USER',
+            actionType: 'CREATED',
+            objectType: 'CLIENT',
+            objectId: client.id,
+            message: `Client cree manuellement: ${client.name}.`,
+            newValue: client,
         });
         res.status(201).json(client);
     }
@@ -96,6 +108,84 @@ const createClient = async (req, res) => {
     }
 };
 exports.createClient = createClient;
+const normalizeImportedCell = (value) => {
+    if (value === null || value === undefined || String(value).trim() === '')
+        return 'vide';
+    return String(value).trim();
+};
+const normalizeOptionalEmail = (value) => {
+    const email = String(value || '').trim().toLowerCase();
+    return email === '' || email === 'vide' ? null : email;
+};
+const importClients = async (req, res) => {
+    try {
+        const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
+        const companyId = String(req.company.id);
+        if (rows.length === 0) {
+            return res.status(400).json({ message: 'No clients to import.' });
+        }
+        const warnings = [];
+        const candidates = rows.map((row, index) => {
+            const name = normalizeImportedCell(row.name ?? row.Nom);
+            const email = normalizeOptionalEmail(row.email ?? row.Email);
+            if (name === 'vide') {
+                warnings.push({ row: index + 1, message: 'Nom manquant.' });
+            }
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                warnings.push({ row: index + 1, message: 'Email invalide.' });
+            }
+            return {
+                name,
+                email,
+                phone: normalizeImportedCell(row.phone ?? row['Téléphone'] ?? row.Telephone),
+                companyName: normalizeImportedCell(row.companyName ?? row['Société'] ?? row.Societe),
+                matriculeFiscal: normalizeImportedCell(row.matriculeFiscal ?? row['Matricule Fiscal']),
+                rne: normalizeImportedCell(row.rne ?? row.RNE),
+                address: normalizeImportedCell(row.address ?? row.Adresse),
+                city: normalizeImportedCell(row.city ?? row.Ville),
+                notes: normalizeImportedCell(row.notes ?? row.Notes),
+            };
+        });
+        const validRows = candidates.filter((row) => row.name !== 'vide' && (!row.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)));
+        const created = await prisma_1.default.$transaction(async (tx) => {
+            const items = [];
+            for (const row of validRows) {
+                const number = await (0, numberingService_1.generateBusinessNumber)(tx, companyId, 'CLIENT');
+                items.push(await tx.client.create({
+                    data: {
+                        companyId,
+                        number,
+                        name: row.name,
+                        email: row.email,
+                        phone: row.phone === 'vide' ? null : row.phone,
+                        matriculeFiscal: row.matriculeFiscal === 'vide' ? null : row.matriculeFiscal,
+                        rne: row.rne === 'vide' ? null : row.rne,
+                        address: row.address === 'vide' ? null : row.address,
+                        city: row.city === 'vide' ? null : row.city,
+                        notes: row.notes === 'vide' ? null : row.notes,
+                    },
+                }));
+            }
+            return items;
+        });
+        await (0, auditTrailService_1.logActivity)({
+            companyId,
+            actorId: companyId,
+            actorType: 'USER',
+            actionType: 'CREATED',
+            objectType: 'CLIENT',
+            objectId: `import-${Date.now()}`,
+            message: `${created.length} clients importes depuis Excel/CSV.`,
+            metadata: { importedCount: created.length, warnings },
+        });
+        res.status(201).json({ imported: created.length, warnings, clients: created });
+    }
+    catch (error) {
+        console.error('Error importing clients:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+exports.importClients = importClients;
 const updateClient = async (req, res) => {
     try {
         const client = await prisma_1.default.client.findFirst({
@@ -140,192 +230,14 @@ const deleteClient = async (req, res) => {
 };
 exports.deleteClient = deleteClient;
 const getClientInvitations = async (req, res) => {
-    try {
-        const companyId = String(req.company.id);
-        const companyEmail = (req.company.email || '').toLowerCase();
-        const sentRequests = await prisma_1.default.invoiceRequest.findMany({
-            where: { companyId },
-            include: { client: true, company: true },
-            orderBy: { createdAt: 'desc' }
-        });
-        const incomingRequests = await prisma_1.default.invoiceRequest.findMany({
-            where: {
-                NOT: { companyId }
-            },
-            include: { client: true, company: true },
-            orderBy: { createdAt: 'desc' }
-        });
-        const sent = sentRequests
-            .filter((request) => getJsonObject(request?.data).kind === INVITATION_KIND)
-            .map((request) => toInvitationDto(request, 'sent'));
-        const received = incomingRequests
-            .filter((request) => {
-            if (getJsonObject(request?.data).kind !== INVITATION_KIND)
-                return false;
-            const data = getJsonObject(request.data);
-            return data.connectedCompanyId === companyId || (data.recipientEmail || '').toLowerCase() === companyEmail;
-        })
-            .map((request) => toInvitationDto(request, 'received'));
-        res.status(200).json({ sent, received });
-    }
-    catch (error) {
-        console.error('Error fetching invitations:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
+    return (0, networkController_1.getNetworkOverview)(req, res);
 };
 exports.getClientInvitations = getClientInvitations;
 const createClientInvitation = async (req, res) => {
-    try {
-        const companyId = String(req.company.id);
-        const senderCompany = req.company;
-        const { clientId, email, companyName, message } = req.body;
-        let client = null;
-        if (clientId) {
-            client = await prisma_1.default.client.findFirst({
-                where: { id: clientId, companyId }
-            });
-        }
-        if (!client && !email) {
-            return res.status(400).json({ message: 'Client or email is required.' });
-        }
-        if (!client) {
-            client = await prisma_1.default.client.create({
-                data: {
-                    companyId,
-                    name: companyName || email,
-                    email,
-                }
-            });
-        }
-        const recipientEmail = (email || client.email || '').toLowerCase();
-        const recipientCompany = recipientEmail
-            ? await prisma_1.default.company.findUnique({ where: { email: recipientEmail } })
-            : null;
-        const invitation = await prisma_1.default.invoiceRequest.create({
-            data: {
-                companyId,
-                clientId: client.id,
-                status: 'PENDING',
-                note: message || null,
-                data: {
-                    kind: INVITATION_KIND,
-                    workflowStatus: 'PENDING',
-                    recipientEmail: recipientEmail || null,
-                    connectedCompanyId: recipientCompany?.id || null,
-                }
-            },
-            include: {
-                client: true,
-                company: true,
-            }
-        });
-        let previewUrl;
-        if (recipientEmail) {
-            const info = await (0, mailer_1.sendEmail)(recipientEmail, `Invitation El Fatoura - ${senderCompany.name}`, `
-          <div style="font-family: Arial, sans-serif; color: #0f172a;">
-            <p>Bonjour,</p>
-            <p>${senderCompany.name} vous invite à collaborer sur El Fatoura.</p>
-            <p>Connectez-vous à votre compte pour accepter ou refuser cette invitation.</p>
-            <p>${message || ''}</p>
-          </div>
-        `);
-            previewUrl = process.env.SMTP_HOST === 'smtp.ethereal.email' || !process.env.SMTP_HOST
-                ? nodemailer_1.default.getTestMessageUrl(info)
-                : undefined;
-        }
-        if (recipientCompany) {
-            await (0, notificationHelper_1.createNotif)(recipientCompany.id, 'Nouvelle invitation client', `${senderCompany.name} vous a envoyé une invitation de collaboration.`, 'INVITATION_RECEIVED');
-        }
-        res.status(201).json({
-            invitation: toInvitationDto(invitation, 'sent'),
-            previewUrl,
-        });
-    }
-    catch (error) {
-        console.error('Error creating invitation:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
+    return (0, networkController_1.createPlatformInvitation)(req, res);
 };
 exports.createClientInvitation = createClientInvitation;
 const respondToClientInvitation = async (req, res) => {
-    try {
-        const companyId = String(req.company.id);
-        const company = req.company;
-        const companyEmail = (company.email || '').toLowerCase();
-        const { action } = req.body;
-        if (!['ACCEPT', 'REFUSE'].includes(action)) {
-            return res.status(400).json({ message: 'Invalid action.' });
-        }
-        const invitation = await prisma_1.default.invoiceRequest.findFirst({
-            where: { id: req.params.id },
-            include: { client: true, company: true },
-        });
-        if (!invitation || getJsonObject(invitation?.data).kind !== INVITATION_KIND) {
-            return res.status(404).json({ message: 'Invitation not found.' });
-        }
-        const data = getJsonObject(invitation.data);
-        const allowed = data.connectedCompanyId === companyId ||
-            (data.recipientEmail || '').toLowerCase() === companyEmail;
-        if (!allowed) {
-            return res.status(403).json({ message: 'Not allowed to respond to this invitation.' });
-        }
-        const accepted = action === 'ACCEPT';
-        const updated = await prisma_1.default.invoiceRequest.update({
-            where: { id: invitation.id },
-            data: {
-                status: accepted ? 'ACCEPTED' : 'REJECTED',
-                data: {
-                    ...data,
-                    workflowStatus: accepted ? 'ACCEPTED' : 'REFUSED',
-                    connectedCompanyId: accepted ? companyId : data.connectedCompanyId || null,
-                },
-            },
-            include: { client: true, company: true },
-        });
-        if (accepted) {
-            const existingSenderSideClient = await prisma_1.default.client.findFirst({
-                where: {
-                    companyId: invitation.companyId,
-                    email: company.email,
-                }
-            });
-            if (!existingSenderSideClient) {
-                await prisma_1.default.client.create({
-                    data: {
-                        companyId: invitation.companyId,
-                        name: company.name,
-                        email: company.email,
-                        matriculeFiscal: company.matriculeFiscal,
-                        address: company.address,
-                        phone: company.phone,
-                    }
-                });
-            }
-            const existingRecipientSideClient = await prisma_1.default.client.findFirst({
-                where: {
-                    companyId,
-                    email: invitation.company?.email,
-                }
-            });
-            if (!existingRecipientSideClient && invitation.company) {
-                await prisma_1.default.client.create({
-                    data: {
-                        companyId,
-                        name: invitation.company.name,
-                        email: invitation.company.email,
-                        matriculeFiscal: invitation.company.matriculeFiscal,
-                        address: invitation.company.address,
-                        phone: invitation.company.phone,
-                    }
-                });
-            }
-        }
-        await (0, notificationHelper_1.createNotif)(invitation.companyId, accepted ? 'Invitation acceptée' : 'Invitation refusée', `${company.name} a ${accepted ? 'accepté' : 'refusé'} votre invitation de collaboration.`, accepted ? 'INVITATION_ACCEPTED' : 'INVITATION_REFUSED');
-        res.status(200).json(toInvitationDto(updated, 'received'));
-    }
-    catch (error) {
-        console.error('Error responding to invitation:', error);
-        res.status(500).json({ message: 'Server error' });
-    }
+    return (0, networkController_1.respondToPlatformInvitation)(req, res);
 };
 exports.respondToClientInvitation = respondToClientInvitation;

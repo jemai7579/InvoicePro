@@ -4,11 +4,12 @@ import api from '../../services/api';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { getPlanLabel } from '../../utils/planLabels';
 
 const PLAN_META = {
-  STARTER: { label: 'Starter', price: '0 TND', quota: '7 factures', tone: 'secondary' },
-  PROFESSIONAL: { label: 'Professional', price: '99 TND', quota: 'Illimite', tone: 'primary' },
-  ENTERPRISE: { label: 'Enterprise', price: '299 TND', quota: 'Illimite', tone: 'warning' },
+  STARTER: { label: 'Démarrage', quota: '7 factures', tone: 'secondary' },
+  PROFESSIONAL: { label: 'Pro', quota: 'Illimite', tone: 'primary' },
+  ENTERPRISE: { label: 'Max', quota: 'Illimite', tone: 'warning' },
 };
 
 const statusVariant = (status) => {
@@ -85,9 +86,9 @@ const AdminSubscriptions = () => {
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Essai / Starter</div><div className="mt-2 text-2xl font-black text-slate-900">{counts.trial}</div></Card>
-        <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Professional</div><div className="mt-2 text-2xl font-black text-premium-600">{counts.pro}</div></Card>
-        <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Enterprise</div><div className="mt-2 text-2xl font-black text-amber-600">{counts.enterprise}</div></Card>
+        <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Démarrage</div><div className="mt-2 text-2xl font-black text-slate-900">{counts.trial}</div></Card>
+        <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pro</div><div className="mt-2 text-2xl font-black text-premium-600">{counts.pro}</div></Card>
+        <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Max</div><div className="mt-2 text-2xl font-black text-amber-600">{counts.enterprise}</div></Card>
         <Card><div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Annules</div><div className="mt-2 text-2xl font-black text-rose-600">{counts.cancelled}</div></Card>
       </div>
 
@@ -104,7 +105,7 @@ const AdminSubscriptions = () => {
               />
             </div>
             <select value={planFilter} onChange={(event) => setPlanFilter(event.target.value)} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm outline-none">
-              {['all', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE'].map((plan) => <option key={plan} value={plan}>{plan === 'all' ? 'Tous les plans' : plan}</option>)}
+              {['all', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE'].map((plan) => <option key={plan} value={plan}>{plan === 'all' ? 'Tous les plans' : getPlanLabel(plan)}</option>)}
             </select>
           </div>
         </Card>
@@ -115,7 +116,7 @@ const AdminSubscriptions = () => {
               <div key={key} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
                   <Badge variant={value.tone}>{value.label}</Badge>
-                  <span className="text-sm font-black text-slate-900">{value.price}</span>
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-400">{key}</span>
                 </div>
                 <div className="mt-3 text-sm text-slate-600">Quota: {value.quota}</div>
                 <div className="mt-1 text-sm text-slate-600">TTN: Oui | Rapports: {key === 'STARTER' ? 'Limites' : 'Oui'} | IA: {key === 'STARTER' ? 'Non' : 'Oui'}</div>
@@ -130,7 +131,7 @@ const AdminSubscriptions = () => {
           <table className="w-full">
             <thead className="bg-slate-50/60 border-b border-slate-100">
               <tr>
-                {['Entreprise', 'Plan', 'Prix', 'Quota', 'IA', 'TTN', 'Rapports', 'Statut', 'Debut', 'Fin', 'Actions'].map((label) => (
+                {['Entreprise', 'Plan', 'Quota', 'IA', 'TTN', 'Rapports', 'Statut', 'Debut', 'Fin', 'Actions'].map((label) => (
                   <th key={label} className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</th>
                 ))}
               </tr>
@@ -145,7 +146,6 @@ const AdminSubscriptions = () => {
                       <div className="text-sm text-slate-500">{row.company?.email}</div>
                     </td>
                     <td className="px-5 py-4"><Badge variant={meta.tone}>{meta.label}</Badge></td>
-                    <td className="px-5 py-4 text-sm font-black text-slate-900">{meta.price}</td>
                     <td className="px-5 py-4 text-sm text-slate-600">{row.invoiceQuota}</td>
                     <td className="px-5 py-4"><Badge variant={row.aiAccess ? 'success' : 'secondary'}>{row.aiAccess ? 'Oui' : 'Non'}</Badge></td>
                     <td className="px-5 py-4"><Badge variant={row.ttnAccess ? 'success' : 'secondary'}>{row.ttnAccess ? 'Oui' : 'Non'}</Badge></td>
@@ -155,9 +155,9 @@ const AdminSubscriptions = () => {
                     <td className="px-5 py-4 text-sm text-slate-600">{row.endDate ? new Date(row.endDate).toLocaleDateString() : '-'}</td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-2">
-                        <button onClick={() => mutatePlan(row.companyId, 'STARTER')} className="px-3 py-2 rounded-xl bg-slate-50 text-xs font-bold text-slate-600 hover:text-slate-900">Starter</button>
+                        <button onClick={() => mutatePlan(row.companyId, 'STARTER')} className="px-3 py-2 rounded-xl bg-slate-50 text-xs font-bold text-slate-600 hover:text-slate-900">Démarrage</button>
                         <button onClick={() => mutatePlan(row.companyId, 'PROFESSIONAL')} className="px-3 py-2 rounded-xl bg-premium-50 text-xs font-bold text-premium-700">Pro</button>
-                        <button onClick={() => mutatePlan(row.companyId, 'ENTERPRISE')} className="px-3 py-2 rounded-xl bg-amber-50 text-xs font-bold text-amber-700">Enterprise</button>
+                        <button onClick={() => mutatePlan(row.companyId, 'ENTERPRISE')} className="px-3 py-2 rounded-xl bg-amber-50 text-xs font-bold text-amber-700">Max</button>
                         <button onClick={() => mutateStatus(row.companyId, row.status === 'ACTIVE' ? 'CANCELLED' : 'ACTIVE')} className="px-3 py-2 rounded-xl bg-rose-50 text-xs font-bold text-rose-700">
                           {row.status === 'ACTIVE' ? 'Suspendre' : 'Reactiver'}
                         </button>
@@ -183,7 +183,6 @@ const AdminSubscriptions = () => {
                   <Badge variant={meta.tone}>{meta.label}</Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Prix:</strong> {meta.price}</div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Quota:</strong> {row.invoiceQuota}</div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>TTN:</strong> {row.ttnAccess ? 'Oui' : 'Non'}</div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Statut:</strong> {row.status}</div>

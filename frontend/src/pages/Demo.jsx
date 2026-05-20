@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, Users, Receipt, Package, BarChart3, Settings, 
   Search, Bell, ShieldCheck, Zap, Activity, CheckCircle2, 
@@ -53,7 +53,7 @@ const Demo = () => {
           <div className="h-14 flex items-center justify-between px-5 border-b border-slate-100">
             <Link to="/" className="flex items-center group transition-transform hover:scale-[1.02]">
               <ShieldCheck className="w-6 h-6 text-premium-600 me-2" />
-              <span className="font-black text-xl bg-clip-text text-transparent bg-gradient-to-r from-premium-600 to-premium-400 font-display tracking-tight">El Fatoora</span>
+              <span className="font-black text-xl bg-clip-text text-transparent bg-gradient-to-r from-premium-600 to-premium-400 font-display tracking-tight">InvoicePro</span>
             </Link>
             <button 
               onClick={() => setIsSidebarOpen(false)}
@@ -220,7 +220,7 @@ const Demo = () => {
                  </div>
                  <h3 className="text-xl font-bold text-slate-900 mb-2">Module "{activeTab}" en Démo</h3>
                  <p className="text-slate-500 max-w-sm mx-auto mb-8">
-                    Dans la version complète d'El Fatoura, ce module vous permet de gérer vos {activeTab} avec des outils avancés et une conformité TEIF totale.
+                    Dans la version complète d'InvoicePro, ce module vous permet de gérer vos {activeTab} avec des outils avancés et une conformité TEIF totale.
                  </p>
                  <Link to="/register" className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all">
                     Débloquer l'accès complet
@@ -233,7 +233,7 @@ const Demo = () => {
       </div>
 
       <footer className="bg-white border-t border-slate-100 px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-         <p className="text-xs text-slate-400 font-medium">© 2026 El Fatoura Demo. Optimisé pour la conformité tunisienne.</p>
+         <p className="text-xs text-slate-400 font-medium">© 2026 InvoicePro Demo. Optimisé pour la conformité tunisienne.</p>
          <div className="flex items-center gap-6">
             <Link to="/" className="text-xs font-bold text-slate-500 hover:text-blue-600 uppercase tracking-widest">Quitter la démo</Link>
             <Link to="/register" className="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-black transition-colors">{t('landing.nav.register')}</Link>

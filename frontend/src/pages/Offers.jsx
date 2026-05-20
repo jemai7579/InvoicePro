@@ -30,6 +30,8 @@ const Offers = () => {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [notice, setNotice] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -53,18 +55,28 @@ const Offers = () => {
 
   const submit = async (event) => {
     event.preventDefault();
+    setSubmitting(true);
+    setNotice(null);
     const payload = {
       ...form,
       clientId: form.clientId || null,
       estimatedAmount: Number(form.estimatedAmount || 0),
     };
-    if (editingId) {
-      await api.put(`/offers/${editingId}`, payload);
-    } else {
-      await api.post('/offers', payload);
+    try {
+      if (editingId) {
+        await api.put(`/offers/${editingId}`, payload);
+        setNotice({ type: 'success', text: 'Offre mise à jour avec succès.' });
+      } else {
+        await api.post('/offers', payload);
+        setNotice({ type: 'success', text: 'Offre créée avec succès.' });
+      }
+      resetForm();
+      await fetchData();
+    } catch (error) {
+      setNotice({ type: 'error', text: error.response?.data?.message || 'Impossible d’enregistrer l’offre.' });
+    } finally {
+      setSubmitting(false);
     }
-    resetForm();
-    fetchData();
   };
 
   const edit = (offer) => {
@@ -101,6 +113,24 @@ const Offers = () => {
         </div>
       </div>
 
+      <Card>
+        <div className="space-y-3">
+          <p className="text-sm font-bold text-slate-700 leading-6">
+            Une offre ou un bon de commande intervient avant la facture. Il sert à proposer un service, un prix, des conditions et un délai au client. Après acceptation, vous pouvez transformer l’offre en devis ou en facture.
+          </p>
+          <p className="text-sm font-bold text-slate-500 leading-6">
+            À l’inverse, un règlement intervient après la facture pour suivre si le client a payé, combien il a payé, et combien reste à payer.
+          </p>
+          <div className="text-xs font-black text-slate-400 uppercase tracking-widest">Offre → Devis → Facture → Règlement</div>
+        </div>
+      </Card>
+
+      {notice ? (
+        <div className={`rounded-2xl px-5 py-4 text-sm font-bold ${notice.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
+          {notice.text}
+        </div>
+      ) : null}
+
       <Card title={editingId ? 'Modifier une offre' : 'Nouvelle offre'} icon={Plus}>
         <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Titre de l'offre" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required />
@@ -115,7 +145,7 @@ const Offers = () => {
           <textarea className="md:col-span-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Description" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
           <textarea className="md:col-span-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Conditions commerciales" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} />
           <div className="md:col-span-2 flex gap-3">
-            <Button type="submit">{editingId ? 'Enregistrer' : 'Creer l\'offre'}</Button>
+            <Button type="submit" loading={submitting} disabled={submitting}>{editingId ? 'Enregistrer' : 'Créer l\'offre'}</Button>
             {editingId ? <Button type="button" variant="secondary" onClick={resetForm}>Annuler</Button> : null}
           </div>
         </form>
@@ -154,4 +184,3 @@ const Offers = () => {
 };
 
 export default Offers;
-

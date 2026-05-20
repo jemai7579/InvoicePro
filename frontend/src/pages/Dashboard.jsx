@@ -30,10 +30,10 @@ const COPY = {
   fr: {
     hello: 'Bonjour',
     title: 'Tableau de bord',
-    subtitle: 'Retrouvez vos clients, projets, devis, factures et conformite TTN au meme endroit.',
+    subtitle: 'Pilotez votre activité commerciale, vos factures et votre conformité depuis un seul espace.',
     workflowButton: 'Voir le workflow',
-    workflowTitle: 'Workflow TTN',
-    workflowSubtitle: 'Suivez simplement les etapes de conformite avant de considerer une facture comme fiscalement valide.',
+    workflowTitle: 'Workflow de facturation',
+    workflowSubtitle: 'Suivez votre activité depuis l’idée jusqu’au règlement, avec les étapes TTN clairement séparées.',
     workflowSteps: [
       'Creer la facture',
       'Verifier les informations',
@@ -44,10 +44,10 @@ const COPY = {
       'Recevoir reference + QR',
       'Telecharger la facture finale',
     ],
-    projects: 'Projets',
+    projects: 'Idées de projet',
     quotes: 'Devis',
     invoices: 'Factures',
-    paidInvoices: 'Factures validees',
+    paidInvoices: 'Factures réglées',
     progress: 'Avancement global',
     recentInvoices: 'Factures recentes',
     recentClients: 'Clients recents',
@@ -58,7 +58,7 @@ const COPY = {
     newInvoice: 'Nouvelle facture',
     newProject: 'Nouveau projet',
     setupTitle: 'Mise en route',
-    setupSubtitle: 'Completez ces etapes pour finaliser votre espace de facturation.',
+    setupSubtitle: 'Complétez les points essentiels avant d’activer le parcours de facturation électronique.',
     complianceTitle: 'Conformite TTN',
     complianceConfigured: 'Signature configuree',
     complianceMissing: 'Signature non configuree',
@@ -71,10 +71,10 @@ const COPY = {
   en: {
     hello: 'Hello',
     title: 'Dashboard',
-    subtitle: 'See your clients, projects, quotes, invoices and TTN compliance in one place.',
+    subtitle: 'Manage your sales workflow, invoices and compliance from one workspace.',
     workflowButton: 'View workflow',
-    workflowTitle: 'TTN workflow',
-    workflowSubtitle: 'Follow the compliance steps before considering an invoice fiscally valid.',
+    workflowTitle: 'Billing workflow',
+    workflowSubtitle: 'Follow your activity from idea to payment, with TTN steps clearly separated.',
     workflowSteps: [
       'Create the invoice',
       'Review the information',
@@ -88,7 +88,7 @@ const COPY = {
     projects: 'Projects',
     quotes: 'Quotes',
     invoices: 'Invoices',
-    paidInvoices: 'Validated invoices',
+    paidInvoices: 'Paid invoices',
     progress: 'Overall progress',
     recentInvoices: 'Recent invoices',
     recentClients: 'Recent clients',
@@ -99,7 +99,7 @@ const COPY = {
     newInvoice: 'New invoice',
     newProject: 'New project',
     setupTitle: 'Getting started',
-    setupSubtitle: 'Complete these steps to finalize your billing workspace.',
+    setupSubtitle: 'Complete the key checkpoints before activating electronic invoicing.',
     complianceTitle: 'TTN compliance',
     complianceConfigured: 'Signature configured',
     complianceMissing: 'Signature not configured',
@@ -112,10 +112,10 @@ const COPY = {
   ar: {
     hello: 'مرحبا',
     title: 'لوحة التحكم',
-    subtitle: 'تابع العملاء والمشاريع والعروض والفواتير وامتثال TTN من مكان واحد.',
+    subtitle: 'ادِر النشاط التجاري والفواتير والامتثال من فضاء واحد.',
     workflowButton: 'عرض المسار',
     workflowTitle: 'مسار TTN',
-    workflowSubtitle: 'اتبع خطوات الامتثال قبل اعتبار الفاتورة صالحة جبائيا.',
+    workflowSubtitle: 'تابع نشاطك من الفكرة حتى الدفع مع فصل خطوات TTN بوضوح.',
     workflowSteps: [
       'انشاء الفاتورة',
       'مراجعة المعلومات',
@@ -243,6 +243,7 @@ const Dashboard = () => {
         const profileComplete = !!(settings.name && settings.matriculeFiscal && settings.address);
         const hasClients = clients.length > 0;
         const hasCertificate = settings?.compliance?.signatureStatus === 'configured';
+        const hasEHouwiyaCheckpoint = ['HAS_IDENTIFIER', 'NEED_HELP', 'NOT_SURE'].includes(settings?.eHouwiyaStatus);
         let currentStep = 0;
         let completed = 0;
         if (profileComplete) {
@@ -253,7 +254,7 @@ const Dashboard = () => {
           completed += 1;
           currentStep = 2;
         }
-        if (hasCertificate) {
+        if (hasCertificate || hasEHouwiyaCheckpoint) {
           completed += 1;
           currentStep = 3;
         }
@@ -281,7 +282,7 @@ const Dashboard = () => {
           recentClients: clients.slice(0, 5),
           globalProgress: Math.round(progressValues.reduce((sum, value) => sum + value, 0) / progressValues.length),
           compliance: {
-            signatureConfigured: hasCertificate,
+            signatureConfigured: hasCertificate || settings?.eHouwiyaStatus === 'HAS_IDENTIFIER',
             ttnMode: settings?.compliance?.ttnMode || 'mock',
             pendingTtn: pendingTtn.length,
             lastSubmission: settings?.compliance?.lastSubmission || null,
@@ -306,7 +307,7 @@ const Dashboard = () => {
     [t]
   );
 
-  const companyName = user?.name || user?.company?.name || 'El Fatoora';
+  const companyName = user?.name || user?.company?.name || 'InvoicePro';
 
   if (loading) {
     return (
@@ -341,6 +342,7 @@ const Dashboard = () => {
         </div>
 
         <Card title="Workflow global" subtitle="Idée → Offre → Devis → Facture → TTN → Règlement">
+          <p className="mb-4 text-sm font-bold text-slate-500">Suivez votre activité depuis l’idée jusqu’au règlement.</p>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             {['Idée projet', 'Offre / BC', 'Devis', 'Facture', 'Suivi TTN', 'Règlement'].map((step, index) => (
               <div key={step} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">

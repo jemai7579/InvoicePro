@@ -11,6 +11,9 @@ type ActivityInput = {
   oldValue?: any;
   newValue?: any;
   metadata?: any;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  errorMessage?: string | null;
 };
 
 export const logActivity = async (data: ActivityInput) => {
@@ -26,9 +29,17 @@ export const logActivity = async (data: ActivityInput) => {
       oldValue: data.oldValue ?? undefined,
       newValue: data.newValue ?? undefined,
       metadata: data.metadata ?? undefined,
+      ipAddress: data.ipAddress || null,
+      userAgent: data.userAgent || null,
+      errorMessage: data.errorMessage || null,
     },
   });
 };
+
+export const getRequestAuditMeta = (req: any) => ({
+  ipAddress: req.ip || req.headers?.['x-forwarded-for'] || null,
+  userAgent: req.headers?.['user-agent'] || null,
+});
 
 export const getActivitiesByCompany = async (
   companyId: string,
@@ -51,4 +62,3 @@ export const getActivitiesByObject = async (companyId: string, objectType: strin
     orderBy: { createdAt: 'desc' },
   });
 };
-

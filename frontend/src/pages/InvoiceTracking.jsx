@@ -16,12 +16,13 @@ const COPY = {
       DRAFT: 'Brouillon',
       READY_FOR_TEIF: 'Prete pour TEIF',
       TEIF_GENERATED: 'XML TEIF genere',
+      VALIDATED: 'Prete pour TEIF',
       SIGNATURE_REQUIRED: 'Signature requise',
       SIGNED: 'Signee electroniquement',
-      SUBMITTED_TO_TTN: 'Envoyee a TTN',
-      TTN_PROCESSING: 'En traitement TTN',
-      TTN_ACCEPTED: 'Acceptee par TTN',
-      TTN_REJECTED: 'Rejetee par TTN',
+      SENT_TO_TTN: 'Envoyee a TTN',
+      PENDING_TTN: 'En traitement TTN',
+      ACCEPTED_TTN: 'Acceptee par TTN',
+      REJECTED_TTN: 'Rejetee par TTN',
       FINALIZED: 'Facture finale prete',
     },
     steps: ['Preparation', 'XML TEIF', 'Signature', 'Envoi TTN', 'Traitement TTN', 'Acceptation / Rejet', 'Facture finale'],
@@ -115,13 +116,18 @@ const COPY = {
 const STEP_BUCKETS = {
   DRAFT: 0,
   READY_FOR_TEIF: 0,
+  VALIDATED: 0,
   TEIF_GENERATED: 1,
   SIGNATURE_REQUIRED: 2,
   SIGNED: 2,
   SUBMITTED_TO_TTN: 3,
+  SENT_TO_TTN: 3,
   TTN_PROCESSING: 4,
+  PENDING_TTN: 4,
   TTN_ACCEPTED: 5,
+  ACCEPTED_TTN: 5,
   TTN_REJECTED: 5,
+  REJECTED_TTN: 5,
   FINALIZED: 6,
 };
 
@@ -136,10 +142,10 @@ const ACTION_LABELS = {
 };
 
 const variantForStatus = (status) => {
-  if (['TTN_ACCEPTED', 'FINALIZED'].includes(status)) return 'success';
-  if (status === 'TTN_REJECTED') return 'rejected';
-  if (['SUBMITTED_TO_TTN', 'TTN_PROCESSING', 'SIGNED'].includes(status)) return 'primary';
-  if (['TEIF_GENERATED', 'SIGNATURE_REQUIRED', 'READY_FOR_TEIF'].includes(status)) return 'warning';
+  if (['TTN_ACCEPTED', 'ACCEPTED_TTN', 'FINALIZED'].includes(status)) return 'success';
+  if (['TTN_REJECTED', 'REJECTED_TTN'].includes(status)) return 'rejected';
+  if (['SUBMITTED_TO_TTN', 'SENT_TO_TTN', 'TTN_PROCESSING', 'PENDING_TTN', 'SIGNED'].includes(status)) return 'primary';
+  if (['TEIF_GENERATED', 'SIGNATURE_REQUIRED', 'READY_FOR_TEIF', 'VALIDATED'].includes(status)) return 'warning';
   return 'secondary';
 };
 
@@ -238,7 +244,7 @@ const InvoiceTracking = () => {
           <div className="space-y-5">
             {invoices.map((invoice) => {
               const bucket = STEP_BUCKETS[invoice.complianceStatus] ?? 0;
-              const isRejected = invoice.complianceStatus === 'TTN_REJECTED';
+              const isRejected = ['TTN_REJECTED', 'REJECTED_TTN'].includes(invoice.complianceStatus);
               const actionLabel = text[ACTION_LABELS[invoice.nextAction] || 'complete'];
               return (
                 <div key={invoice.id} className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm space-y-6">
@@ -247,6 +253,7 @@ const InvoiceTracking = () => {
                       <div className="flex items-center gap-3 flex-wrap">
                         <h3 className="text-lg font-black text-slate-900">{getInvoiceNumber(invoice)}</h3>
                         <Badge variant={variantForStatus(invoice.complianceStatus)}>{text.labels[invoice.complianceStatus] || invoice.complianceStatus}</Badge>
+                        <Badge variant={invoice.eInvoiceMode === 'production' ? 'success' : 'warning'}>{invoice.modeBadge}</Badge>
                       </div>
                       <div className="flex flex-wrap gap-4 text-sm text-slate-500 font-medium">
                         <span>{text.client}: {invoice.client?.name || '-'}</span>
@@ -299,6 +306,11 @@ const InvoiceTracking = () => {
                         <div className="rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                           <div className="text-[10px] font-black uppercase tracking-widest mb-1">{text.rejectionReason}</div>
                           <div>{invoice.ttnRejectionReason}</div>
+                        </div>
+                      ) : null}
+                      {invoice.missingRequirements?.length ? (
+                        <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                          {invoice.missingRequirements.join(' · ')}
                         </div>
                       ) : null}
                     </div>

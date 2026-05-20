@@ -4,6 +4,7 @@ import api from '../../services/api';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { getPlanLabel } from '../../utils/planLabels';
 
 const statusVariant = (status) => {
   if (status === 'paid') return 'success';
@@ -103,7 +104,7 @@ const AdminPayments = () => {
               {filtered.map((row) => (
                 <tr key={row.id} className="hover:bg-slate-50/40">
                   <td className="px-5 py-4 text-sm font-bold text-slate-800">{row.companyName || row.companyId}</td>
-                  <td className="px-5 py-4"><Badge variant="secondary">{row.plan}</Badge></td>
+                  <td className="px-5 py-4"><Badge variant="secondary">{getPlanLabel(row.plan)}</Badge></td>
                   <td className="px-5 py-4 text-sm font-black text-slate-900">{Number(row.amount || 0).toFixed(2)} TND</td>
                   <td className="px-5 py-4"><Badge variant={statusVariant(row.status)}>{row.status}</Badge></td>
                   <td className="px-5 py-4 text-sm text-slate-600">{row.paymentDate ? new Date(row.paymentDate).toLocaleDateString() : '-'}</td>
@@ -127,7 +128,7 @@ const AdminPayments = () => {
               <div className="flex justify-between gap-4">
                 <div>
                   <div className="text-lg font-black text-slate-900">{row.companyName || row.companyId}</div>
-                  <div className="text-sm text-slate-500">{row.plan}</div>
+                  <div className="text-sm text-slate-500">{getPlanLabel(row.plan)}</div>
                 </div>
                 <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
               </div>

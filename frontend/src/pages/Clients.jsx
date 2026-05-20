@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { AlertCircle, CheckCircle2, Edit2, FileText, Loader, Mail, MapPin, Plus, Search, Trash2, Upload, User, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -81,12 +81,12 @@ const Clients = () => {
     notes: '',
   });
 
-  const showToast = (type, message) => {
+  const showToast = useCallback((type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
-  };
+  }, []);
 
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get('/clients');
@@ -96,11 +96,11 @@ const Clients = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     fetchClients();
-  }, []);
+  }, [fetchClients]);
 
   const filteredClients = useMemo(() => (
     clients.filter((client) =>

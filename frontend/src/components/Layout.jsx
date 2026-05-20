@@ -22,7 +22,6 @@ import {
   Receipt,
   Search,
   Settings,
-  ShieldCheck,
   Users,
   X,
   XCircle,
@@ -31,6 +30,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AIAssistant from './AIAssistant';
 import api from '../services/api';
+import BrandLogo from './BrandLogo';
 
 const NAV_ITEMS = [
   { id: 'dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -327,12 +327,7 @@ const Layout = () => {
       >
         <div className="flex h-14 items-center justify-between border-b border-slate-50 px-5">
           <Link to="/" className="group flex items-center transition-transform hover:scale-[1.02]">
-            <div className="rounded-xl bg-premium-600 p-1.5 shadow-lg shadow-premium-100 transition-transform group-hover:rotate-6">
-              <ShieldCheck className="h-5 w-5 text-white" />
-            </div>
-            <div className="ms-2.5 bg-gradient-to-r from-premium-600 to-premium-400 bg-clip-text text-lg font-black text-transparent transition-all group-hover:tracking-tight">
-              El Fatoora
-            </div>
+            <BrandLogo className="h-9 w-auto max-w-[170px]" />
           </Link>
           <button type="button" onClick={() => setIsSidebarOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 md:hidden">
             <X className="h-5 w-5" />

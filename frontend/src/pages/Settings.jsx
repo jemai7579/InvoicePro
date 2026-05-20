@@ -15,10 +15,11 @@ import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import SettingsHistoryModal from '../components/SettingsHistoryModal';
+import { getPlanLabel } from '../utils/planLabels';
 
 const Settings = () => {
   const { t, lang } = useLanguage();
-  const { user, refreshUser } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'profile');
@@ -51,7 +52,9 @@ const Settings = () => {
     phone: '',
     email: '',
     rib: '',
-    logo: ''
+    logo: '',
+    eHouwiyaStatus: 'NOT_STARTED',
+    eHouwiyaIdentifier: ''
   });
 
   const [certFile, setCertFile] = useState(null);
@@ -59,11 +62,16 @@ const Settings = () => {
   const [isUploadingCert, setIsUploadingCert] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [hasCert, setHasCert] = useState(false);
+  const [eInvoiceStatus, setEInvoiceStatus] = useState(null);
 
   const fetchSettings = async () => {
     try {
-      const response = await api.get('/settings');
+      const [response, eInvoiceResponse] = await Promise.all([
+        api.get('/settings'),
+        api.get('/settings/einvoice/status').catch(() => ({ data: null })),
+      ]);
       const data = response.data;
+      setEInvoiceStatus(eInvoiceResponse.data);
       setFormData({
         name: data.name || '',
         matriculeFiscal: data.matriculeFiscal || '',
@@ -75,7 +83,9 @@ const Settings = () => {
         phone: data.phone || '',
         email: data.email || '',
         rib: data.rib || '',
-        logo: data.logo || ''
+        logo: data.logo || '',
+        eHouwiyaStatus: data.eHouwiyaStatus || 'NOT_STARTED',
+        eHouwiyaIdentifier: data.eHouwiyaIdentifier || ''
       });
       setHasCert(!!data.hasCertificate);
     } catch (error) {
@@ -124,7 +134,7 @@ const Settings = () => {
       await api.put('/settings', formData);
       setSaveMsg({ text: t('settings.success'), type: 'success' });
       setTimeout(() => setSaveMsg(null), 3000);
-    } catch (error) {
+    } catch {
        setSaveMsg({ text: t('settings.error'), type: 'error' });
     } finally {
       setIsSaving(false);
@@ -171,6 +181,25 @@ const Settings = () => {
     }
   };
 
+  const handleEHouwiyaSave = async (event) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setSaveMsg(null);
+    try {
+      await api.put('/settings', {
+        eHouwiyaStatus: formData.eHouwiyaStatus,
+        eHouwiyaIdentifier: formData.eHouwiyaStatus === 'HAS_IDENTIFIER' ? formData.eHouwiyaIdentifier : ''
+      });
+      setSaveMsg({ text: 'Statut E-Houwiya enregistré avec succès.', type: 'success' });
+      setTimeout(() => setSaveMsg(null), 3000);
+      fetchSettings();
+    } catch (error) {
+      setSaveMsg({ text: error.response?.data?.message || t('settings.error'), type: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -180,7 +209,7 @@ const Settings = () => {
     try {
       const resp = await api.post('/settings/logo', logoFormData);
       setFormData(prev => ({ ...prev, logo: resp.data.logo }));
-    } catch (error) {
+    } catch {
        alert(t('settings.error'));
     } finally {
       setIsUploadingLogo(false);
@@ -198,7 +227,7 @@ const Settings = () => {
         }
       `}
     >
-      <Icon className={`w-4 h-4 ${activeTab === id ? 'text-indigo-400' : ''}`} />
+      {React.createElement(Icon, { className: `w-4 h-4 ${activeTab === id ? 'text-indigo-400' : ''}` })}
       {label}
     </button>
   );
@@ -277,7 +306,7 @@ const Settings = () => {
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         error={errors.name}
                         icon={Building2}
-                        placeholder="Ex: El Fatoora SARL"
+                        placeholder="Ex: InvoicePro SARL"
                      />
                      <Input 
                         label={t('auth.matricule')}
@@ -449,6 +478,59 @@ const Settings = () => {
                     </div>
                   </div>
 
+                  <form onSubmit={handleEHouwiyaSave} className="p-6 bg-white border border-indigo-100 rounded-[2rem] space-y-5 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <BadgeCheck className="w-5 h-5 text-indigo-600" />
+                      <span className="text-[11px] font-black uppercase tracking-widest text-indigo-900">E-Houwiya / Mobile ID</span>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900 mb-2">Avez-vous un identifiant E-Houwiya / Mobile ID ?</h4>
+                      <p className="text-xs font-bold text-slate-500 leading-5">
+                        Pour les entrepreneurs, cet identifiant peut être nécessaire dans le parcours d’adhésion et d’identification numérique. À vérifier selon votre statut et la procédure officielle.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3">
+                      {[
+                        { value: 'HAS_IDENTIFIER', label: 'Oui, je l’ai déjà' },
+                        { value: 'NEED_HELP', label: 'Non, je veux être accompagné' },
+                        { value: 'NOT_SURE', label: 'Je ne sais pas' },
+                      ].map((option) => (
+                        <label key={option.value} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-bold cursor-pointer transition-all ${formData.eHouwiyaStatus === option.value ? 'border-indigo-200 bg-indigo-50 text-indigo-900' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-100'}`}>
+                          <input
+                            type="radio"
+                            name="eHouwiyaStatus"
+                            value={option.value}
+                            checked={formData.eHouwiyaStatus === option.value}
+                            onChange={(event) => handleInputChange('eHouwiyaStatus', event.target.value)}
+                            className="accent-indigo-600"
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+                    </div>
+                    {formData.eHouwiyaStatus === 'HAS_IDENTIFIER' ? (
+                      <Input
+                        label="Identifiant E-Houwiya / Mobile ID"
+                        value={formData.eHouwiyaIdentifier}
+                        onChange={(event) => handleInputChange('eHouwiyaIdentifier', event.target.value)}
+                        icon={BadgeCheck}
+                        placeholder="Optionnel"
+                      />
+                    ) : (
+                      <Button type="button" variant="secondary" onClick={() => navigate('/signature-ttn')} className="w-full justify-center">
+                        Demander un accompagnement
+                      </Button>
+                    )}
+                    {saveMsg ? (
+                      <div className={`rounded-2xl px-4 py-3 text-xs font-black ${saveMsg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
+                        {saveMsg.text}
+                      </div>
+                    ) : null}
+                    <Button type="submit" loading={isSaving} className="w-full">
+                      Enregistrer le statut E-Houwiya
+                    </Button>
+                  </form>
+
                   <div className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] space-y-4">
                     <div className="flex items-center gap-3">
                       <Zap className="w-5 h-5 text-indigo-500 fill-indigo-500" />
@@ -502,6 +584,44 @@ const Settings = () => {
                       </header>
 
                       <div className="space-y-4">
+                         <div className="p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-md space-y-4">
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-xs font-black text-slate-300 uppercase tracking-widest">Configuration facture électronique</span>
+                              <Badge variant={eInvoiceStatus?.mode === 'production' ? 'success' : 'warning'} className="px-4 py-1.5 font-black border-none bg-indigo-500 text-white">
+                                {eInvoiceStatus?.mode === 'mock' ? 'Simulation' : eInvoiceStatus?.mode === 'sandbox' ? 'Sandbox' : 'Production'}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-bold">
+                              <div className="flex justify-between gap-3 rounded-2xl bg-slate-950/40 px-4 py-3">
+                                <span className="text-slate-400">TEIF configuré</span>
+                                <span>{eInvoiceStatus?.teifConfigured ? 'Oui' : 'Non'}</span>
+                              </div>
+                              <div className="flex justify-between gap-3 rounded-2xl bg-slate-950/40 px-4 py-3">
+                                <span className="text-slate-400">Signature électronique</span>
+                                <span>{eInvoiceStatus?.signatureConfigured ? 'Configurée' : 'Non configurée'}</span>
+                              </div>
+                              <div className="flex justify-between gap-3 rounded-2xl bg-slate-950/40 px-4 py-3">
+                                <span className="text-slate-400">TTN API</span>
+                                <span>{eInvoiceStatus?.ttnConfigured ? 'Connectée' : 'Non connectée'}</span>
+                              </div>
+                              <div className="flex justify-between gap-3 rounded-2xl bg-slate-950/40 px-4 py-3">
+                                <span className="text-slate-400">Dossier entreprise</span>
+                                <span>{eInvoiceStatus?.companyDossierComplete ? 'Complet' : 'Incomplet'}</span>
+                              </div>
+                              <div className="flex justify-between gap-3 rounded-2xl bg-slate-950/40 px-4 py-3">
+                                <span className="text-slate-400">Factures légales</span>
+                                <span>{eInvoiceStatus?.canIssueLegalInvoices ? 'Oui' : 'Non'}</span>
+                              </div>
+                            </div>
+                            {eInvoiceStatus?.missingRequirements?.length ? (
+                              <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-3">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-amber-200 mb-2">Exigences manquantes</div>
+                                <ul className="space-y-1 text-xs text-amber-50 font-semibold">
+                                  {eInvoiceStatus.missingRequirements.map((item) => <li key={item}>{item}</li>)}
+                                </ul>
+                              </div>
+                            ) : null}
+                         </div>
                          <div className="flex items-center justify-between p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
                             <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{t('settings.compliance.ubl_gen')}</span>
                             <Badge variant="success" className="px-4 py-1.5 font-black bg-emerald-500 text-white border-none">{t('settings.compliance.operational')}</Badge>
@@ -545,7 +665,7 @@ const Settings = () => {
                        <Zap className="w-7 h-7" fill="currentColor" />
                     </div>
                     <div>
-                       <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight font-display">Votre Forfait {user?.subscription?.plan}</h3>
+                       <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight font-display">Votre Forfait {getPlanLabel(user?.subscription?.plan)}</h3>
                        <p className="text-slate-500 text-sm font-medium">Gérez vos limites et options de facturation</p>
                     </div>
                   </header>
@@ -595,8 +715,8 @@ const Settings = () => {
                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
                  <div>
                     <Badge variant="premium" className="mb-6 bg-indigo-500 text-white border-none px-4 py-1.5 font-black uppercase text-[10px] tracking-widest">{user?.subscription?.plan === 'STARTER' ? 'Recommandé' : 'Actuel'}</Badge>
-                    <h4 className="text-2xl font-black mb-2 font-display italic">Professional</h4>
-                    <div className="text-4xl font-black mb-6">99 <span className="text-sm font-bold text-slate-400 tracking-tight">TND/mois</span></div>
+                    <h4 className="text-2xl font-black mb-2 font-display italic">Pro</h4>
+                    <p className="mb-6 text-sm font-bold text-slate-400">Pour débloquer l'automatisation, le suivi avancé et l'assistant IA.</p>
                     
                     <ul className="space-y-4 mb-10">
                        <li className="flex items-center gap-3 text-[11px] font-bold text-slate-400">
@@ -612,7 +732,11 @@ const Settings = () => {
                  </div>
                  
                  {user?.subscription?.plan === 'STARTER' ? (
-                   <button className="w-full py-4 bg-white text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-white/5 hover:scale-[1.02] active:scale-95 transition-all">
+                   <button
+                    type="button"
+                    onClick={() => navigate('/pricing')}
+                    className="w-full py-4 bg-white text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-white/5 hover:scale-[1.02] active:scale-95 transition-all"
+                   >
                       S'abonner maintenant
                    </button>
                  ) : (
@@ -630,13 +754,17 @@ const Settings = () => {
                      <Building2 size={32} />
                   </div>
                   <div>
-                     <h4 className="text-xl font-black text-slate-900 font-display italic">Forfait Enterprise</h4>
+                     <h4 className="text-xl font-black text-slate-900 font-display italic">Forfait Max</h4>
                      <p className="text-sm text-slate-500 font-medium">Solutions sur-mesure pour les grandes équipes et franchises.</p>
                   </div>
                </div>
                <div className="flex flex-col items-center md:items-end gap-2">
-                  <div className="text-2xl font-black text-slate-900 tracking-tighter">Sur Devis</div>
-                  <button className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-slate-900 active:scale-95 transition-all">
+                  <div className="text-sm font-black text-slate-900 tracking-tight">Accompagnement avancé</div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/signature-ttn')}
+                    className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-slate-900 active:scale-95 transition-all"
+                  >
                      Contacter un expert
                   </button>
                </div>

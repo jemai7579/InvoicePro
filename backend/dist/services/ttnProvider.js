@@ -1,13 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getTTNMode = exports.getTTNProvider = void 0;
-const getMode = () => {
-    const mode = (process.env.TTN_MODE || 'mock').toLowerCase();
-    if (mode === 'webservice' || mode === 'sftp' || mode === 'provider')
-        return mode;
-    return 'mock';
-};
+const einvoiceConfig_1 = require("./einvoiceConfig");
+const getMode = () => (0, einvoiceConfig_1.getEInvoiceConfig)().mode;
 class MockTTNProvider {
+    async authenticate() {
+        return { accessToken: 'mock-token', mode: 'mock' };
+    }
     async submitSignedInvoice({ invoiceId }) {
         return {
             submissionId: `MOCK-SUB-${invoiceId.slice(0, 8).toUpperCase()}-${Date.now()}`,
@@ -48,18 +47,29 @@ class MockTTNProvider {
             mode: 'mock',
         };
     }
+    async downloadTtnProof() {
+        return null;
+    }
 }
 class PlaceholderTTNProvider {
     constructor(mode) {
         this.mode = mode;
     }
+    async authenticate() {
+        (0, einvoiceConfig_1.assertProductionTTNConfigured)();
+        throw new Error('TTN_API_NOT_CONFIGURED: Official TTN authentication contract is not implemented yet.');
+    }
     async submitSignedInvoice() {
-        // TODO: Implement the real TTN submission transport here for webservice, sftp, or partner provider mode.
-        throw new Error(`TTN mode "${this.mode}" is configured but the real connector is not implemented yet.`);
+        (0, einvoiceConfig_1.assertProductionTTNConfigured)();
+        throw new Error('TTN_API_NOT_CONFIGURED: Please configure official TTN API credentials and endpoints before production use.');
     }
     async getSubmissionStatus() {
-        // TODO: Implement the real TTN status polling here for webservice, sftp, or partner provider mode.
-        throw new Error(`TTN mode "${this.mode}" is configured but the real connector is not implemented yet.`);
+        (0, einvoiceConfig_1.assertProductionTTNConfigured)();
+        throw new Error('TTN_API_NOT_CONFIGURED: Please configure official TTN API credentials and endpoints before production use.');
+    }
+    async downloadTtnProof() {
+        (0, einvoiceConfig_1.assertProductionTTNConfigured)();
+        throw new Error('TTN_API_NOT_CONFIGURED: Please configure official TTN API credentials and endpoints before production use.');
     }
 }
 const getTTNProvider = () => {

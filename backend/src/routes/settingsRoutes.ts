@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { getSettings, updateSettings, uploadCertificate, uploadLogo, getSettingsHistory } from '../controllers/settingsController';
+import { getSettings, updateSettings, uploadCertificate, uploadLogo, getSettingsHistory, getEInvoiceStatus } from '../controllers/settingsController';
 import { protect } from '../middleware/authMiddleware';
+import { requireCompanyRole } from '../middleware/permissionMiddleware';
 import multer from 'multer';
 
 const router = Router();
@@ -18,10 +19,11 @@ const upload = multer({
 
 router.route('/')
   .get(protect, getSettings)
-  .put(protect, updateSettings);
+  .put(protect, requireCompanyRole(['admin'], 'configuration des paramètres'), updateSettings);
 
-router.post('/certificate', protect, upload.single('certificate'), uploadCertificate);
+router.post('/certificate', protect, requireCompanyRole(['admin'], 'configuration de la signature électronique'), upload.single('certificate'), uploadCertificate);
 router.post('/logo', protect, upload.single('logo'), uploadLogo);
 router.get('/history', protect, getSettingsHistory);
+router.get('/einvoice/status', protect, getEInvoiceStatus);
 
 export default router;

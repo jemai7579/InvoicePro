@@ -1,7 +1,8 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminAuthContext } from '../../context/AdminAuthContext';
-import { ShieldCheck, Lock, Mail, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import BrandLogo from '../../components/BrandLogo';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -37,13 +38,11 @@ const AdminLogin = () => {
         
         {/* Brand */}
         <div className="flex flex-col items-center mb-10">
-          <div className="bg-premium-600 p-4 rounded-3xl shadow-2xl shadow-premium-500/20 mb-6 group hover:rotate-6 transition-transform duration-500">
-            <ShieldCheck className="w-10 h-10 text-white" />
-          </div>
+          <BrandLogo tone="dark" className="mb-6 h-16 w-auto max-w-[280px]" />
           <h1 className="text-3xl font-black text-white tracking-tight">
-            Plateforme <span className="text-premium-500 italic">Admin</span>
+            InvoicePro <span className="text-premium-500 italic">Admin</span>
           </h1>
-          <p className="text-slate-500 font-medium mt-2 uppercase tracking-widest text-[10px]">Espace de contrôle global El Fatoora</p>
+          <p className="text-slate-500 font-medium mt-2 uppercase tracking-widest text-[10px]">Espace de contrôle global InvoicePro</p>
         </div>
 
         <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-10 rounded-[32px] shadow-2xl">
@@ -65,7 +64,7 @@ const AdminLogin = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-slate-900 border border-white/5 rounded-2xl py-4 ps-12 pe-4 text-white text-sm font-medium focus:ring-4 focus:ring-premium-500/20 focus:border-premium-500 outline-none transition-all placeholder:text-slate-600"
-                  placeholder="admin@elfatoora.tn"
+                  placeholder="admin@invoicepro.tn"
                   required
                 />
               </div>

@@ -1,24 +1,25 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Loader, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Loader, Lock, Mail } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import BrandLogo from '../components/BrandLogo';
 
 const testimonialByLang = {
   fr: {
     quote: 'Une plateforme claire pour preparer, envoyer et suivre nos factures electroniques en toute confiance.',
     author: 'Entreprise tunisienne',
-    role: 'Utilisateur El Fatoura',
+    role: 'Utilisateur InvoicePro',
   },
   en: {
     quote: 'A clear platform to prepare, send and track our electronic invoices with confidence.',
     author: 'Tunisian company',
-    role: 'El Fatoura user',
+    role: 'InvoicePro user',
   },
   ar: {
     quote: 'منصة واضحة تساعدنا على اعداد الفواتير الالكترونية وارسالها ومتابعتها بثقة.',
     author: 'شركة تونسية',
-    role: 'مستخدم El Fatoura',
+    role: 'مستخدم InvoicePro',
   },
 };
 
@@ -60,10 +61,7 @@ const Login = () => {
 
         <div className="relative z-10 max-w-md text-white">
           <Link to="/" className="group mb-12 inline-flex items-center gap-3">
-            <div className="rounded-2xl bg-indigo-600 p-3 shadow-xl shadow-indigo-900/20 transition-transform group-hover:scale-110">
-              <ShieldCheck className="h-8 w-8 text-white" />
-            </div>
-            <span className="text-3xl font-black tracking-tight">El Fatoura</span>
+            <BrandLogo tone="dark" className="h-14 w-auto max-w-[270px]" />
           </Link>
 
           <h2 className="mb-8 text-4xl font-black leading-tight">{t('landing.hero.title')}</h2>
@@ -96,10 +94,7 @@ const Login = () => {
         <div className="w-full max-w-md space-y-8 animate-in slide-in-from-bottom-4 duration-700">
           <div className="mb-8 text-center lg:hidden">
             <Link to="/" className="mb-4 inline-flex items-center gap-3">
-              <div className="rounded-xl bg-indigo-600 p-2.5 shadow-lg">
-                <ShieldCheck className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-2xl font-black tracking-tight text-slate-900">El Fatoura</span>
+              <BrandLogo className="h-11 w-auto max-w-[220px]" />
             </Link>
           </div>
 
@@ -185,7 +180,7 @@ const Login = () => {
             </div>
           </div>
 
-          <p className="text-center text-xs font-medium text-slate-400">© 2024 El Fatoura. {t('landing.footer.madeIn')}</p>
+          <p className="text-center text-xs font-medium text-slate-400">© 2024 InvoicePro. {t('landing.footer.madeIn')}</p>
         </div>
       </div>
     </div>

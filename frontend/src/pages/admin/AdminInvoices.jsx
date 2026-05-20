@@ -17,6 +17,7 @@ import api from '../../services/api';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { getPlanLabel } from '../../utils/planLabels';
 
 const statusVariant = (value) => {
   if (['FINALIZED', 'TTN_ACCEPTED', 'PAID', 'VALIDATED'].includes(value)) return 'success';
@@ -137,7 +138,7 @@ const AdminInvoices = () => {
           </select>
           <div className="grid grid-cols-2 gap-3">
             <select value={planFilter} onChange={(event) => setPlanFilter(event.target.value)} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm outline-none">
-              {['all', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE'].map((option) => <option key={option} value={option}>{option === 'all' ? 'Plan' : option}</option>)}
+              {['all', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE'].map((option) => <option key={option} value={option}>{option === 'all' ? 'Plan' : getPlanLabel(option)}</option>)}
             </select>
             <select value={amountFilter} onChange={(event) => setAmountFilter(event.target.value)} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm outline-none">
               <option value="all">Montant</option>

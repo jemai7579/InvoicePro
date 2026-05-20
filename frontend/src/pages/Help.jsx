@@ -148,13 +148,13 @@ const Help = () => {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <h3 className="font-bold text-gray-900 mb-4">{t('helpPage.contactTitle')}</h3>
             <div className="space-y-4">
-              <a href="mailto:support@elfatoora.tn" className="flex items-center p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors group">
+              <a href="mailto:support@invoicepro.tn" className="flex items-center p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors group">
                 <div className="bg-blue-100 p-2 rounded-full me-3 group-hover:bg-blue-200 transition-colors">
                   <Mail className="w-4 h-4 text-blue-700" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900">{t('helpPage.emailLabel')}</p>
-                  <p className="text-xs text-gray-500">support@elfatoora.tn</p>
+                  <p className="text-xs text-gray-500">support@invoicepro.tn</p>
                 </div>
               </a>
               <a href="#" className="flex items-center p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors group">

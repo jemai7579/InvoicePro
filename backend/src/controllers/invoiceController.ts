@@ -22,7 +22,7 @@ import {
   sanitizeBusinessNumberForFileName,
 } from '../services/numberingService';
 import { appendComplianceStatus, writeComplianceMetadata } from '../services/complianceStorage';
-import { logActivity } from '../services/auditTrailService';
+import { logActivity, getRequestAuditMeta } from '../services/auditTrailService';
 
 const VALID_STATUSES = ['DRAFT', 'VALIDATED', 'TEIF_GENERATED', 'SIGNED', 'SENT_TO_TTN', 'PENDING_TTN', 'ACCEPTED_TTN', 'REJECTED_TTN', 'CANCELLED'];
 
@@ -141,6 +141,17 @@ export const getInvoicePdf = async (req: Request, res: Response) => {
     const enriched = await enrichInvoiceWithCompliance(invoice as any);
     const pdfBuffer = await generatePdf(invoice, 'FACTURE', enriched);
     const invoiceNumber = sanitizeBusinessNumberForFileName(getInvoiceVisibleNumber(invoice));
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: 'PDF_DOWNLOADED',
+      objectType: 'INVOICE',
+      objectId: invoice.id,
+      message: 'PDF facture telecharge.',
+      metadata: { final: false },
+      ...getRequestAuditMeta(req),
+    });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=Invoice_${invoiceNumber}.pdf`);
@@ -161,6 +172,17 @@ export const getFinalInvoicePdf = async (req: Request, res: Response) => {
 
     const { pdfBuffer } = await finalizeInvoicePdf(invoice as any);
     const invoiceNumber = sanitizeBusinessNumberForFileName(getInvoiceVisibleNumber(invoice));
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: 'PDF_DOWNLOADED',
+      objectType: 'INVOICE',
+      objectId: invoice.id,
+      message: 'PDF final facture telecharge.',
+      metadata: { final: true },
+      ...getRequestAuditMeta(req),
+    });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=Invoice_${invoiceNumber}_final.pdf`);
@@ -181,6 +203,16 @@ export const getInvoiceXml = async (req: Request, res: Response) => {
 
     const xmlContent = await getDownloadableTeifXml(invoice as any);
     const invoiceNumber = sanitizeBusinessNumberForFileName(getInvoiceVisibleNumber(invoice));
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: 'XML_DOWNLOADED',
+      objectType: 'INVOICE',
+      objectId: invoice.id,
+      message: 'XML TEIF telecharge.',
+      ...getRequestAuditMeta(req),
+    });
 
     res.setHeader('Content-Type', 'application/xml');
     res.setHeader('Content-Disposition', `attachment; filename=TEIF_${invoiceNumber}.xml`);
@@ -232,6 +264,7 @@ export const generateInvoiceTeifController = async (req: Request, res: Response)
       objectId: invoice.id,
       message: 'XML TEIF genere pour la facture.',
       metadata: { teifXmlPath: metadata.teifXmlPath },
+      ...getRequestAuditMeta(req),
     });
     const updatedInvoice = await getSerializedInvoice(invoice.id, (req as any).company.id);
     res.status(200).json({
@@ -253,7 +286,7 @@ export const signInvoiceTeifController = async (req: Request, res: Response) => 
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    const { metadata } = await signInvoiceTeifXml(invoice as any);
+    const { metadata } = await signInvoiceTeifXml(invoice as any, (req as any).company.id);
     await logActivity({
       companyId: (req as any).company.id,
       actorId: (req as any).company.id,
@@ -263,16 +296,34 @@ export const signInvoiceTeifController = async (req: Request, res: Response) => 
       objectId: invoice.id,
       message: 'Facture signee electroniquement.',
       metadata: { signatureProvider: metadata.signatureProvider },
+      ...getRequestAuditMeta(req),
     });
     const updatedInvoice = await getSerializedInvoice(invoice.id, (req as any).company.id);
+    const isMockSignature = metadata.signatureStatus === 'mock_signed';
     res.status(200).json({
-      message: 'La facture a ete signee electroniquement.',
+      message: isMockSignature
+        ? "La facture a été signée en mode simulation. Ce document n'a pas de valeur légale."
+        : 'La facture a été signée électroniquement avec succès via le fournisseur configuré.',
       signedXmlPath: metadata.signedXmlPath,
       signatureProvider: metadata.signatureProvider,
       invoice: updatedInvoice,
     });
   } catch (error: any) {
     console.error('Error signing TEIF XML', error);
+    const companyId = (req as any).company?.id;
+    if (companyId) {
+      await logActivity({
+        companyId,
+        actorId: companyId,
+        actorType: 'USER',
+        actionType: 'SIGNATURE_FAILED',
+        objectType: 'INVOICE',
+        objectId: req.params.id as string,
+        message: 'Signature electronique echouee.',
+        errorMessage: error.message,
+        ...getRequestAuditMeta(req),
+      }).catch(console.error);
+    }
     res.status(400).json({ message: error.message || 'Failed to sign TEIF XML.' });
   }
 };
@@ -336,6 +387,8 @@ export const createInvoice = async (req: Request, res: Response) => {
           devisId: devisId || null,
           status: 'DRAFT',
           ttnStatus: 'DRAFT',
+          legalStatus: 'draft',
+          paymentStatus: 'unpaid',
           totalHT,
           totalTVA,
           totalTTC,
@@ -368,6 +421,7 @@ export const createInvoice = async (req: Request, res: Response) => {
       objectId: createdInvoice.id,
       message: 'Facture creee.',
       newValue: invoice,
+      ...getRequestAuditMeta(req),
     });
     res.status(201).json(invoice);
   } catch (error) {
@@ -451,6 +505,18 @@ export const updateInvoice = async (req: Request, res: Response) => {
           status: 'DRAFT',
           ttnStatus: 'DRAFT',
           ttnId: null,
+          ttnReference: null,
+          legalStatus: 'draft',
+          paymentStatus: 'unpaid',
+          teifXmlPath: null,
+          teifXmlHash: null,
+          teifGeneratedAt: null,
+          teifVersion: null,
+          signedXmlPath: null,
+          signatureStatus: null,
+          signatureTimestamp: null,
+          signedByUserId: null,
+          certificateIdentifier: null,
           totalHT,
           totalTVA,
           totalTTC,
@@ -486,6 +552,18 @@ export const updateInvoice = async (req: Request, res: Response) => {
     });
 
     const updated = await getSerializedInvoice(existingInvoice.id, companyId);
+    await logActivity({
+      companyId,
+      actorId: companyId,
+      actorType: 'USER',
+      actionType: 'UPDATED',
+      objectType: 'INVOICE',
+      objectId: existingInvoice.id,
+      message: 'Facture mise a jour et remise en brouillon.',
+      oldValue: existingInvoice,
+      newValue: updated,
+      ...getRequestAuditMeta(req),
+    });
     res.status(200).json(updated);
   } catch (error) {
     console.error('Error updating invoice:', error);
@@ -623,6 +701,7 @@ export const updateInvoiceStatus = async (req: Request, res: Response) => {
             number,
             status: 'VALIDATED',
             ttnStatus: 'VALIDATED',
+            legalStatus: 'ready_for_signature',
           },
         });
       });
@@ -644,6 +723,7 @@ export const updateInvoiceStatus = async (req: Request, res: Response) => {
       objectId: req.params.id as string,
       message: `Statut facture change vers ${status}.`,
       metadata: { status },
+      ...getRequestAuditMeta(req),
     });
     res.status(200).json(updated);
   } catch (error) {
@@ -670,6 +750,7 @@ export const submitToTTNController = async (req: Request, res: Response) => {
       objectId: invoice.id,
       message: 'Facture envoyee a TTN.',
       metadata: { message: result.message },
+      ...getRequestAuditMeta(req),
     });
     const updatedInvoice = await getSerializedInvoice(invoice.id, (req as any).company.id);
     res.status(200).json({
@@ -700,6 +781,7 @@ export const checkTTNStatusController = async (req: Request, res: Response) => {
       objectId: invoice.id,
       message: result.message,
       metadata: { status: result.status, ttnReference: result.ttnReference, rejectionReason: result.rejectionReason },
+      ...getRequestAuditMeta(req),
     });
     const updatedInvoice = await getSerializedInvoice(invoice.id, (req as any).company.id);
 
@@ -817,6 +899,8 @@ export const importInvoiceXml = async (req: Request, res: Response) => {
           clientId: client.id,
           status: 'VALIDATED',
           ttnStatus: 'VALIDATED',
+          legalStatus: 'ready_for_signature',
+          paymentStatus: 'unpaid',
           totalHT,
           totalTVA,
           totalTTC,

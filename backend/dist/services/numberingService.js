@@ -4,6 +4,7 @@ exports.sanitizeBusinessNumberForFileName = exports.getClientVisibleNumber = exp
 const PREFIX_BY_TYPE = {
     INVOICE: 'FAC',
     DEVIS: 'DEV',
+    OFFER: 'OFF',
     PROJECT: 'PRJ',
     CLIENT: 'CL',
 };

@@ -330,7 +330,7 @@ const sendProject = async (req, res) => {
         const html = `
       <div style="font-family: Arial, sans-serif; color: #0f172a;">
         <p>Bonjour,</p>
-        <p>${company.name} vous a envoye un projet / bon de commande depuis El Fatoura.</p>
+        <p>${company.name} vous a envoye un projet / bon de commande depuis InvoicePro.</p>
         <p><strong>${data.title || 'Projet'}</strong></p>
         <p>${data.description || ''}</p>
         <p>Connectez-vous a la plateforme pour accepter ou refuser la demande.</p>

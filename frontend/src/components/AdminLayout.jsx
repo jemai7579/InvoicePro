@@ -15,13 +15,13 @@ import {
   Menu,
   Receipt,
   Settings,
-  ShieldCheck,
   Users,
   Wallet,
   Wifi,
   X,
 } from 'lucide-react';
 import { AdminAuthContext } from '../context/AdminAuthContext';
+import BrandLogo from './BrandLogo';
 
 const NAV_ITEMS = [
   { id: 'overview', path: '/admin', label: 'Vue globale', icon: LayoutDashboard, aliases: ['/admin/dashboard'] },
@@ -73,11 +73,8 @@ const AdminLayout = () => {
       >
         <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
           <Link to="/admin" className="flex items-center gap-3">
-            <div className="bg-premium-600 p-2 rounded-xl shadow-lg shadow-premium-900/30">
-              <ShieldCheck className="w-5 h-5 text-white" />
-            </div>
+            <BrandLogo variant="icon" className="h-9 w-9 rounded-xl" />
             <div>
-              <div className="text-lg font-black tracking-tight">El Fatoora</div>
               <div className="text-[10px] font-black uppercase tracking-[0.25em] text-premium-300">Admin Control</div>
             </div>
           </Link>

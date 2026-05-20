@@ -22,7 +22,7 @@ const Terms = () => {
             <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-black tracking-tight text-slate-800">El Fatoura</span>
+            <span className="text-xl font-black tracking-tight text-slate-800">InvoicePro</span>
           </div>
         </div>
       </nav>
@@ -100,6 +100,9 @@ const Terms = () => {
               <p className="text-slate-600 leading-relaxed">
                 La plateforme présente des informations d’accompagnement concernant les types de signature électronique, l’adhésion TTN et les étapes de configuration. Ces informations sont fournies à titre d’aide et peuvent nécessiter une vérification auprès des organismes officiels ou prestataires concernés. L’utilisateur reste responsable du choix final de sa signature électronique et de la validation de sa conformité.
               </p>
+              <p className="text-slate-600 leading-relaxed">
+                Les informations relatives à E-Houwiya / Mobile ID, à l’adhésion TTN et aux types de signature électronique sont fournies à titre d’accompagnement. Leur validité, disponibilité et caractère obligatoire doivent être confirmés auprès des organismes officiels concernés.
+              </p>
             </section>
           </div>
           
@@ -112,7 +115,7 @@ const Terms = () => {
       </div>
 
       <footer className="py-12 bg-white border-t border-slate-100 text-center">
-        <p className="text-sm text-slate-400 font-medium">© 2026 El Fatoura. {t('landing.footer.madeIn')}</p>
+        <p className="text-sm text-slate-400 font-medium">© 2026 InvoicePro. {t('landing.footer.madeIn')}</p>
       </footer>
     </div>
   );

@@ -13,6 +13,7 @@ const mailer_1 = require("../utils/mailer");
 const teifWorkflowService_1 = require("../services/teifWorkflowService");
 const numberingService_1 = require("../services/numberingService");
 const complianceStorage_1 = require("../services/complianceStorage");
+const auditTrailService_1 = require("../services/auditTrailService");
 const VALID_STATUSES = ['DRAFT', 'VALIDATED', 'TEIF_GENERATED', 'SIGNED', 'SENT_TO_TTN', 'PENDING_TTN', 'ACCEPTED_TTN', 'REJECTED_TTN', 'CANCELLED'];
 const getOwnedInvoice = async (invoiceId, companyId) => (0, teifWorkflowService_1.getInvoiceByIdForCompliance)(invoiceId, companyId);
 const getSerializedInvoice = async (invoiceId, companyId) => {
@@ -61,6 +62,7 @@ const getInvoices = async (req, res) => {
                 company: true,
                 client: true,
                 lines: true,
+                payments: true,
             },
             orderBy: { createdAt: 'desc' },
         });
@@ -84,6 +86,7 @@ const getInvoiceById = async (req, res) => {
                 client: true,
                 lines: true,
                 company: true,
+                payments: true,
             },
         });
         if (!invoice) {
@@ -106,6 +109,17 @@ const getInvoicePdf = async (req, res) => {
         const enriched = await (0, teifWorkflowService_1.enrichInvoiceWithCompliance)(invoice);
         const pdfBuffer = await (0, pdfGenerator_1.default)(invoice, 'FACTURE', enriched);
         const invoiceNumber = (0, numberingService_1.sanitizeBusinessNumberForFileName)((0, numberingService_1.getInvoiceVisibleNumber)(invoice));
+        await (0, auditTrailService_1.logActivity)({
+            companyId: req.company.id,
+            actorId: req.company.id,
+            actorType: 'USER',
+            actionType: 'PDF_DOWNLOADED',
+            objectType: 'INVOICE',
+            objectId: invoice.id,
+            message: 'PDF facture telecharge.',
+            metadata: { final: false },
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+        });
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Invoice_${invoiceNumber}.pdf`);
         res.status(200).send(pdfBuffer);
@@ -124,6 +138,17 @@ const getFinalInvoicePdf = async (req, res) => {
         }
         const { pdfBuffer } = await (0, teifWorkflowService_1.finalizeInvoicePdf)(invoice);
         const invoiceNumber = (0, numberingService_1.sanitizeBusinessNumberForFileName)((0, numberingService_1.getInvoiceVisibleNumber)(invoice));
+        await (0, auditTrailService_1.logActivity)({
+            companyId: req.company.id,
+            actorId: req.company.id,
+            actorType: 'USER',
+            actionType: 'PDF_DOWNLOADED',
+            objectType: 'INVOICE',
+            objectId: invoice.id,
+            message: 'PDF final facture telecharge.',
+            metadata: { final: true },
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+        });
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Invoice_${invoiceNumber}_final.pdf`);
         res.status(200).send(pdfBuffer);
@@ -142,6 +167,16 @@ const getInvoiceXml = async (req, res) => {
         }
         const xmlContent = await (0, teifWorkflowService_1.getDownloadableTeifXml)(invoice);
         const invoiceNumber = (0, numberingService_1.sanitizeBusinessNumberForFileName)((0, numberingService_1.getInvoiceVisibleNumber)(invoice));
+        await (0, auditTrailService_1.logActivity)({
+            companyId: req.company.id,
+            actorId: req.company.id,
+            actorType: 'USER',
+            actionType: 'XML_DOWNLOADED',
+            objectType: 'INVOICE',
+            objectId: invoice.id,
+            message: 'XML TEIF telecharge.',
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+        });
         res.setHeader('Content-Type', 'application/xml');
         res.setHeader('Content-Disposition', `attachment; filename=TEIF_${invoiceNumber}.xml`);
         res.status(200).send(xmlContent);
@@ -180,6 +215,17 @@ const generateInvoiceTeifController = async (req, res) => {
             return res.status(404).json({ message: 'Invoice not found' });
         }
         const { metadata } = await (0, teifWorkflowService_1.generateInvoiceTeifXml)(invoice);
+        await (0, auditTrailService_1.logActivity)({
+            companyId: req.company.id,
+            actorId: req.company.id,
+            actorType: 'USER',
+            actionType: 'XML_GENERATED',
+            objectType: 'INVOICE',
+            objectId: invoice.id,
+            message: 'XML TEIF genere pour la facture.',
+            metadata: { teifXmlPath: metadata.teifXmlPath },
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+        });
         const updatedInvoice = await getSerializedInvoice(invoice.id, req.company.id);
         res.status(200).json({
             message: 'Le fichier XML TEIF a ete genere avec succes.',
@@ -199,10 +245,24 @@ const signInvoiceTeifController = async (req, res) => {
         if (!invoice) {
             return res.status(404).json({ message: 'Invoice not found' });
         }
-        const { metadata } = await (0, teifWorkflowService_1.signInvoiceTeifXml)(invoice);
+        const { metadata } = await (0, teifWorkflowService_1.signInvoiceTeifXml)(invoice, req.company.id);
+        await (0, auditTrailService_1.logActivity)({
+            companyId: req.company.id,
+            actorId: req.company.id,
+            actorType: 'USER',
+            actionType: 'SIGNED',
+            objectType: 'INVOICE',
+            objectId: invoice.id,
+            message: 'Facture signee electroniquement.',
+            metadata: { signatureProvider: metadata.signatureProvider },
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+        });
         const updatedInvoice = await getSerializedInvoice(invoice.id, req.company.id);
+        const isMockSignature = metadata.signatureStatus === 'mock_signed';
         res.status(200).json({
-            message: 'La facture a ete signee electroniquement.',
+            message: isMockSignature
+                ? "La facture a été signée en mode simulation. Ce document n'a pas de valeur légale."
+                : 'La facture a été signée électroniquement avec succès via le fournisseur configuré.',
             signedXmlPath: metadata.signedXmlPath,
             signatureProvider: metadata.signatureProvider,
             invoice: updatedInvoice,
@@ -210,6 +270,20 @@ const signInvoiceTeifController = async (req, res) => {
     }
     catch (error) {
         console.error('Error signing TEIF XML', error);
+        const companyId = req.company?.id;
+        if (companyId) {
+            await (0, auditTrailService_1.logActivity)({
+                companyId,
+                actorId: companyId,
+                actorType: 'USER',
+                actionType: 'SIGNATURE_FAILED',
+                objectType: 'INVOICE',
+                objectId: req.params.id,
+                message: 'Signature electronique echouee.',
+                errorMessage: error.message,
+                ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+            }).catch(console.error);
+        }
         res.status(400).json({ message: error.message || 'Failed to sign TEIF XML.' });
     }
 };
@@ -248,13 +322,19 @@ const createInvoice = async (req, res) => {
         const safeWithholdingTax = Number(withholdingTax ?? 0);
         const { processedLines, totalHT, totalTVA, totalTTC, netToPay } = buildInvoiceTotals(normalizedLines, safeStampDuty, safeWithholdingTax);
         const createdInvoice = await prisma_1.default.$transaction(async (tx) => {
+            // Assign the invoice number immediately at creation so it is visible
+            // even while the invoice is still a draft.
+            const number = await (0, numberingService_1.generateBusinessNumber)(tx, companyId, 'INVOICE');
             const invoice = await tx.invoice.create({
                 data: {
                     companyId,
                     clientId,
+                    number,
                     devisId: devisId || null,
                     status: 'DRAFT',
                     ttnStatus: 'DRAFT',
+                    legalStatus: 'draft',
+                    paymentStatus: 'unpaid',
                     totalHT,
                     totalTVA,
                     totalTTC,
@@ -275,6 +355,17 @@ const createInvoice = async (req, res) => {
             return invoice;
         });
         const invoice = await getSerializedInvoice(createdInvoice.id, companyId);
+        await (0, auditTrailService_1.logActivity)({
+            companyId,
+            actorId: companyId,
+            actorType: 'USER',
+            actionType: 'CREATED',
+            objectType: 'INVOICE',
+            objectId: createdInvoice.id,
+            message: 'Facture creee.',
+            newValue: invoice,
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+        });
         res.status(201).json(invoice);
     }
     catch (error) {
@@ -340,6 +431,18 @@ const updateInvoice = async (req, res) => {
                     status: 'DRAFT',
                     ttnStatus: 'DRAFT',
                     ttnId: null,
+                    ttnReference: null,
+                    legalStatus: 'draft',
+                    paymentStatus: 'unpaid',
+                    teifXmlPath: null,
+                    teifXmlHash: null,
+                    teifGeneratedAt: null,
+                    teifVersion: null,
+                    signedXmlPath: null,
+                    signatureStatus: null,
+                    signatureTimestamp: null,
+                    signedByUserId: null,
+                    certificateIdentifier: null,
                     totalHT,
                     totalTVA,
                     totalTTC,
@@ -373,6 +476,18 @@ const updateInvoice = async (req, res) => {
             ],
         });
         const updated = await getSerializedInvoice(existingInvoice.id, companyId);
+        await (0, auditTrailService_1.logActivity)({
+            companyId,
+            actorId: companyId,
+            actorType: 'USER',
+            actionType: 'UPDATED',
+            objectType: 'INVOICE',
+            objectId: existingInvoice.id,
+            message: 'Facture mise a jour et remise en brouillon.',
+            oldValue: existingInvoice,
+            newValue: updated,
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+        });
         res.status(200).json(updated);
     }
     catch (error) {
@@ -495,6 +610,7 @@ const updateInvoiceStatus = async (req, res) => {
                         number,
                         status: 'VALIDATED',
                         ttnStatus: 'VALIDATED',
+                        legalStatus: 'ready_for_signature',
                     },
                 });
             });
@@ -507,6 +623,17 @@ const updateInvoiceStatus = async (req, res) => {
             });
         }
         const updated = await getSerializedInvoice(req.params.id, req.company.id);
+        await (0, auditTrailService_1.logActivity)({
+            companyId: req.company.id,
+            actorId: req.company.id,
+            actorType: 'USER',
+            actionType: status === 'VALIDATED' ? 'STATUS_CHANGED' : 'UPDATED',
+            objectType: 'INVOICE',
+            objectId: req.params.id,
+            message: `Statut facture change vers ${status}.`,
+            metadata: { status },
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+        });
         res.status(200).json(updated);
     }
     catch (error) {
@@ -522,6 +649,17 @@ const submitToTTNController = async (req, res) => {
             return res.status(404).json({ message: 'Invoice not found' });
         }
         const result = await (0, teifWorkflowService_1.submitInvoiceToTTNWorkflow)(invoice);
+        await (0, auditTrailService_1.logActivity)({
+            companyId: req.company.id,
+            actorId: req.company.id,
+            actorType: 'USER',
+            actionType: 'SUBMITTED_TTN',
+            objectType: 'TTN_SUBMISSION',
+            objectId: invoice.id,
+            message: 'Facture envoyee a TTN.',
+            metadata: { message: result.message },
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+        });
         const updatedInvoice = await getSerializedInvoice(invoice.id, req.company.id);
         res.status(200).json({
             message: result.message,
@@ -542,6 +680,16 @@ const checkTTNStatusController = async (req, res) => {
         }
         const { simulateDecision } = req.body || {};
         const { result } = await (0, teifWorkflowService_1.syncInvoiceTTNStatus)(invoice, simulateDecision || null);
+        await (0, auditTrailService_1.logActivity)({
+            companyId: req.company.id,
+            actorType: 'TTN',
+            actionType: result.status === 'ACCEPTED_TTN' ? 'VALIDATED_TTN' : result.status === 'REJECTED_TTN' ? 'REJECTED_TTN' : 'STATUS_CHANGED',
+            objectType: 'TTN_SUBMISSION',
+            objectId: invoice.id,
+            message: result.message,
+            metadata: { status: result.status, ttnReference: result.ttnReference, rejectionReason: result.rejectionReason },
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+        });
         const updatedInvoice = await getSerializedInvoice(invoice.id, req.company.id);
         res.status(200).json({
             message: result.message,
@@ -640,6 +788,8 @@ const importInvoiceXml = async (req, res) => {
                     clientId: client.id,
                     status: 'VALIDATED',
                     ttnStatus: 'VALIDATED',
+                    legalStatus: 'ready_for_signature',
+                    paymentStatus: 'unpaid',
                     totalHT,
                     totalTVA,
                     totalTTC,

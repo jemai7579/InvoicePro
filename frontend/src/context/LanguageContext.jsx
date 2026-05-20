@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
 import translations from '../i18n/translations';
@@ -388,7 +389,7 @@ const runtimeOverrides = {
 export const LanguageProvider = ({ children }) => {
   const [lang, setLangState] = useState(() => {
     try {
-      const saved = localStorage.getItem('el_fatoora_lang');
+      const saved = localStorage.getItem('invoicepro_lang');
       return (saved === 'fr' || saved === 'en' || saved === 'ar') ? saved : 'fr';
     } catch {
       return 'fr';
@@ -399,7 +400,7 @@ export const LanguageProvider = ({ children }) => {
     if (newLang === 'fr' || newLang === 'en' || newLang === 'ar') {
       setLangState(newLang);
       try {
-        localStorage.setItem('el_fatoora_lang', newLang);
+        localStorage.setItem('invoicepro_lang', newLang);
       } catch {
         console.warn('LocalStorage not available');
       }

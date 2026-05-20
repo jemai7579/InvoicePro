@@ -7,6 +7,7 @@ exports.sendDevisEmailController = exports.getDevisPdf = exports.deleteDevis = e
 const prisma_1 = __importDefault(require("../prisma"));
 const notificationHelper_1 = require("../utils/notificationHelper");
 const numberingService_1 = require("../services/numberingService");
+const auditTrailService_1 = require("../services/auditTrailService");
 const getDevis = async (req, res) => {
     try {
         const devisList = await prisma_1.default.devis.findMany({
@@ -134,6 +135,16 @@ const createDevis = async (req, res) => {
         // Notification
         const clientRecord = await prisma_1.default.client.findUnique({ where: { id: clientId } });
         await (0, notificationHelper_1.createNotif)(req.company.id, 'Demande envoyée', `Demande envoyée au client ${clientRecord?.name ?? clientId}.`, 'DEMANDE_SENT');
+        await (0, auditTrailService_1.logActivity)({
+            companyId,
+            actorId: companyId,
+            actorType: 'USER',
+            actionType: 'CREATED',
+            objectType: 'DEVIS',
+            objectId: devis.id,
+            message: `Devis ${devis.number || devis.id.slice(0, 8)} cree.`,
+            newValue: devis,
+        });
         res.status(201).json(devis);
     }
     catch (error) {
@@ -169,6 +180,17 @@ const updateDevisStatus = async (req, res) => {
         else if (status === 'REJECTED') {
             await (0, notificationHelper_1.createNotif)(req.company.id, 'Demande rejetée', `La demande pour ${clientName} a été rejetée.`, 'DEMANDE_REJECTED');
         }
+        await (0, auditTrailService_1.logActivity)({
+            companyId: req.company.id,
+            actorId: req.company.id,
+            actorType: 'USER',
+            actionType: status === 'ACCEPTED' ? 'ACCEPTED' : status === 'REJECTED' ? 'REJECTED' : 'STATUS_CHANGED',
+            objectType: 'DEVIS',
+            objectId: devis.id,
+            message: `Statut devis change vers ${status}.`,
+            oldValue: { status: devis.status },
+            newValue: { status },
+        });
         res.status(200).json(updatedDevis);
     }
     catch (error) {
@@ -207,11 +229,13 @@ const convertDevisToInvoice = async (req, res) => {
             totalHT: line.totalHT
         }));
         const newInvoice = await prisma_1.default.$transaction(async (tx) => {
+            const number = await (0, numberingService_1.generateBusinessNumber)(tx, devis.companyId, 'INVOICE');
             const createdInvoice = await tx.invoice.create({
                 data: {
                     companyId: devis.companyId,
                     clientId: devis.clientId,
                     devisId: devis.id,
+                    number,
                     status: 'DRAFT',
                     ttnStatus: 'DRAFT',
                     totalHT: devis.totalHT,
@@ -230,6 +254,16 @@ const convertDevisToInvoice = async (req, res) => {
                 data: { status: 'ACCEPTED' }
             });
             return createdInvoice;
+        });
+        await (0, auditTrailService_1.logActivity)({
+            companyId: devis.companyId,
+            actorId: devis.companyId,
+            actorType: 'USER',
+            actionType: 'STATUS_CHANGED',
+            objectType: 'DEVIS',
+            objectId: devis.id,
+            message: `Devis ${devis.number || devis.id.slice(0, 8)} converti en facture.`,
+            metadata: { invoiceId: newInvoice.id },
         });
         res.status(201).json(newInvoice);
     }

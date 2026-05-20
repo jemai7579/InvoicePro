@@ -1,6 +1,46 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma';
 
+const parseOptionalNumber = (value: any) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const validateProductPayload = (body: any, partial = false) => {
+  const name = typeof body.name === 'string' ? body.name.trim() : body.name;
+  if (!partial && !name) {
+    return { error: 'Name is required' };
+  }
+  if (body.name !== undefined && !name) {
+    return { error: 'Name cannot be empty' };
+  }
+
+  const priceHT = parseOptionalNumber(body.priceHT);
+  if (!partial && priceHT === undefined) {
+    return { error: 'Price is required' };
+  }
+  if (priceHT === null || (priceHT !== undefined && priceHT < 0)) {
+    return { error: 'Price must be a valid positive number' };
+  }
+
+  const tvaRate = parseOptionalNumber(body.tvaRate);
+  if (tvaRate === null || (tvaRate !== undefined && (tvaRate < 0 || tvaRate > 100))) {
+    return { error: 'TVA rate must be between 0 and 100' };
+  }
+
+  return {
+    data: {
+      ...(body.code !== undefined ? { code: body.code || null } : {}),
+      ...(body.category !== undefined ? { category: body.category || null } : {}),
+      ...(body.name !== undefined ? { name } : {}),
+      ...(body.description !== undefined ? { description: body.description || null } : {}),
+      ...(priceHT !== undefined ? { priceHT } : {}),
+      ...(tvaRate !== undefined ? { tvaRate } : {}),
+    },
+  };
+};
+
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const products = await prisma.product.findMany({
@@ -34,21 +74,20 @@ export const getProductById = async (req: Request, res: Response) => {
 
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    const { code, category, name, description, priceHT, tvaRate } = req.body;
-
-    if (!name || priceHT === undefined) {
-      return res.status(400).json({ message: 'Name and price are required' });
+    const validation = validateProductPayload(req.body);
+    if (validation.error || !validation.data) {
+      return res.status(400).json({ message: validation.error });
     }
 
     const product = await prisma.product.create({
       data: {
         companyId: (req as any).company.id,
-        code,
-        category: category || null,
-        name,
-        description,
-        priceHT,
-        tvaRate: tvaRate || 19
+        code: validation.data.code ?? null,
+        category: validation.data.category ?? null,
+        name: validation.data.name,
+        description: validation.data.description ?? null,
+        priceHT: validation.data.priceHT as number,
+        tvaRate: validation.data.tvaRate ?? 19
       }
     });
 
@@ -71,11 +110,14 @@ export const updateProduct = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    const { code, category, name, description, priceHT, tvaRate } = req.body;
+    const validation = validateProductPayload(req.body, true);
+    if (validation.error || !validation.data) {
+      return res.status(400).json({ message: validation.error });
+    }
 
     const updatedProduct = await prisma.product.update({
       where: { id: req.params.id as string },
-      data: { code, category, name, description, priceHT, tvaRate }
+      data: validation.data
     });
 
     res.status(200).json(updatedProduct);

@@ -4,13 +4,15 @@ const translations = {
     nav: {
       dashboard: 'Tableau de bord',
       projectIdeas: 'Mes idées de projet',
-      offers: 'Mes offres & bons de commande',
+      offers: 'Offres & bons de commande',
+      quotes: 'Devis',
+      tracking: 'Suivi TTN',
       clients: 'Clients',
       network: 'Réseau professionnel',
       messages: 'Messages',
       payments: 'Règlements',
       history: 'Historique & Traçabilité',
-      invoices: 'Mes factures / notes d’honoraires',
+      invoices: 'Factures & notes d’honoraires',
       demandes: 'Demandes',
       teif: 'TEIF',
       products: 'Produits',
@@ -26,11 +28,11 @@ const translations = {
       loading: 'Chargement…',
     },
     onboarding: {
-      welcome: 'Bienvenue sur El Fatoura ! 🚀',
+      welcome: 'Bienvenue sur InvoicePro ! 🚀',
       subtitle: 'Complétez ces étapes pour commencer à facturer en toute conformité.',
-      step1: 'Paramètres entreprise',
-      step2: 'Ajouter votre 1er client',
-      step3: 'Certificat TunTrust',
+      step1: 'Profil entreprise',
+      step2: 'Premier client',
+      step3: 'E-Houwiya / Signature',
       complete: 'complété',
     },
     guide: {
@@ -97,7 +99,7 @@ const translations = {
       name: 'Nom de l\'entreprise',
       terms: 'J\'accepte les conditions générales et la politique de confidentialité.',
       success: 'Compte créé avec succès !',
-      submit: 'S\'inscrire sur El Fatoura',
+      submit: 'S\'inscrire sur InvoicePro',
       haveAccount: 'Déjà un compte ?',
       login: 'Se connecter',
       matricule: 'Matricule Fiscal',
@@ -108,7 +110,7 @@ const translations = {
       confirmPassword: 'Confirmer le mot de passe',
       forgotPassword: 'Mot de passe oublié ?',
       welcomeBack: 'Bon retour !',
-      loginSubtitle: 'Connectez-vous à votre espace El Fatoura',
+      loginSubtitle: 'Connectez-vous à votre espace InvoicePro',
       noAccount: 'Pas encore de compte ?',
       rememberMe: 'Se souvenir de moi',
       testimonial: {
@@ -167,7 +169,7 @@ const translations = {
       hero: {
         badge: 'Conforme aux normes TTN & TEIF Tunisie',
         title: 'Passez à la Facturation Électronique Intelligente.',
-        subtitle: 'La solution SaaS tout-en-un pour les entreprises Tunisiennes. Simple, conforme, et propulsée par l\'intelligence artificielle.',
+        subtitle: 'La solution SaaS tout-en-un pour gérer vos clients, devis, factures, règlements et conformité TTN en Tunisie.',
         cta: 'Démarrer maintenant',
         dashboard_cta: 'Continuer au Dashboard',
         demo: 'Voir la démo',
@@ -222,7 +224,7 @@ const translations = {
           title: 'Comment obtenir votre signature ?',
           step1: 'Créez un compte sur le portail TunTrust.',
           step2: 'Demandez un certificat de cachet électronique pour votre entreprise.',
-          step3: 'Une fois obtenu, téléchargez le fichier (.p12) dans vos paramètres El Fatoura.',
+          step3: 'Une fois obtenu, téléchargez le fichier (.p12) dans vos paramètres InvoicePro.',
         },
         cta: 'Accéder à TunTrust',
       },
@@ -236,7 +238,7 @@ const translations = {
       howItWorks: {
         title: 'Comment obtenir votre facture électronique',
         subtitle: "La création d'une facture électronique suit des étapes précises. Notre plateforme vous accompagne pas à pas dans ce processus pour garantir votre conformité.",
-        step1: { title: '1. Créer votre compte', desc: 'Inscrivez-vous sur El Fatoura en quelques clics pour accéder à votre espace de gestion dédié.' },
+        step1: { title: '1. Créer votre compte', desc: 'Inscrivez-vous sur InvoicePro en quelques clics pour accéder à votre espace de gestion dédié.' },
         step2: { title: '2. Informations entreprise', desc: 'Complétez votre profil : Matricule Fiscal, Registre de Commerce et coordonnées officielles.' },
         step3: { title: '3. Signature TunTrust', desc: 'Configurez votre certificat électronique TunTrust, indispensable pour la valeur légale de vos factures.' },
         step4: { title: '4. Ajouter un client', desc: 'Enregistrez les coordonnées de votre client ou sélectionnez un client existant dans votre base.' },
@@ -248,7 +250,7 @@ const translations = {
     },
     dashboard: {
       title: 'Tableau de bord',
-      welcome: 'Bienvenue sur votre espace El Fatoura',
+      welcome: 'Bienvenue sur votre espace InvoicePro',
       stats: {
         revenue: 'Revenu Total',
         monthly: 'Factures ce mois',
@@ -301,18 +303,18 @@ const translations = {
     },
     privacy: {
       title: 'Politique de Confidentialité',
-      subtitle: 'Comment nous protégeons vos données et respectons votre vie privée sur El Fatoura.',
+      subtitle: 'Comment nous protégeons vos données et respectons votre vie privée sur InvoicePro.',
       section1: {
         title: 'Collecte des données',
         content: 'Nous collectons uniquement les données nécessaires à la gestion de vos factures et à votre identification légale. Cela inclut votre matricule fiscal, vos coordonnées et vos informations de facturation conformément à la règlementation tunisienne.',
       },
       section2: {
         title: 'Utilisation des données',
-        content: 'Vos données sont utilisées exclusivement pour le bon fonctionnement de la plateforme El Fatoura, la génération de vos fichiers TEIF et la communication technique concernant votre compte.',
+        content: 'Vos données sont utilisées exclusivement pour le bon fonctionnement de la plateforme InvoicePro, la génération de vos fichiers TEIF et la communication technique concernant votre compte.',
       },
       section3: {
         title: 'Protection (Loi 2004-63)',
-        content: 'El Fatoura s\'engage à protéger vos données personnelles conformément à la loi n° 2004-63 du 27 juillet 2004. Vous disposez d\'un droit d\'accès, de modification et de suppression de vos données.',
+        content: 'InvoicePro s\'engage à protéger vos données personnelles conformément à la loi n° 2004-63 du 27 juillet 2004. Vous disposez d\'un droit d\'accès, de modification et de suppression de vos données.',
       },
       section4: {
         title: 'Sécurité des échanges',
@@ -322,14 +324,14 @@ const translations = {
     },
     terms: {
       title: 'Conditions Générales d\'Utilisation',
-      subtitle: 'Les règles d\'utilisation de la plateforme El Fatoura pour vos factures électroniques.',
+      subtitle: 'Les règles d\'utilisation de la plateforme InvoicePro pour vos factures électroniques.',
       section1: {
         title: 'Acceptation des conditions',
-        content: 'En créant un compte sur El Fatoura, vous acceptez sans réserve les présentes conditions d\'utilisation et vous vous engagez à fournir des informations exactes sur votre entreprise.',
+        content: 'En créant un compte sur InvoicePro, vous acceptez sans réserve les présentes conditions d\'utilisation et vous vous engagez à fournir des informations exactes sur votre entreprise.',
       },
       section2: {
         title: 'Propriété des données',
-        content: 'Vous restez propriétaire de toutes les données et factures générées sur la plateforme. El Fatoura n\'agit qu\'en tant que prestataire de service technique pour la dématérialisation.',
+        content: 'Vous restez propriétaire de toutes les données et factures générées sur la plateforme. InvoicePro n\'agit qu\'en tant que prestataire de service technique pour la dématérialisation.',
       },
       section3: {
         title: 'Paiement et Abonnement',
@@ -337,20 +339,20 @@ const translations = {
       },
       section4: {
         title: 'Responsabilité',
-        content: 'L\'utilisateur est seul responsable de la véracité des informations fiscales saisies. El Fatoura ne peut être tenu responsable des erreurs de saisie impactant la conformité fiscale de vos factures.',
+        content: 'L\'utilisateur est seul responsable de la véracité des informations fiscales saisies. InvoicePro ne peut être tenu responsable des erreurs de saisie impactant la conformité fiscale de vos factures.',
       },
     },
     legal: {
       title: 'Mentions Légales',
-      subtitle: 'Informations légales concernant l\'éditeur et l\'hébergeur d\'El Fatoura.',
+      subtitle: 'Informations légales concernant l\'éditeur et l\'hébergeur d\'InvoicePro.',
       section1: { title: 'Éditeur de la plateforme' },
       section2: {
         title: 'Hébergement',
-        content: 'La plateforme El Fatoura est hébergée sur des serveurs sécurisés situés en Tunisie, répondant aux exigences de souveraineté numérique pour les données financières.',
+        content: 'La plateforme InvoicePro est hébergée sur des serveurs sécurisés situés en Tunisie, répondant aux exigences de souveraineté numérique pour les données financières.',
       },
       section3: {
         title: 'Propriété Intellectuelle',
-        content: 'L\'ensemble de la plateforme (design, code, logo) est la propriété exclusive d\'El Fatoura Tech. Toute reproduction est strictement interdite sans autorisation préalable.',
+        content: 'L\'ensemble de la plateforme (design, code, logo) est la propriété exclusive d\'InvoicePro Tech. Toute reproduction est strictement interdite sans autorisation préalable.',
       },
     },
     products: {
@@ -431,7 +433,7 @@ const translations = {
       cert: {
         desc: 'Un certificat électronique valide est requis pour signer et soumettre vos factures au système TTN (TradeNet).',
         why: {
-          desc: 'Conformément à la loi tunisienne sur la facturation électronique (TEIF), chaque document doit être signé numériquement. El Fatoura utilise votre certificat pour garantir l\'intégrité et l\'authenticité de vos envois vers TradeNet.',
+          desc: 'Conformément à la loi tunisienne sur la facturation électronique (TEIF), chaque document doit être signé numériquement. InvoicePro utilise votre certificat pour garantir l\'intégrité et l\'authenticité de vos envois vers TradeNet.',
         },
         tuntrust: {
           required: 'Compte TunTrust requis',
@@ -687,7 +689,7 @@ const translations = {
     },
     helpPage: {
       title: "Centre d'aide",
-      subtitle: "Trouvez des réponses, obtenez de l'aide et apprenez à utiliser El Fatoora.",
+      subtitle: "Trouvez des réponses, obtenez de l'aide et apprenez à utiliser InvoicePro.",
       faqTitle: "Questions Fréquentes",
       contactTitle: "Contacter le Support",
       emailLabel: "Nous écrire",
@@ -705,12 +707,14 @@ const translations = {
       dashboard: 'Dashboard',
       projectIdeas: 'Project ideas',
       offers: 'Offers & purchase orders',
+      quotes: 'Quotes',
+      tracking: 'TTN tracking',
       clients: 'Clients',
       network: 'Professional network',
       messages: 'Messages',
       payments: 'Payments',
       history: 'History & traceability',
-      invoices: 'Invoices / fee notes',
+      invoices: 'Invoices & fee notes',
       demandes: 'Requests',
       teif: 'TEIF',
       products: 'Products',
@@ -726,11 +730,11 @@ const translations = {
       loading: 'Loading…',
     },
     onboarding: {
-      welcome: 'Welcome to El Fatoura! 🚀',
+      welcome: 'Welcome to InvoicePro! 🚀',
       subtitle: 'Complete these steps to start invoicing in compliance.',
-      step1: 'Company Settings',
-      step2: 'Add your 1st client',
-      step3: 'TunTrust Certificate',
+      step1: 'Company profile',
+      step2: 'First client',
+      step3: 'E-Houwiya / Signature',
       complete: 'completed',
     },
     guide: {
@@ -797,7 +801,7 @@ const translations = {
       name: 'Company Name',
       terms: 'I accept the terms and privacy policy.',
       success: 'Account created successfully!',
-      submit: 'Register on El Fatoura',
+      submit: 'Register on InvoicePro',
       haveAccount: 'Already have an account?',
       login: 'Log In',
       matricule: 'Tax ID (MF)',
@@ -808,7 +812,7 @@ const translations = {
       confirmPassword: 'Confirm Password',
       forgotPassword: 'Forgot Password?',
       welcomeBack: 'Welcome Back!',
-      loginSubtitle: 'Login to your El Fatoura workspace',
+      loginSubtitle: 'Login to your InvoicePro workspace',
       noAccount: 'No account yet?',
       rememberMe: 'Remember me',
       testimonial: {
@@ -912,7 +916,7 @@ const translations = {
           title: 'How to get your signature?',
           step1: 'Create an account on TunTrust portal.',
           step2: 'Request an e-seal certificate for your company.',
-          step3: 'Once obtained, upload the (.p12) file in El Fatoura settings.',
+          step3: 'Once obtained, upload the (.p12) file in InvoicePro settings.',
         },
         cta: 'Access TunTrust',
       },
@@ -938,7 +942,7 @@ const translations = {
     },
     dashboard: {
       title: 'Dashboard',
-      welcome: 'Welcome to your El Fatoura workspace',
+      welcome: 'Welcome to your InvoicePro workspace',
       stats: {
         revenue: 'Total Revenue',
         monthly: 'Invoices this month',
@@ -986,14 +990,14 @@ const translations = {
     },
     terms: {
       title: 'Terms of Use',
-      subtitle: 'Rules for using the El Fatoura platform for your electronic invoices.',
+      subtitle: 'Rules for using the InvoicePro platform for your electronic invoices.',
       section1: {
         title: 'Acceptance of Terms',
-        content: 'By creating an account on El Fatoura, you accept these terms of use without reservation and commit to providing accurate information about your company.',
+        content: 'By creating an account on InvoicePro, you accept these terms of use without reservation and commit to providing accurate information about your company.',
       },
       section2: {
         title: 'Data Ownership',
-        content: 'You remain the owner of all data and invoices generated on the platform. El Fatoura acts only as a technical service provider for dematerialization.',
+        content: 'You remain the owner of all data and invoices generated on the platform. InvoicePro acts only as a technical service provider for dematerialization.',
       },
       section3: {
         title: 'Payment and Subscription',
@@ -1001,7 +1005,7 @@ const translations = {
       },
       section4: {
         title: 'Liability',
-        content: 'The user is solely responsible for the accuracy of the fiscal information entered. El Fatoura cannot be held liable for entry errors impacting the tax compliance of your invoices.',
+        content: 'The user is solely responsible for the accuracy of the fiscal information entered. InvoicePro cannot be held liable for entry errors impacting the tax compliance of your invoices.',
       },
     },
     search: {
@@ -1011,18 +1015,18 @@ const translations = {
     },
     privacy: {
       title: 'Privacy Policy',
-      subtitle: 'How we protect your data and respect your privacy on El Fatoura.',
+      subtitle: 'How we protect your data and respect your privacy on InvoicePro.',
       section1: {
         title: 'Data Collection',
         content: 'We only collect data necessary for managing your invoices and for your legal identification. This includes your tax ID, contact details, and billing information in accordance with Tunisian regulations.',
       },
       section2: {
         title: 'Data Usage',
-        content: 'Your data is used exclusively for the proper functioning of the El Fatoura platform, generating your TEIF files, and technical communication regarding your account.',
+        content: 'Your data is used exclusively for the proper functioning of the InvoicePro platform, generating your TEIF files, and technical communication regarding your account.',
       },
       section3: {
         title: 'Protection (Law 2004-63)',
-        content: 'El Fatoura is committed to protecting your personal data in accordance with Law No. 2004-63 of July 27, 2004. You have the right to access, modify, and delete your data.',
+        content: 'InvoicePro is committed to protecting your personal data in accordance with Law No. 2004-63 of July 27, 2004. You have the right to access, modify, and delete your data.',
       },
       section4: {
         title: 'Security',
@@ -1191,7 +1195,7 @@ const translations = {
     },
     helpPage: {
       title: "Help Center",
-      subtitle: "Find answers, get support, and learn how to use El Fatoora.",
+      subtitle: "Find answers, get support, and learn how to use InvoicePro.",
       faqTitle: "Frequently Asked Questions",
       contactTitle: "Contact Support",
       emailLabel: "Email Us",
@@ -1209,6 +1213,8 @@ const translations = {
       dashboard: 'لوحة القيادة',
       projectIdeas: 'أفكار المشاريع',
       offers: 'العروض وأوامر الشراء',
+      quotes: 'عروض الأسعار',
+      tracking: 'متابعة TTN',
       clients: 'العملاء',
       network: 'الشبكة المهنية',
       messages: 'الرسائل',
@@ -1230,11 +1236,11 @@ const translations = {
       loading: 'جار التحميل…',
     },
     onboarding: {
-      welcome: 'مرحباً بك في El Fatoura! 🚀',
+      welcome: 'مرحباً بك في InvoicePro! 🚀',
       subtitle: 'أكمل هذه الخطوات للبدء في الفاتورة بامتثال كامل.',
-      step1: 'إعدادات الشركة',
-      step2: 'إضافة أول عميل',
-      step3: 'شهادة TunTrust',
+      step1: 'ملف الشركة',
+      step2: 'أول عميل',
+      step3: 'E-Houwiya / التوقيع',
       complete: 'مكتمل',
     },
     guide: {
@@ -1301,7 +1307,7 @@ const translations = {
       name: 'اسم الشركة',
       terms: 'أوافق على الشروط والسياسة.',
       success: 'تم إنشاء الحساب بنجاح!',
-      submit: 'التسجيل في El Fatoura',
+      submit: 'التسجيل في InvoicePro',
       haveAccount: 'لديك حساب بالفعل؟',
       login: 'تسجيل الدخول',
       matricule: 'المعرف الجبائي',
@@ -1312,7 +1318,7 @@ const translations = {
       confirmPassword: 'تأكيد كلمة المرور',
       forgotPassword: 'نسيت كلمة المرور؟',
       welcomeBack: 'مرحباً بعودتك!',
-      loginSubtitle: 'سجل الدخول إلى مساحة El Fatoura الخاصة بك',
+      loginSubtitle: 'سجل الدخول إلى مساحة InvoicePro الخاصة بك',
       noAccount: 'ليس لديك حساب بعد؟',
       rememberMe: 'تذكرني',
       testimonial: {
@@ -1413,7 +1419,7 @@ const translations = {
           title: 'كيف تحصل على توقيعك؟',
           step1: 'أنشئ حساباً على بوابة TunTrust.',
           step2: 'اطلب شهادة ختم إلكتروني لشركتك.',
-          step3: 'بمجرد الحصول عليها، ارفع ملف (.p12) في إعدادات El Fatoura.',
+          step3: 'بمجرد الحصول عليها، ارفع ملف (.p12) في إعدادات InvoicePro.',
         },
         cta: 'الدخول إلى TunTrust',
       },
@@ -1427,7 +1433,7 @@ const translations = {
       howItWorks: {
         title: 'كيفية الحصول على فاتورتك الإلكترونية',
         subtitle: 'تتبع عملية إنشاء الفاتورة خطوات محددة. منصتنا ترافقك في كل خطوة.',
-        step1: { title: '1. إنشاء حساب', desc: 'سجل في El Fatoura ببضع نقرات للوصول إلى مساحتك الخاصة.' },
+        step1: { title: '1. إنشاء حساب', desc: 'سجل في InvoicePro ببضع نقرات للوصول إلى مساحتك الخاصة.' },
         step2: { title: '2. معلومات الشركة', desc: 'أكمل ملفك الشخصي: المعرف الجبائي، السجل التجاري والعنوان.' },
         step3: { title: '3. توقيع TunTrust', desc: 'قم بتهيئة شهادة TunTrust الإلكترونية الخاصة بك لضمان القيمة القانونية.' },
         step4: { title: '4. إضافة عميل', desc: 'سجل بيانات عميلك أو اختر عميلاً موجوداً من قاعدتك.' },
@@ -1439,7 +1445,7 @@ const translations = {
     },
     dashboard: {
       title: 'لوحة القيادة',
-      welcome: 'مرحباً بك في مساحة El Fatoura الخاصة بك',
+      welcome: 'مرحباً بك في مساحة InvoicePro الخاصة بك',
       stats: {
         revenue: 'إجمالي الإيرادات',
         monthly: 'فواتير هذا الشهر',
@@ -1487,14 +1493,14 @@ const translations = {
     },
     terms: {
       title: 'الشروط العامة للاستخدام',
-      subtitle: 'قواعد استخدام منصة El Fatoura لفواتيرك الإلكترونية.',
+      subtitle: 'قواعد استخدام منصة InvoicePro لفواتيرك الإلكترونية.',
       section1: {
         title: 'الموافقة على الشروط',
-        content: 'من خلال إنشاء حساب على El Fatoura، فإنك تقبل شروط الاستخدام هذه دون تحفظ وتتعهد بتقديم معلومات دقيقة عن شركتك.',
+        content: 'من خلال إنشاء حساب على InvoicePro، فإنك تقبل شروط الاستخدام هذه دون تحفظ وتتعهد بتقديم معلومات دقيقة عن شركتك.',
       },
       section2: {
         title: 'ملكية البيانات',
-        content: 'تظل مالكاً لجميع البيانات والفواتير التي يتم إنشاؤها على المنصة. تعمل El Fatoura فقط كمزود خدمة تقنية للرقمنة.',
+        content: 'تظل مالكاً لجميع البيانات والفواتير التي يتم إنشاؤها على المنصة. تعمل InvoicePro فقط كمزود خدمة تقنية للرقمنة.',
       },
       section3: {
         title: 'الدفع والاشتراك',
@@ -1502,7 +1508,7 @@ const translations = {
       },
       section4: {
         title: 'المسؤولية',
-        content: 'المستخدم مسؤول وحده عن صحة المعلومات الضريبية المدخلة. لا يمكن تحميل El Fatoura المسؤولية عن أخطاء الإدخال التي تؤثر على الامتثال الضريبي لفواتيرك.',
+        content: 'المستخدم مسؤول وحده عن صحة المعلومات الضريبية المدخلة. لا يمكن تحميل InvoicePro المسؤولية عن أخطاء الإدخال التي تؤثر على الامتثال الضريبي لفواتيرك.',
       },
     },
     search: {
@@ -1512,18 +1518,18 @@ const translations = {
     },
     privacy: {
       title: 'سياسة الخصوصية',
-      subtitle: 'كيف نحمي بياناتك ونحترم خصوصيتك على El Fatoura.',
+      subtitle: 'كيف نحمي بياناتك ونحترم خصوصيتك على InvoicePro.',
       section1: {
         title: 'جمع البيانات',
         content: 'نحن نجمع فقط البيانات الضرورية لإدارة فواتيرك ولتعريفك القانوني. ويشمل ذلك معرفك الضريبي وتفاصيل الاتصال ومعلومات الفواتير وفقاً للوائح التونسية.',
       },
       section2: {
         title: 'استخدام البيانات',
-        content: 'تُستخدم بياناتك حصرياً للتشغيل السليم لمنصة El Fatoura، وتوليد ملفات TEIF الخاصة بك، والتواصل الفني بشأن حسابك.',
+        content: 'تُستخدم بياناتك حصرياً للتشغيل السليم لمنصة InvoicePro، وتوليد ملفات TEIF الخاصة بك، والتواصل الفني بشأن حسابك.',
       },
       section3: {
         title: 'الحماية (قانون 2004-63)',
-        content: 'تلتزم El Fatoura بحماية بياناتك الشخصية وفقاً للقانون رقم 2004-63 المؤرخ في 27 يوليو 2004. لك الحق في الوصول إلى بياناتك وتعديلها وحذفها.',
+        content: 'تلتزم InvoicePro بحماية بياناتك الشخصية وفقاً للقانون رقم 2004-63 المؤرخ في 27 يوليو 2004. لك الحق في الوصول إلى بياناتك وتعديلها وحذفها.',
       },
       section4: {
         title: 'الأمن والتبادل',
@@ -1692,7 +1698,7 @@ const translations = {
     },
     helpPage: {
       title: "مركز المساعدة",
-      subtitle: "ابحث عن إجابات واحصل على الدعم وتعلم كيفية استخدام El Fatoora.",
+      subtitle: "ابحث عن إجابات واحصل على الدعم وتعلم كيفية استخدام InvoicePro.",
       faqTitle: "الأسئلة المتكررة",
       contactTitle: "التواصل مع الدعم",
       emailLabel: "راسلنا",

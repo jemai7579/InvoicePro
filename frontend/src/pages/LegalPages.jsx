@@ -14,7 +14,7 @@ const LegalLayout = ({ title, children }) => (
           <div className="bg-blue-600 p-2 rounded-xl">
             <ShieldCheck className="w-6 h-6 text-white" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-800">El Fatoura</span>
+          <span className="text-xl font-bold tracking-tight text-slate-800">InvoicePro</span>
         </div>
         <h1 className="text-3xl font-black text-slate-900 mb-8 tracking-tight">{title}</h1>
         <div className="prose prose-slate prose-blue max-w-none text-slate-600 font-medium leading-relaxed">
@@ -22,7 +22,7 @@ const LegalLayout = ({ title, children }) => (
         </div>
       </div>
       <div className="mt-12 text-center">
-        <p className="text-sm text-slate-400">© 2024 El Fatoura. Tous droits réservés.</p>
+        <p className="text-sm text-slate-400">© 2024 InvoicePro. Tous droits réservés.</p>
       </div>
     </div>
   </div>
@@ -31,9 +31,9 @@ const LegalLayout = ({ title, children }) => (
 export const Terms = () => (
   <LegalLayout title="Conditions d'Utilisation">
     <h2>1. Acceptation des conditions</h2>
-    <p>En accédant au service El Fatoura, vous acceptez d'être lié par les présentes conditions d'utilisation.</p>
+    <p>En accédant au service InvoicePro, vous acceptez d'être lié par les présentes conditions d'utilisation.</p>
     <h2>2. Description du service</h2>
-    <p>El Fatoura est une plateforme SaaS de facturation électronique conforme aux normes tunisiennes (TEIF).</p>
+    <p>InvoicePro est une plateforme SaaS de facturation électronique conforme aux normes tunisiennes (TEIF).</p>
     <h2>3. Responsabilité</h2>
     <p>L'utilisateur est responsable de la véracité des données saisies et de la validité de son certificat de signature.</p>
   </LegalLayout>
@@ -63,7 +63,7 @@ export const CGV = () => (
 
 export const Legal = () => (
   <LegalLayout title="Mentions Légales">
-    <p>El Fatoura est édité par : [Nom de votre société]</p>
+    <p>InvoicePro est édité par : [Nom de votre société]</p>
     <p>Siège social : [Adresse en Tunisie]</p>
     <p>MF : [Matricule Fiscal]</p>
     <p>Directeur de la publication : [Nom]</p>

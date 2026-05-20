@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const networkController_1 = require("../controllers/networkController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = (0, express_1.Router)();
+router.get('/', authMiddleware_1.protect, networkController_1.getNetworkOverview);
+router.post('/invitations', authMiddleware_1.protect, networkController_1.createPlatformInvitation);
+router.post('/invitations/:id/respond', authMiddleware_1.protect, networkController_1.respondToPlatformInvitation);
+router.post('/share', authMiddleware_1.protect, networkController_1.shareWithPartner);
+exports.default = router;

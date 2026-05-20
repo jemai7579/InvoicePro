@@ -1,8 +1,12 @@
+import { getEInvoiceConfig, assertProductionTTNConfigured } from './einvoiceConfig';
+
+type TTNTransportMode = 'mock' | 'sandbox' | 'production';
+
 export interface TTNSubmissionResult {
   submissionId: string;
   status: 'SENT_TO_TTN' | 'PENDING_TTN';
   message: string;
-  mode: 'mock' | 'webservice' | 'sftp' | 'provider';
+  mode: TTNTransportMode;
 }
 
 export interface TTNStatusResult {
@@ -12,11 +16,13 @@ export interface TTNStatusResult {
   rejectionReason?: string;
   qrCodeData?: string;
   approvedXmlContent?: string;
-  mode: 'mock' | 'webservice' | 'sftp' | 'provider';
+  mode: TTNTransportMode;
 }
 
 export interface TTNProvider {
+  authenticate(): Promise<{ accessToken?: string; mode: 'mock' | 'sandbox' | 'production' }>;
   submitSignedInvoice(params: { invoiceId: string; companyMatricule: string; signedXml: string }): Promise<TTNSubmissionResult>;
+  downloadTtnProof(params: { ttnReference: string }): Promise<Buffer | null>;
   getSubmissionStatus(params: {
     invoiceId: string;
     submissionId: string;
@@ -25,13 +31,13 @@ export interface TTNProvider {
   }): Promise<TTNStatusResult>;
 }
 
-const getMode = (): 'mock' | 'webservice' | 'sftp' | 'provider' => {
-  const mode = (process.env.TTN_MODE || 'mock').toLowerCase();
-  if (mode === 'webservice' || mode === 'sftp' || mode === 'provider') return mode;
-  return 'mock';
-};
+const getMode = (): TTNTransportMode => getEInvoiceConfig().mode;
 
 class MockTTNProvider implements TTNProvider {
+  async authenticate() {
+    return { accessToken: 'mock-token', mode: 'mock' as const };
+  }
+
   async submitSignedInvoice({ invoiceId }: { invoiceId: string }) {
     return {
       submissionId: `MOCK-SUB-${invoiceId.slice(0, 8).toUpperCase()}-${Date.now()}`,
@@ -85,19 +91,33 @@ class MockTTNProvider implements TTNProvider {
       mode: 'mock' as const,
     };
   }
+
+  async downloadTtnProof() {
+    return null;
+  }
 }
 
 class PlaceholderTTNProvider implements TTNProvider {
-  constructor(private readonly mode: 'webservice' | 'sftp' | 'provider') {}
+  constructor(private readonly mode: 'sandbox' | 'production') {}
+
+  async authenticate(): Promise<{ accessToken?: string; mode: TTNTransportMode }> {
+    assertProductionTTNConfigured();
+    throw new Error('TTN_API_NOT_CONFIGURED: Official TTN authentication contract is not implemented yet.');
+  }
 
   async submitSignedInvoice(): Promise<TTNSubmissionResult> {
-    // TODO: Implement the real TTN submission transport here for webservice, sftp, or partner provider mode.
-    throw new Error(`TTN mode "${this.mode}" is configured but the real connector is not implemented yet.`);
+    assertProductionTTNConfigured();
+    throw new Error('TTN_API_NOT_CONFIGURED: Please configure official TTN API credentials and endpoints before production use.');
   }
 
   async getSubmissionStatus(): Promise<TTNStatusResult> {
-    // TODO: Implement the real TTN status polling here for webservice, sftp, or partner provider mode.
-    throw new Error(`TTN mode "${this.mode}" is configured but the real connector is not implemented yet.`);
+    assertProductionTTNConfigured();
+    throw new Error('TTN_API_NOT_CONFIGURED: Please configure official TTN API credentials and endpoints before production use.');
+  }
+
+  async downloadTtnProof(): Promise<Buffer | null> {
+    assertProductionTTNConfigured();
+    throw new Error('TTN_API_NOT_CONFIGURED: Please configure official TTN API credentials and endpoints before production use.');
   }
 }
 

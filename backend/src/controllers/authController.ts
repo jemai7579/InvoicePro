@@ -3,17 +3,42 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import prisma from '../prisma';
 import { getJwtSecret } from '../utils/jwtSecret';
+import { getRequestAuditMeta, logActivity } from '../services/auditTrailService';
 
 const generateToken = (id: string) => {
   return jwt.sign({ id }, getJwtSecret(), { expiresIn: '30d' });
+};
+
+const ALLOWED_REGISTRATION_PLANS = ['STARTER', 'PROFESSIONAL', 'ENTERPRISE'];
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+const normalizeRegistrationPlan = (plan?: string) => {
+  const value = String(plan || '').trim().toUpperCase();
+  if (!value) return 'STARTER';
+  if (value === 'PRO') return 'PROFESSIONAL';
+  if (value === 'MAX') return 'ENTERPRISE';
+  if (ALLOWED_REGISTRATION_PLANS.includes(value)) return value;
+  return null;
 };
 
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, name, firstName, lastName, matriculeFiscal, registreCommerce, address, phone, rib, plan } = req.body;
 
-    if (!email || !password || !name || !firstName || !lastName || !matriculeFiscal || !address || !phone) {
-      return res.status(400).json({ message: 'Veuillez remplir tous les champs obligatoires (incluant Nom/Prénom et Téléphone).' });
+    if (isDevelopment) {
+      const { password: _password, ...safeBody } = req.body;
+      console.log('REGISTER BODY:', safeBody);
+    }
+
+    const requiredFields = { email, password, name, firstName, lastName, matriculeFiscal, address, phone };
+    const missingField = Object.entries(requiredFields).find(([, value]) => !String(value || '').trim())?.[0];
+    if (missingField) {
+      return res.status(400).json({ message: `Champ obligatoire manquant: ${missingField}` });
+    }
+
+    const selectedPlan = normalizeRegistrationPlan(plan);
+    if (!selectedPlan) {
+      return res.status(400).json({ message: 'Formule d’abonnement invalide.', error: 'Invalid subscription plan' });
     }
 
     // Validation Matricule Fiscal Tunisien (ex: 1234567/X/A/P/000)
@@ -33,7 +58,7 @@ export const register = async (req: Request, res: Response) => {
     });
 
     if (companyExists) {
-      return res.status(400).json({ message: 'An account with this email already exists.' });
+      return res.status(400).json({ message: 'Un compte avec cet email existe déjà.' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -53,7 +78,7 @@ export const register = async (req: Request, res: Response) => {
         rib,
         subscription: {
           create: {
-            plan: (['STARTER', 'PROFESSIONAL', 'ENTERPRISE'].includes(plan?.toUpperCase()) ? plan.toUpperCase() : 'STARTER'),
+            plan: selectedPlan,
             status: 'ACTIVE'
           }
         }
@@ -68,20 +93,36 @@ export const register = async (req: Request, res: Response) => {
       });
 
       res.status(201).json({
-        id: company.id,
-        name: company.name,
-        email: company.email,
-        token: generateToken(company.id),
-      });
+      id: company.id,
+      name: company.name,
+      email: company.email,
+      subscription: companyWithSub?.subscription,
+      token: generateToken(company.id),
+    });
     } else {
       res.status(400).json({ message: 'Invalid company data' });
     }
   } catch (error: any) {
-    console.error(error);
+    console.error('REGISTER ERROR:', error);
     if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
-      return res.status(400).json({ message: 'An account with this email already exists.' });
+      return res.status(400).json({ message: 'Un compte avec cet email existe déjà.' });
     }
-    res.status(500).json({ message: 'Server error' });
+    if (error.code === 'P2002') {
+      return res.status(400).json({
+        message: 'Une valeur unique existe déjà.',
+        ...(isDevelopment ? { error: error.message, target: error.meta?.target } : {})
+      });
+    }
+    if (['P2021', 'P2022'].includes(error.code)) {
+      return res.status(500).json({
+        message: 'Database migration is not applied.',
+        ...(isDevelopment ? { error: error.message, code: error.code } : {})
+      });
+    }
+    res.status(500).json({
+      message: 'Server error',
+      ...(isDevelopment ? { error: error.message, code: error.code } : {})
+    });
   }
 };
 
@@ -94,6 +135,18 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (company && (await bcrypt.compare(password, company.password))) {
+      logActivity({
+        companyId: company.id,
+        actorId: company.id,
+        actorType: 'COMPANY',
+        actionType: 'LOGIN',
+        objectType: 'AUTH',
+        objectId: company.id,
+        message: 'Connexion utilisateur réussie.',
+        metadata: { email: company.email },
+        ...getRequestAuditMeta(req),
+      }).catch((auditError) => console.error('LOGIN AUDIT ERROR:', auditError));
+
       res.json({
         id: company.id,
         name: company.name,

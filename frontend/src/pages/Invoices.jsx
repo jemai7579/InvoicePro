@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -32,7 +32,7 @@ const COPY = {
     helperTitle: 'Comprendre le workflow TTN',
     helperLines: [
       'Votre facture est encore en preparation.',
-      'Apres validation, El Fatoura genere le fichier XML TEIF.',
+      'Apres validation, InvoicePro genere le fichier XML TEIF.',
       'Ensuite, la facture doit etre signee electroniquement.',
       'Apres signature, elle sera envoyee a TTN pour validation.',
       'Une facture est fiscalement valide uniquement apres acceptation TTN.',
@@ -74,6 +74,8 @@ const COPY = {
     generateTeif: 'Generer XML TEIF',
     signTeif: 'Signer electroniquement',
     submitTtn: 'Envoyer a TTN',
+    configureSignature: 'Configurer la signature',
+    configureTtn: 'Configurer TTN',
     checkTtn: 'Verifier statut TTN',
     correctInvoice: 'Voir les erreurs et corriger',
     downloadFinal: 'Telecharger facture finale',
@@ -90,7 +92,7 @@ const COPY = {
     helperTitle: 'Understand the TTN workflow',
     helperLines: [
       'Your invoice is still being prepared.',
-      'After validation, El Fatoura generates the TEIF XML file.',
+      'After validation, InvoicePro generates the TEIF XML file.',
       'Then the invoice must be electronically signed.',
       'After signature, it will be sent to TTN for validation.',
       'An invoice is fiscally valid only after TTN acceptance.',
@@ -132,6 +134,8 @@ const COPY = {
     generateTeif: 'Generate TEIF XML',
     signTeif: 'Sign electronically',
     submitTtn: 'Submit to TTN',
+    configureSignature: 'Configure signature',
+    configureTtn: 'Configure TTN',
     checkTtn: 'Check TTN status',
     correctInvoice: 'Review errors and correct',
     downloadFinal: 'Download final invoice',
@@ -148,7 +152,7 @@ const COPY = {
     helperTitle: 'فهم مسار TTN',
     helperLines: [
       'فاتورتك ما زالت قيد الاعداد.',
-      'بعد التحقق يقوم El Fatoura بتوليد ملف XML TEIF.',
+      'بعد التحقق يقوم InvoicePro بتوليد ملف XML TEIF.',
       'بعد ذلك يجب توقيع الفاتورة الكترونيا.',
       'بعد التوقيع سيتم ارسالها الى TTN للتحقق.',
       'تصبح الفاتورة صالحة جبائيا فقط بعد قبول TTN.',
@@ -190,6 +194,8 @@ const COPY = {
     generateTeif: 'توليد XML TEIF',
     signTeif: 'توقيع الكتروني',
     submitTtn: 'ارسال الى TTN',
+    configureSignature: 'تهيئة التوقيع',
+    configureTtn: 'تهيئة TTN',
     checkTtn: 'التحقق من TTN',
     correctInvoice: 'تصحيح الفاتورة',
     downloadFinal: 'تنزيل الفاتورة النهائية',
@@ -229,6 +235,7 @@ const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
+  const [eInvoiceStatus, setEInvoiceStatus] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
@@ -245,27 +252,29 @@ const Invoices = () => {
     );
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const [invoicesRes, clientsRes, productsRes] = await Promise.all([
+      const [invoicesRes, clientsRes, productsRes, eInvoiceRes] = await Promise.all([
         api.get('/invoices'),
         api.get('/clients'),
         api.get('/products'),
+        api.get('/settings/einvoice/status').catch(() => ({ data: null })),
       ]);
       setInvoices(invoicesRes.data || []);
       setClients(clientsRes.data || []);
       setProducts(productsRes.data || []);
+      setEInvoiceStatus(eInvoiceRes.data);
     } catch (error) {
       console.error('Error fetching invoices', error);
       alert(t('common.error_load'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const openModal = () => {
     if (user?.subscription?.plan === 'STARTER' && user?.subscription?.remainingInvoices === 0) {
@@ -359,7 +368,7 @@ const Invoices = () => {
     try {
       const payload = {
         clientId,
-        lines: lines.map(({ id, ...line }) => line),
+        lines: lines.map((line) => Object.fromEntries(Object.entries(line).filter(([key]) => key !== 'id'))),
       };
       const response = editingInvoiceId
         ? await api.put(`/invoices/${editingInvoiceId}`, payload)
@@ -487,6 +496,14 @@ const Invoices = () => {
   };
 
   const handlePrimaryAction = async (invoice) => {
+    if (invoice.nextAction === 'sign-teif' && !eInvoiceStatus?.signatureConfigured) {
+      window.location.href = '/settings?tab=compliance';
+      return;
+    }
+    if (invoice.nextAction === 'submit-ttn' && !eInvoiceStatus?.ttnConfigured && eInvoiceStatus?.mode !== 'mock') {
+      window.location.href = '/settings?tab=compliance';
+      return;
+    }
     switch (invoice.nextAction) {
       case 'validate-invoice':
         return handleValidateInvoice(invoice.id);
@@ -506,6 +523,20 @@ const Invoices = () => {
         return openEditModal(invoice);
     }
   };
+
+  const getActionLabel = (invoice) => {
+    if (invoice.nextAction === 'sign-teif' && !eInvoiceStatus?.signatureConfigured) return text.configureSignature;
+    if (invoice.nextAction === 'submit-ttn' && !eInvoiceStatus?.ttnConfigured && eInvoiceStatus?.mode !== 'mock') return text.configureTtn;
+    return text[ACTION_LABELS[invoice.nextAction] || 'validateInvoice'];
+  };
+
+  const getModeBadge = (invoice) => invoice.modeBadge || (
+    eInvoiceStatus?.mode === 'mock'
+      ? 'Mode simulation — non légal'
+      : eInvoiceStatus?.mode === 'sandbox'
+        ? 'Mode test TTN — non légal'
+        : 'Mode production'
+  );
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-500">
@@ -563,13 +594,15 @@ const Invoices = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {invoices.map((invoice) => {
-                    const actionKey = ACTION_LABELS[invoice.nextAction] || 'validateInvoice';
                     const isBusy = busyInvoiceId === invoice.id;
                     return (
                       <tr key={invoice.id} className="align-top hover:bg-slate-50/40">
                         <td className="px-6 py-5">
                           <div className="font-black text-slate-900">{getInvoiceNumber(invoice)}</div>
                           {invoice.ttnReference ? <div className="text-[11px] text-slate-500 mt-1">{text.ttnReference}: {invoice.ttnReference}</div> : null}
+                          <div className="mt-2">
+                            <Badge variant={invoice.eInvoiceMode === 'production' ? 'success' : 'warning'}>{getModeBadge(invoice)}</Badge>
+                          </div>
                         </td>
                         <td className="px-6 py-5">
                           <div className="font-bold text-slate-800">{invoice.client?.name || '-'}</div>
@@ -582,10 +615,20 @@ const Invoices = () => {
                         </td>
                         <td className="px-6 py-5">
                           <Badge variant={badgeVariant(invoice.complianceStatus)}>{invoice.complianceLabelFr || invoice.complianceStatus}</Badge>
+                          <div className="mt-2 space-y-1 text-[11px] font-bold text-slate-500">
+                            <div>TEIF: {invoice.teifStatus || '-'}</div>
+                            <div>Signature: {invoice.signatureStatus || '-'}</div>
+                            <div>TTN: {invoice.ttnStatus || '-'}</div>
+                          </div>
+                          {invoice.missingRequirements?.length ? (
+                            <div className="mt-2 text-[11px] font-bold text-amber-700">
+                              {invoice.missingRequirements.join(' · ')}
+                            </div>
+                          ) : null}
                         </td>
                         <td className="px-6 py-5">
                           <Button size="sm" onClick={() => handlePrimaryAction(invoice)} loading={isBusy}>
-                            {text[actionKey]}
+                            {getActionLabel(invoice)}
                           </Button>
                         </td>
                         <td className="px-6 py-5 text-sm text-slate-500 font-medium">
@@ -595,8 +638,8 @@ const Invoices = () => {
                           {Number(invoice.netToPay || 0).toLocaleString(undefined, { minimumFractionDigits: 3 })} TND
                         </td>
                         <td className="px-6 py-5 text-right">
-                          <Badge variant={invoice.paymentStatus === 'PAID' ? 'success' : invoice.paymentStatus === 'PARTIALLY_PAID' ? 'warning' : 'neutral'}>
-                            {invoice.paymentStatus || 'UNPAID'}
+                          <Badge variant={invoice.paymentStatus === 'paid' ? 'success' : invoice.paymentStatus === 'partially_paid' ? 'warning' : 'neutral'}>
+                            {invoice.paymentStatus || 'unpaid'}
                           </Badge>
                           <div className="mt-1 text-[11px] font-bold text-slate-400">
                             Reste {Number(invoice.remainingAmount ?? invoice.netToPay ?? 0).toFixed(3)} TND
@@ -643,7 +686,6 @@ const Invoices = () => {
 
             <div className="lg:hidden p-4 space-y-4">
               {invoices.map((invoice) => {
-                const actionKey = ACTION_LABELS[invoice.nextAction] || 'validateInvoice';
                 const isBusy = busyInvoiceId === invoice.id;
                 return (
                   <div key={invoice.id} className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm space-y-4">
@@ -654,14 +696,17 @@ const Invoices = () => {
                       </div>
                       <Badge variant={badgeVariant(invoice.complianceStatus)}>{invoice.complianceLabelFr || invoice.complianceStatus}</Badge>
                     </div>
+                    <Badge variant={invoice.eInvoiceMode === 'production' ? 'success' : 'warning'}>{getModeBadge(invoice)}</Badge>
                     <div className="text-sm text-slate-600">
                       <div className="font-black text-slate-900">{Number(invoice.netToPay || 0).toLocaleString(undefined, { minimumFractionDigits: 3 })} TND</div>
-                      <div>Règlement: {invoice.paymentStatus || 'UNPAID'} · Reste {Number(invoice.remainingAmount ?? invoice.netToPay ?? 0).toFixed(3)} TND</div>
+                      <div>Règlement: {invoice.paymentStatus || 'unpaid'} · Reste {Number(invoice.remainingAmount ?? invoice.netToPay ?? 0).toFixed(3)} TND</div>
+                      <div>TEIF: {invoice.teifStatus || '-'} · Signature: {invoice.signatureStatus || '-'} · TTN: {invoice.ttnStatus || '-'}</div>
+                      {invoice.missingRequirements?.length ? <div className="text-amber-700 mt-2">{invoice.missingRequirements.join(' · ')}</div> : null}
                       {invoice.ttnReference ? <div>{text.ttnReference}: {invoice.ttnReference}</div> : null}
                       {invoice.ttnRejectionReason ? <div className="text-rose-600 mt-2">{invoice.ttnRejectionReason}</div> : null}
                     </div>
                     <Button className="w-full" onClick={() => handlePrimaryAction(invoice)} loading={isBusy}>
-                      {text[actionKey]}
+                      {getActionLabel(invoice)}
                     </Button>
                     <div className="grid grid-cols-2 gap-2">
                       {['DRAFT', 'REJECTED_TTN'].includes(invoice.complianceStatus) ? (
@@ -728,7 +773,7 @@ const Invoices = () => {
                         <span>{text.quantity}</span>
                         <span>{text.unitPrice}</span>
                         <span>{text.tva}</span>
-                        <span className="text-right"> </span>
+                        <span className="text-right">&nbsp;</span>
                       </div>
 
                       {lines.map((line, index) => (

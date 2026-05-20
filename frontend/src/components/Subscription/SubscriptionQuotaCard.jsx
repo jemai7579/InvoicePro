@@ -6,6 +6,7 @@ import {
   Info,
   CheckCircle2,
 } from 'lucide-react';
+import { getPlanLabel } from '../../utils/planLabels';
 
 const SubscriptionQuotaCard = ({ user }) => {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ const SubscriptionQuotaCard = ({ user }) => {
           isStarter ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-blue-50 text-blue-600 border border-blue-100'
         }`}>
           <Zap size={12} fill="currentColor" />
-          Plan {plan}
+          Plan {getPlanLabel(plan)}
         </div>
 
         <button
@@ -85,7 +86,7 @@ const SubscriptionQuotaCard = ({ user }) => {
           }`}>
             <p className="text-sm font-medium leading-snug">
               {isExhausted
-                ? "Vous avez utilisé toutes vos factures incluses ce mois-ci. Passez à l'offre Professional pour continuer sans limite."
+                ? "Vous avez utilisé toutes vos factures incluses ce mois-ci. Passez à l'offre Pro pour continuer sans limite."
                 : `Vous pouvez encore créer ${remainingInvoices} facture(s) ce mois-ci.`}
             </p>
           </div>
@@ -109,7 +110,7 @@ const SubscriptionQuotaCard = ({ user }) => {
               'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20'
             }`}
           >
-            Découvrir l'offre Professional
+            Découvrir l'offre Pro
             <ArrowUpRight size={16} />
           </button>
         )}

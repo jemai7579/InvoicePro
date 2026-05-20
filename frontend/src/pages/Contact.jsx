@@ -18,7 +18,7 @@ const Contact = () => {
             <div className="bg-blue-600 p-2 rounded-xl">
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-slate-800">El Fatoura</span>
+            <span className="text-xl font-bold tracking-tight text-slate-800">InvoicePro</span>
           </Link>
           <Link to="/" className="text-sm font-bold text-slate-500 hover:text-blue-600 flex items-center gap-1 transition-colors">
              <ChevronLeft className="w-4 h-4" /> Retour
@@ -47,7 +47,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <p className="font-bold text-slate-900">Email</p>
-                      <p className="text-slate-500 font-medium">contact@elfatoura.tn</p>
+                      <p className="text-slate-500 font-medium">contact@invoicepro.tn</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">

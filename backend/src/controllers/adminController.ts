@@ -87,7 +87,7 @@ const buildUserDirectory = async () => {
     name: admin.name,
     email: admin.email,
     role: 'Platform admin',
-    company: 'El Fatoora',
+    company: 'InvoicePro',
     status: 'Active',
     lastLogin: admin.updatedAt,
     createdAt: admin.createdAt,

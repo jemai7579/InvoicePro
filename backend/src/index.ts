@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
+import { getEInvoiceConfig } from './services/einvoiceConfig';
 
 // ── Startup environment validation ────────────────────────────────────────────
 // Fail immediately with a clear message if required variables are missing.
@@ -13,12 +14,20 @@ if (missingVars.length > 0) {
   process.exit(1);
 }
 
+try {
+  const eInvoiceConfig = getEInvoiceConfig();
+  console.log(`E-invoice mode: ${eInvoiceConfig.mode} (${eInvoiceConfig.appEnv})`);
+} catch (error: any) {
+  console.error(`\n❌  FATAL: ${error.message}\n`);
+  process.exit(1);
+}
+
 // Warn about optional integrations that are not configured
 if (!process.env.GEMINI_API_KEY) {
   console.warn('⚠️  GEMINI_API_KEY not set — AI Assistant feature will return a 503 response.');
 }
-if (!process.env.TTN_API_URL || !process.env.TTN_API_KEY) {
-  console.warn('⚠️  TTN_API_URL / TTN_API_KEY not set — TTN submission will run in simulation mode.');
+if (!process.env.TTN_BASE_URL || !process.env.TTN_SUBMIT_INVOICE_ENDPOINT) {
+  console.warn('⚠️  TTN API endpoints not set — TTN submission is available only in mock mode.');
 }
 if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
   console.warn('⚠️  SMTP credentials not set — email sending will use Ethereal test accounts (dev only).');
@@ -100,7 +109,9 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/admin/login', authLimiter);
 
 app.use(express.json());
-app.use('/uploads', express.static(path.resolve('uploads')));
+// Only logos are public assets. Compliance artifacts such as TEIF XML, signed XML,
+// PDFs, certificates, and TTN proofs must be served through authenticated routes.
+app.use('/uploads/logos', express.static(path.resolve('uploads/logos')));
 
 // Routes
 app.use('/api/auth', authRoutes);

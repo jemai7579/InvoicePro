@@ -1,16 +1,80 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateTeifXml = void 0;
+exports.generateTeifXml = exports.validateTeifInvoiceData = exports.validateTunisianMatriculeFiscal = void 0;
 const xmlbuilder2_1 = require("xmlbuilder2");
 const numberingService_1 = require("../services/numberingService");
+const round3 = (value) => Number(Number(value || 0).toFixed(3));
+const validTvaRates = [0, 7, 13, 19];
+const matriculeFiscalPattern = /^(\d{7,8}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}|\d{7,8}[A-Z]{3}\d{3}|\d{7,8}[A-Z]?(\/[A-Z0-9]+)?)$/i;
+const validateTunisianMatriculeFiscal = (value) => Boolean(value && matriculeFiscalPattern.test(String(value).trim()));
+exports.validateTunisianMatriculeFiscal = validateTunisianMatriculeFiscal;
+const validateTeifInvoiceData = (invoice) => {
+    const errors = [];
+    const company = invoice.company || {};
+    const client = invoice.client || {};
+    const lines = invoice.lines || [];
+    if (!invoice.number)
+        errors.push('Le numero officiel de facture est requis.');
+    if (!invoice.createdAt || Number.isNaN(new Date(invoice.createdAt).getTime()))
+        errors.push('La date de facture est invalide.');
+    if (!company.name)
+        errors.push("La raison sociale de l'emetteur est requise.");
+    if (!company.address)
+        errors.push("L'adresse de l'emetteur est requise.");
+    if (!(0, exports.validateTunisianMatriculeFiscal)(company.matriculeFiscal)) {
+        errors.push("Le matricule fiscal de l'emetteur est invalide ou manquant.");
+    }
+    if (!client.name)
+        errors.push('Le nom du client est requis.');
+    if (!client.address)
+        errors.push("L'adresse du client est requise.");
+    if (client.matriculeFiscal && !(0, exports.validateTunisianMatriculeFiscal)(client.matriculeFiscal)) {
+        errors.push('Le matricule fiscal du client est invalide.');
+    }
+    if (!lines.length)
+        errors.push('Ajoutez au moins une ligne de facture.');
+    let computedHT = 0;
+    let computedTVA = 0;
+    lines.forEach((line, index) => {
+        const prefix = `Ligne ${index + 1}`;
+        const quantity = Number(line.quantity);
+        const unitPrice = Number(line.unitPrice);
+        const tvaRate = Number(line.tvaRate);
+        const lineHT = round3(quantity * unitPrice);
+        if (!String(line.description || '').trim())
+            errors.push(`${prefix}: description requise.`);
+        if (!Number.isFinite(quantity) || quantity <= 0)
+            errors.push(`${prefix}: quantite invalide.`);
+        if (!Number.isFinite(unitPrice) || unitPrice < 0)
+            errors.push(`${prefix}: prix unitaire invalide.`);
+        if (!validTvaRates.includes(tvaRate))
+            errors.push(`${prefix}: taux TVA invalide.`);
+        if (round3(Number(line.totalHT)) !== lineHT)
+            errors.push(`${prefix}: total HT incoherent.`);
+        computedHT += lineHT;
+        computedTVA += round3(lineHT * (tvaRate / 100));
+    });
+    const stampDuty = round3(Number(invoice.stampDuty || 0));
+    const withholdingTax = round3(Number(invoice.withholdingTax || 0));
+    const totalHT = round3(computedHT);
+    const totalTVA = round3(computedTVA);
+    const totalTTC = round3(totalHT + totalTVA);
+    const netToPay = round3(totalTTC + stampDuty - withholdingTax);
+    if (round3(Number(invoice.totalHT)) !== totalHT)
+        errors.push('Total HT incoherent avec les lignes.');
+    if (round3(Number(invoice.totalTVA)) !== totalTVA)
+        errors.push('Total TVA incoherent avec les lignes.');
+    if (round3(Number(invoice.totalTTC)) !== totalTTC)
+        errors.push('Total TTC incoherent avec HT + TVA.');
+    if (round3(Number(invoice.netToPay)) !== netToPay)
+        errors.push('Net a payer incoherent avec TTC + timbre - retenue.');
+    return { valid: errors.length === 0, errors };
+};
+exports.validateTeifInvoiceData = validateTeifInvoiceData;
 const generateTeifXml = (invoice) => {
-    // Validate basic requirements before generation
-    if (!invoice.company.matriculeFiscal)
-        throw new Error('Company Matricule Fiscal is missing');
-    if (!invoice.client)
-        throw new Error('Client information is missing');
-    if (!invoice.lines || invoice.lines.length === 0)
-        throw new Error('Invoice must have at least one line');
+    const validation = (0, exports.validateTeifInvoiceData)(invoice);
+    if (!validation.valid)
+        throw new Error(validation.errors.join(' '));
     const xmlObj = {
         Invoice: {
             '@xmlns:cbc': 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2',

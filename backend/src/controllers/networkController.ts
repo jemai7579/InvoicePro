@@ -210,7 +210,7 @@ export const shareWithPartner = async (req: Request, res: Response) => {
       data: {
         senderCompanyId: companyId,
         recipientCompanyId: partnerCompanyId,
-        body: message || `${objectType} partage depuis El Fatoora.`,
+        body: message || `${objectType} partage depuis InvoicePro.`,
         metadata: { shareType: objectType, objectId },
       },
     });

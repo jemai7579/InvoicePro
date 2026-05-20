@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
+const einvoiceConfig_1 = require("./services/einvoiceConfig");
 // ── Startup environment validation ────────────────────────────────────────────
 // Fail immediately with a clear message if required variables are missing.
 // This prevents the app from starting in a broken/insecure state.
@@ -16,12 +17,20 @@ if (missingVars.length > 0) {
     console.error('\n   Copy backend/.env.example to backend/.env and fill in the values.\n');
     process.exit(1);
 }
+try {
+    const eInvoiceConfig = (0, einvoiceConfig_1.getEInvoiceConfig)();
+    console.log(`E-invoice mode: ${eInvoiceConfig.mode} (${eInvoiceConfig.appEnv})`);
+}
+catch (error) {
+    console.error(`\n❌  FATAL: ${error.message}\n`);
+    process.exit(1);
+}
 // Warn about optional integrations that are not configured
 if (!process.env.GEMINI_API_KEY) {
     console.warn('⚠️  GEMINI_API_KEY not set — AI Assistant feature will return a 503 response.');
 }
-if (!process.env.TTN_API_URL || !process.env.TTN_API_KEY) {
-    console.warn('⚠️  TTN_API_URL / TTN_API_KEY not set — TTN submission will run in simulation mode.');
+if (!process.env.TTN_BASE_URL || !process.env.TTN_SUBMIT_INVOICE_ENDPOINT) {
+    console.warn('⚠️  TTN API endpoints not set — TTN submission is available only in mock mode.');
 }
 if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn('⚠️  SMTP credentials not set — email sending will use Ethereal test accounts (dev only).');
@@ -42,6 +51,13 @@ const aiRoutes_1 = __importDefault(require("./routes/aiRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 const adminRoutes_1 = __importDefault(require("./routes/adminRoutes"));
 const projectRoutes_1 = __importDefault(require("./routes/projectRoutes"));
+const offerRoutes_1 = __importDefault(require("./routes/offerRoutes"));
+const publicOfferRoutes_1 = __importDefault(require("./routes/publicOfferRoutes"));
+const paymentRoutes_1 = __importDefault(require("./routes/paymentRoutes"));
+const auditTrailRoutes_1 = __importDefault(require("./routes/auditTrailRoutes"));
+const onboardingRoutes_1 = __importDefault(require("./routes/onboardingRoutes"));
+const networkRoutes_1 = __importDefault(require("./routes/networkRoutes"));
+const messageRoutes_1 = __importDefault(require("./routes/messageRoutes"));
 const errorMiddleware_1 = require("./middleware/errorMiddleware");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 5000;
@@ -87,7 +103,9 @@ const authLimiter = (0, express_rate_limit_1.rateLimit)({
 app.use('/api/auth/login', authLimiter);
 app.use('/api/admin/login', authLimiter);
 app.use(express_1.default.json());
-app.use('/uploads', express_1.default.static(path_1.default.resolve('uploads')));
+// Only logos are public assets. Compliance artifacts such as TEIF XML, signed XML,
+// PDFs, certificates, and TTN proofs must be served through authenticated routes.
+app.use('/uploads/logos', express_1.default.static(path_1.default.resolve('uploads/logos')));
 // Routes
 app.use('/api/auth', authRoutes_1.default);
 app.use('/api/clients', clientRoutes_1.default);
@@ -100,6 +118,13 @@ app.use('/api/ai', aiRoutes_1.default);
 app.use('/api/notifications', notificationRoutes_1.default);
 app.use('/api/admin', adminRoutes_1.default);
 app.use('/api/projects', projectRoutes_1.default);
+app.use('/api/offers', offerRoutes_1.default);
+app.use('/api/public', publicOfferRoutes_1.default);
+app.use('/api/payments', paymentRoutes_1.default);
+app.use('/api/audit-trail', auditTrailRoutes_1.default);
+app.use('/api/onboarding', onboardingRoutes_1.default);
+app.use('/api/network', networkRoutes_1.default);
+app.use('/api/messages', messageRoutes_1.default);
 app.get('/health', (req, res) => {
     res.status(200).json({ success: true, status: 'OK' });
 });

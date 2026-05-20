@@ -1,3 +1,3 @@
 
 import translations from './src/i18n/translations.js';
-console.log('Translations loaded successfully');
+console.log('Translations loaded successfully', Object.keys(translations).length);

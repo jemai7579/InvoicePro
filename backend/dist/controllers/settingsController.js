@@ -3,10 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadLogo = exports.uploadCertificate = exports.getSettingsHistory = exports.updateSettings = exports.getSettings = void 0;
+exports.uploadLogo = exports.uploadCertificate = exports.getSettingsHistory = exports.updateSettings = exports.getEInvoiceStatus = exports.getSettings = void 0;
 const prisma_1 = __importDefault(require("../prisma"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const ttnProvider_1 = require("../services/ttnProvider");
+const auditTrailService_1 = require("../services/auditTrailService");
+const einvoiceConfig_1 = require("../services/einvoiceConfig");
 const getSettings = async (req, res) => {
     try {
         const raw = await prisma_1.default.company.findUnique({
@@ -24,6 +25,9 @@ const getSettings = async (req, res) => {
                 phone: true,
                 rib: true,
                 logo: true,
+                eHouwiyaStatus: true,
+                eHouwiyaIdentifier: true,
+                eHouwiyaVerifiedAt: true,
                 certificatePath: true,
                 createdAt: true,
                 updatedAt: true
@@ -57,7 +61,8 @@ const getSettings = async (req, res) => {
                 ttnStatus: true,
             },
         });
-        const ttnMode = (0, ttnProvider_1.getTTNMode)();
+        const readiness = (0, einvoiceConfig_1.getEInvoiceReadiness)(raw);
+        const ttnMode = readiness.mode;
         const company = raw
             ? {
                 ...raw,
@@ -70,15 +75,8 @@ const getSettings = async (req, res) => {
                     companyFiscalIdentifier: raw.matriculeFiscal,
                     lastSignatureTestDate: lastSignedInvoice?.updatedAt || null,
                     ttnMode,
-                    ttnConnectionStatus: ttnMode === 'mock'
-                        ? 'test'
-                        : ttnMode === 'webservice' && process.env.TTN_API_BASE_URL && process.env.TTN_API_USERNAME
-                            ? 'configured'
-                            : ttnMode === 'sftp' && process.env.TTN_SFTP_HOST && process.env.TTN_SFTP_USERNAME
-                                ? 'configured'
-                                : ttnMode === 'provider' && process.env.TTN_PROVIDER_API_KEY
-                                    ? 'configured'
-                                    : 'not_configured',
+                    ...readiness,
+                    ttnConnectionStatus: readiness.ttnConfigured ? 'configured' : ttnMode === 'mock' ? 'test' : 'not_configured',
                     teifAvailable: true,
                     lastSubmission,
                 },
@@ -94,9 +92,19 @@ const getSettings = async (req, res) => {
     }
 };
 exports.getSettings = getSettings;
+const getEInvoiceStatus = async (req, res) => {
+    try {
+        res.status(200).json((0, einvoiceConfig_1.getEInvoiceReadiness)(req.company));
+    }
+    catch (error) {
+        res.status(400).json({ message: error.message || 'Unable to read e-invoice configuration.' });
+    }
+};
+exports.getEInvoiceStatus = getEInvoiceStatus;
+const E_HOUWIYA_STATUSES = ['NOT_STARTED', 'HAS_IDENTIFIER', 'NEED_HELP', 'NOT_SURE'];
 const updateSettings = async (req, res) => {
     try {
-        const { name, matriculeFiscal, registreCommerce, address, city, zipCode, country, phone, rib, logo, newPassword, currentPassword } = req.body;
+        const { name, matriculeFiscal, registreCommerce, address, city, zipCode, country, phone, rib, logo, newPassword, currentPassword, eHouwiyaStatus, eHouwiyaIdentifier } = req.body;
         const companyId = req.company.id;
         // Fetch the actual current values to compare
         const currentSettings = await prisma_1.default.company.findUnique({
@@ -160,6 +168,28 @@ const updateSettings = async (req, res) => {
                 newValue: 'Nouveau logo'
             });
         }
+        if (eHouwiyaStatus !== undefined) {
+            if (!E_HOUWIYA_STATUSES.includes(eHouwiyaStatus)) {
+                return res.status(400).json({ message: 'Invalid E-Houwiya status.' });
+            }
+            if (eHouwiyaStatus !== currentSettings.eHouwiyaStatus) {
+                updateData.eHouwiyaStatus = eHouwiyaStatus;
+                updateData.eHouwiyaVerifiedAt = eHouwiyaStatus === 'HAS_IDENTIFIER' ? new Date() : null;
+                changes.push({
+                    field: 'E-Houwiya / Mobile ID',
+                    oldValue: String(currentSettings.eHouwiyaStatus || 'NOT_STARTED'),
+                    newValue: eHouwiyaStatus
+                });
+            }
+        }
+        if (eHouwiyaIdentifier !== undefined && eHouwiyaIdentifier !== currentSettings.eHouwiyaIdentifier) {
+            updateData.eHouwiyaIdentifier = eHouwiyaIdentifier || null;
+            changes.push({
+                field: 'Identifiant E-Houwiya / Mobile ID',
+                oldValue: currentSettings.eHouwiyaIdentifier ? 'Renseigné' : 'Non renseigné',
+                newValue: eHouwiyaIdentifier ? 'Renseigné' : 'Non renseigné'
+            });
+        }
         const updatedCompany = await prisma_1.default.company.update({
             where: { id: companyId },
             data: updateData,
@@ -175,7 +205,10 @@ const updateSettings = async (req, res) => {
                 country: true,
                 phone: true,
                 rib: true,
-                logo: true
+                logo: true,
+                eHouwiyaStatus: true,
+                eHouwiyaIdentifier: true,
+                eHouwiyaVerifiedAt: true
             }
         });
         // Log all changes if any
@@ -188,6 +221,33 @@ const updateSettings = async (req, res) => {
                     newValue: change.newValue
                 }
             })));
+            await (0, auditTrailService_1.logActivity)({
+                companyId,
+                actorId: companyId,
+                actorType: 'USER',
+                actionType: 'PROFILE_UPDATED',
+                objectType: 'SETTINGS',
+                objectId: companyId,
+                message: 'Parametres entreprise mis a jour.',
+                metadata: { fields: changes.map((change) => change.field) },
+                ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+            });
+        }
+        if (changes.some((change) => change.field.includes('E-Houwiya'))) {
+            await (0, auditTrailService_1.logActivity)({
+                companyId,
+                actorId: companyId,
+                actorType: 'USER',
+                actionType: 'PROFILE_UPDATED',
+                objectType: 'SETTINGS',
+                objectId: companyId,
+                message: 'Statut E-Houwiya mis à jour',
+                metadata: {
+                    eHouwiyaStatus: updateData.eHouwiyaStatus ?? currentSettings.eHouwiyaStatus,
+                    hasIdentifier: Boolean(updateData.eHouwiyaIdentifier ?? currentSettings.eHouwiyaIdentifier),
+                },
+                ...(0, auditTrailService_1.getRequestAuditMeta)(req),
+            });
         }
         res.status(200).json(updatedCompany);
     }
@@ -242,8 +302,19 @@ const uploadCertificate = async (req, res) => {
             where: { id: companyId },
             data: {
                 certificatePath: newPath,
-                certificatePassword: password // In a real prod app, encrypt this or store safely
+                certificatePassword: null
             }
+        });
+        await (0, auditTrailService_1.logActivity)({
+            companyId,
+            actorId: companyId,
+            actorType: 'USER',
+            actionType: 'UPDATED',
+            objectType: 'SETTINGS',
+            objectId: companyId,
+            message: 'Certificat de signature televerse.',
+            metadata: { fileType: ext, certificateSecretStored: false },
+            ...(0, auditTrailService_1.getRequestAuditMeta)(req),
         });
         res.status(200).json({ message: 'Certificate uploaded successfully' });
     }
@@ -273,6 +344,16 @@ const uploadLogo = async (req, res) => {
         await prisma_1.default.company.update({
             where: { id: companyId },
             data: { logo: logoUrl }
+        });
+        await (0, auditTrailService_1.logActivity)({
+            companyId,
+            actorId: companyId,
+            actorType: 'USER',
+            actionType: 'UPDATED',
+            objectType: 'SETTINGS',
+            objectId: companyId,
+            message: 'Logo entreprise mis a jour.',
+            metadata: { logo: logoUrl },
         });
         res.status(200).json({ message: 'Logo uploaded successfully', logo: logoUrl });
     }

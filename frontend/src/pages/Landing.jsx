@@ -15,11 +15,15 @@ import {
   Lock,
   Layout,
   MessageSquare,
+  CreditCard,
+  History,
+  Users,
   Menu,
   X,
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import BrandLogo from '../components/BrandLogo';
 
 const LangSwitcher = () => {
   const { lang, setLang } = useLanguage();
@@ -42,12 +46,46 @@ const LangSwitcher = () => {
   );
 };
 
+const featureGroups = {
+  fr: [
+    { icon: FileText, title: 'Gestion commerciale', desc: 'Clients, import Excel, idées de projet, offres, bons de commande, devis et factures dans un parcours cohérent.', color: 'bg-blue-600', iconColor: 'text-blue-600' },
+    { icon: ShieldCheck, title: 'Conformité TEIF & TTN', desc: 'Préparation XML TEIF, suivi TTN, mode test et étapes de conformité avant activation officielle.', color: 'bg-emerald-600', iconColor: 'text-emerald-600' },
+    { icon: CreditCard, title: 'Règlements', desc: 'Suivi des paiements après facture : payé, partiel, en attente, annulé et reste à payer.', color: 'bg-amber-600', iconColor: 'text-amber-600' },
+    { icon: Lock, title: 'E-Houwiya / Signature', desc: 'Checkpoint E-Houwiya / Mobile ID, choix de signature et configuration du certificat ou prestataire.', color: 'bg-indigo-600', iconColor: 'text-indigo-600' },
+    { icon: Users, title: 'Réseau & messages', desc: 'Collaborez avec clients, partenaires et équipes via réseau professionnel, partage et messagerie.', color: 'bg-cyan-600', iconColor: 'text-cyan-600' },
+    { icon: History, title: 'Historique & traçabilité', desc: 'Gardez une trace claire des actions, statuts, validations et changements sensibles.', color: 'bg-slate-700', iconColor: 'text-slate-700' },
+    { icon: Bot, title: 'Assistant IA', desc: 'Aide à comprendre les étapes, préparer les contenus et guider les utilisateurs sans remplacer les organismes officiels.', color: 'bg-violet-600', iconColor: 'text-violet-600' },
+    { icon: BarChart3, title: 'Rapports', desc: 'Suivez activité, facturation, règlements et performance avec des indicateurs lisibles.', color: 'bg-rose-600', iconColor: 'text-rose-600' },
+  ],
+  en: [
+    { icon: FileText, title: 'Sales workflow', desc: 'Clients, Excel import, project ideas, offers, purchase orders, quotes and invoices in one flow.', color: 'bg-blue-600', iconColor: 'text-blue-600' },
+    { icon: ShieldCheck, title: 'TEIF & TTN compliance', desc: 'TEIF XML preparation, TTN tracking, test mode and compliance checkpoints.', color: 'bg-emerald-600', iconColor: 'text-emerald-600' },
+    { icon: CreditCard, title: 'Payments', desc: 'Track money received after invoices: paid, partial, pending, canceled and remaining amount.', color: 'bg-amber-600', iconColor: 'text-amber-600' },
+    { icon: Lock, title: 'E-Houwiya / Signature', desc: 'Mobile ID checkpoint, signature choice and certificate or provider setup.', color: 'bg-indigo-600', iconColor: 'text-indigo-600' },
+    { icon: Users, title: 'Network & messages', desc: 'Collaborate with clients, partners and teams through sharing and messaging.', color: 'bg-cyan-600', iconColor: 'text-cyan-600' },
+    { icon: History, title: 'Audit trail', desc: 'Keep a clear trace of actions, statuses, approvals and sensitive changes.', color: 'bg-slate-700', iconColor: 'text-slate-700' },
+    { icon: Bot, title: 'AI Assistant', desc: 'Helps users understand steps and prepare content without replacing official bodies.', color: 'bg-violet-600', iconColor: 'text-violet-600' },
+    { icon: BarChart3, title: 'Reports', desc: 'Monitor activity, billing, payments and performance with readable indicators.', color: 'bg-rose-600', iconColor: 'text-rose-600' },
+  ],
+  ar: [
+    { icon: FileText, title: 'المسار التجاري', desc: 'عملاء، استيراد Excel، أفكار مشاريع، عروض، أوامر شراء، عروض أسعار وفواتير.', color: 'bg-blue-600', iconColor: 'text-blue-600' },
+    { icon: ShieldCheck, title: 'امتثال TEIF و TTN', desc: 'تحضير XML TEIF، متابعة TTN، وضع الاختبار ونقاط التحقق.', color: 'bg-emerald-600', iconColor: 'text-emerald-600' },
+    { icon: CreditCard, title: 'الدفعات', desc: 'متابعة المبالغ المستلمة بعد الفاتورة: مدفوع، جزئي، قيد الانتظار أو ملغى.', color: 'bg-amber-600', iconColor: 'text-amber-600' },
+    { icon: Lock, title: 'E-Houwiya / التوقيع', desc: 'نقطة تحقق Mobile ID واختيار التوقيع وإعداد الشهادة أو المزود.', color: 'bg-indigo-600', iconColor: 'text-indigo-600' },
+    { icon: Users, title: 'الشبكة والرسائل', desc: 'تعاون مع العملاء والشركاء والفرق عبر المشاركة والمراسلة.', color: 'bg-cyan-600', iconColor: 'text-cyan-600' },
+    { icon: History, title: 'السجل والتتبع', desc: 'احتفظ بتتبع واضح للإجراءات والحالات والتغييرات الحساسة.', color: 'bg-slate-700', iconColor: 'text-slate-700' },
+    { icon: Bot, title: 'المساعد الذكي', desc: 'يساعد على فهم الخطوات وتجهيز المحتوى دون تعويض الجهات الرسمية.', color: 'bg-violet-600', iconColor: 'text-violet-600' },
+    { icon: BarChart3, title: 'التقارير', desc: 'تابع النشاط والفوترة والدفعات والأداء بمؤشرات واضحة.', color: 'bg-rose-600', iconColor: 'text-rose-600' },
+  ],
+};
+
 const Landing = () => {
   const { t, lang } = useLanguage();
   const { user } = useContext(AuthContext);
   const isRtl = lang === 'ar';
   const isAuthenticated = !!user;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const features = featureGroups[lang] || featureGroups.fr;
 
   return (
     <div
@@ -72,12 +110,7 @@ const Landing = () => {
           <div className="bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg shadow-slate-200/50 rounded-2xl sm:rounded-[2rem] h-14 sm:h-20 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-4">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
-              <div className="bg-indigo-600 p-2 sm:p-2.5 rounded-xl sm:rounded-[1.2rem] shadow-xl shadow-indigo-200 group-hover:rotate-6 transition-all duration-300">
-                <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
-              <span className="text-base sm:text-xl lg:text-2xl font-black tracking-tighter text-slate-900 whitespace-nowrap">
-                El Fatoura
-              </span>
+              <BrandLogo className="h-9 w-auto max-w-[180px] sm:h-11 sm:max-w-[220px]" />
             </Link>
 
             {/* Desktop nav links */}
@@ -94,12 +127,12 @@ const Landing = () => {
               >
                 {t('landing.nav.compliance')}
               </a>
-              <a
-                href="/pricing"
+              <Link
+                to="/e-invoice-guide"
                 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 hover:text-indigo-600 transition-colors whitespace-nowrap"
               >
-                {t('landing.nav.pricing')}
-              </a>
+                Guide e-Facture
+              </Link>
               <div className="h-4 w-px bg-slate-200" />
               <LangSwitcher />
             </div>
@@ -154,16 +187,27 @@ const Landing = () => {
                 {[
                   { href: '#features', label: t('landing.nav.features') },
                   { href: '#compliance', label: t('landing.nav.compliance') },
-                  { href: '/pricing', label: t('landing.nav.pricing') },
+                  { href: '/e-invoice-guide', label: 'Guide e-Facture', route: true },
                 ].map(({ href, label }) => (
-                  <a
-                    key={href}
-                    href={href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-colors"
-                  >
-                    {label}
-                  </a>
+                  href.startsWith('/') ? (
+                    <Link
+                      key={href}
+                      to={href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-colors"
+                    >
+                      {label}
+                    </Link>
+                  ) : (
+                    <a
+                      key={href}
+                      href={href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-colors"
+                    >
+                      {label}
+                    </a>
+                  )
                 ))}
                 {!isAuthenticated && (
                   <Link
@@ -473,15 +517,10 @@ const Landing = () => {
             </h3>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-            {[
-              { icon: <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />, title: t('landing.features.1.title'), desc: t('landing.features.1.desc'), color: 'bg-blue-600' },
-              { icon: <Globe className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" />, title: t('landing.features.2.title'), desc: t('landing.features.2.desc'), color: 'bg-indigo-600' },
-              { icon: <Bot className="w-6 h-6 sm:w-8 sm:h-8 text-violet-600" />, title: t('landing.features.3.title'), desc: t('landing.features.3.desc'), color: 'bg-violet-600' },
-              { icon: <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-600" />, title: t('landing.features.4.title'), desc: t('landing.features.4.desc'), color: 'bg-emerald-600' },
-              { icon: <Layout className="w-6 h-6 sm:w-8 sm:h-8 text-amber-600" />, title: t('landing.features.5.title'), desc: t('landing.features.5.desc'), color: 'bg-amber-600' },
-              { icon: <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-rose-600" />, title: t('landing.features.6.title'), desc: t('landing.features.6.desc'), color: 'bg-rose-600' },
-            ].map((feature, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+            {features.map((feature, i) => {
+              const Icon = feature.icon;
+              return (
               <div
                 key={i}
                 className="group p-6 sm:p-8 lg:p-10 xl:p-12 rounded-3xl sm:rounded-[2.5rem] lg:rounded-[3.5rem] bg-slate-50 border border-slate-100 hover:bg-white hover:border-white hover:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] transition-all duration-500 relative overflow-hidden"
@@ -490,7 +529,7 @@ const Landing = () => {
                   className={`absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 ${feature.color}/5 rounded-full -me-12 sm:-me-16 -mt-12 sm:-mt-16 group-hover:scale-150 transition-transform duration-1000`}
                 />
                 <div className="mb-6 sm:mb-8 lg:mb-10 w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl bg-white shadow-xl shadow-slate-200/50 flex items-center justify-center relative z-10 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-                  {feature.icon}
+                  <Icon className={`w-6 h-6 sm:w-8 sm:h-8 ${feature.iconColor}`} />
                 </div>
                 <h4 className="text-lg sm:text-xl lg:text-2xl font-black text-slate-900 mb-3 sm:mb-4 lg:mb-6 relative z-10">
                   {feature.title}
@@ -503,7 +542,7 @@ const Landing = () => {
                   <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       </section>
@@ -518,7 +557,7 @@ const Landing = () => {
             De l'idée au règlement, sans perdre la conformité.
           </h3>
           <p className="max-w-3xl mx-auto text-slate-500 text-base sm:text-lg font-bold">
-            El Fatoora accompagne les TPE/PME tunisiennes sur les idées de projet, offres, bons de commande, devis,
+            InvoicePro accompagne les TPE/PME tunisiennes sur les idées de projet, offres, bons de commande, devis,
             factures, signature électronique, suivi TTN et historique de traçabilité.
           </p>
           <div className="mt-10 grid grid-cols-1 md:grid-cols-6 gap-3 text-sm font-black text-slate-700">
@@ -545,10 +584,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 lg:gap-16 relative z-10">
           <div className="space-y-6 sm:space-y-8 sm:col-span-2 lg:col-span-1">
             <Link to="/" className="flex items-center gap-3 sm:gap-4 group">
-              <div className="bg-slate-900 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl group-hover:rotate-6 transition-all duration-300">
-                <ShieldCheck className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-              </div>
-              <span className="text-2xl sm:text-3xl font-black tracking-tighter text-slate-900">El Fatoura</span>
+              <BrandLogo className="h-11 w-auto max-w-[220px] sm:h-12" />
             </Link>
             <p className="text-slate-500 font-semibold leading-relaxed max-w-xs text-sm">
               {t('landing.footer.desc')}
@@ -599,7 +635,7 @@ const Landing = () => {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-12 lg:mt-24 pt-6 sm:pt-8 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] text-center sm:text-start">
-            © 2024 El Fatoura Tunis. Tous droits réservés.
+            © 2024 InvoicePro Tunis. Tous droits réservés.
           </p>
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />

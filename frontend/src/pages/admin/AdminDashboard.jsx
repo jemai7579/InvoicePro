@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { getPlanLabel } from '../../utils/planLabels';
 
 const ChartBars = ({ items, color = 'bg-premium-600' }) => (
   <div className="flex items-end gap-3 h-40">
@@ -24,7 +25,7 @@ const ChartBars = ({ items, color = 'bg-premium-600' }) => (
             <div className={`w-full rounded-t-2xl ${color}`} style={{ height }} />
           </div>
           <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
-            {item.period || item.status || item.plan}
+            {item.period || item.status || (item.plan ? getPlanLabel(item.plan) : '')}
           </div>
         </div>
       );

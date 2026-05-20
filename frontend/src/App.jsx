@@ -25,6 +25,7 @@ import Terms from './pages/Terms';
 import Legal from './pages/Legal';
 import Contact from './pages/Contact';
 import Pricing from './pages/Pricing';
+import EInvoiceGuide from './pages/EInvoiceGuide';
 import Offers from './pages/Offers';
 import Payments from './pages/Payments';
 import AuditTrail from './pages/AuditTrail';
@@ -52,9 +53,11 @@ import AdminPrivateRoute from './components/AdminPrivateRoute';
 
 import { AdminAuthProvider } from './context/AdminAuthContext';
 
+const routerBaseName = (import.meta.env.VITE_BASE_PATH || '/').replace(/\/$/, '');
+
 function App() {
   return (
-    <Router>
+    <Router basename={routerBaseName === '' ? undefined : routerBaseName}>
       <AdminAuthProvider>
         <Routes>
           {/* Public Routes */}
@@ -68,6 +71,8 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/tarifs" element={<Pricing />} />
+          <Route path="/e-invoice-guide" element={<EInvoiceGuide />} />
+          <Route path="/signature-ttn" element={<SignatureTTN />} />
           <Route path="/public/offers/:token" element={<PublicOffer />} />
 
           {/* Admin Routes */}
@@ -102,6 +107,7 @@ function App() {
               <Route path="/suivi-factures" element={<InvoiceTracking />} />
               <Route path="/clients" element={<Clients />} />
               <Route path="/network" element={<Network />} />
+              <Route path="/reseau" element={<Network />} />
               <Route path="/reseau-professionnel" element={<Network />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/projects" element={<Projects />} />

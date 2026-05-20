@@ -45,8 +45,8 @@ const UpgradeOverlay = ({ title, description, featureType = 'ai' }) => {
         
         <p className="text-lg text-slate-600 mb-8 max-w-lg leading-relaxed">
           {description || (isAI 
-            ? "L'assistant intelligent est exclusivement disponible pour nos utilisateurs Professional et Enterprise." 
-            : "Accédez à des statistiques poussées et des analyses de performance avec l'offre Professional.")}
+            ? "L'assistant intelligent est exclusivement disponible pour nos utilisateurs Pro et Max." 
+            : "Accédez à des statistiques poussées et des analyses de performance avec l'offre Pro.")}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mb-10 text-left">
@@ -63,7 +63,7 @@ const UpgradeOverlay = ({ title, description, featureType = 'ai' }) => {
             onClick={() => navigate('/settings?tab=subscription')}
             className="flex-1 flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 shadow-lg shadow-slate-900/20 active:scale-95"
           >
-            Passer à Professional
+            Passer à Pro
             <ArrowRight size={20} />
           </button>
           
@@ -77,7 +77,7 @@ const UpgradeOverlay = ({ title, description, featureType = 'ai' }) => {
         
         <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-widest">
           <Lock size={12} />
-          Accès Restreint • Forfait Starter
+          Accès Restreint • Forfait Démarrage
         </div>
       </div>
     </div>

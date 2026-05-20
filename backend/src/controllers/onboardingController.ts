@@ -11,9 +11,9 @@ export const getSignatureProviderOptions = async (_req: Request, res: Response) 
         id: 'static-e-houwiya',
         name: 'E-Houwiya / Huwaya ID',
         targetUsers: 'Entrepreneurs, freelances, TPE et petites entreprises.',
-        costDescription: 'Modele de cout et tarification a verifier officiellement.',
+        costDescription: 'Identite numerique, usage signature et tarification a verifier officiellement.',
         difficulty: 'EASY',
-        setupInstructions: 'Parcours probablement plus simple pour certains profils. Verifier la compatibilite TTN, les prix et les conditions officielles avant toute utilisation production. Digigo / E-Houwiya peut etre etudie comme chemin d accompagnement, sans integration active declaree.',
+        setupInstructions: 'E-Houwiya / Mobile ID peut etre une etape d identification numerique, un chemin possible de signature ou une partie du parcours d adhesion pour entrepreneurs. Verifier votre statut, la procedure officielle, la compatibilite TTN, les prix et les conditions avant toute utilisation production.',
         status: 'NEEDS_VERIFICATION',
       },
       {

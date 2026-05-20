@@ -9,6 +9,24 @@ const routeParam = (value: string | string[]) => Array.isArray(value) ? value[0]
 const assertOwnedPayment = async (id: string, companyId: string) =>
   prisma.payment.findFirst({ where: { id, companyId }, include: includePayment });
 
+const parseAmount = (value: any) => {
+  const normalized = String(value ?? '').trim().replace(',', '.');
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error('INVALID_AMOUNT');
+  return amount;
+};
+
+const syncInvoicePaymentStatus = async (invoiceId: string, companyId: string) => {
+  const summary = await getInvoicePaymentSummary(invoiceId, companyId);
+  if (summary?.paymentStatus) {
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { paymentStatus: String(summary.paymentStatus).toLowerCase() },
+    });
+  }
+  return summary;
+};
+
 export const getPayments = async (req: Request, res: Response) => {
   try {
     const payments = await prisma.payment.findMany({
@@ -41,7 +59,7 @@ const createPaymentRecord = async (companyId: string, body: any, invoiceIdFromRo
     data: {
       companyId,
       invoiceId,
-      amount: Number(body.amount || 0),
+      amount: parseAmount(body.amount),
       paymentDate: body.paymentDate ? new Date(body.paymentDate) : new Date(),
       method: body.method || 'CASH',
       status: body.status || 'PAID',
@@ -51,10 +69,7 @@ const createPaymentRecord = async (companyId: string, body: any, invoiceIdFromRo
     include: includePayment,
   });
 
-  const summary = await getInvoicePaymentSummary(invoiceId, companyId);
-  if (summary?.paymentStatus === 'PAID') {
-    await prisma.invoice.update({ where: { id: invoiceId }, data: { status: 'PAID' as any } });
-  }
+  const summary = await syncInvoicePaymentStatus(invoiceId, companyId);
 
   return { payment, summary };
 };
@@ -77,6 +92,7 @@ export const createPayment = async (req: Request, res: Response) => {
     res.status(201).json({ payment, summary });
   } catch (error: any) {
     if (error.message === 'INVOICE_NOT_FOUND') return res.status(404).json({ message: 'Invoice not found' });
+    if (error.message === 'INVALID_AMOUNT') return res.status(400).json({ message: 'Invalid payment amount' });
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -99,6 +115,7 @@ export const createInvoicePayment = async (req: Request, res: Response) => {
     res.status(201).json({ payment, summary });
   } catch (error: any) {
     if (error.message === 'INVOICE_NOT_FOUND') return res.status(404).json({ message: 'Invoice not found' });
+    if (error.message === 'INVALID_AMOUNT') return res.status(400).json({ message: 'Invalid payment amount' });
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -112,7 +129,7 @@ export const updatePayment = async (req: Request, res: Response) => {
     const updated = await prisma.payment.update({
       where: { id: existing.id },
       data: {
-        amount: req.body.amount !== undefined ? Number(req.body.amount) : existing.amount,
+        amount: req.body.amount !== undefined ? parseAmount(req.body.amount) : existing.amount,
         paymentDate: req.body.paymentDate ? new Date(req.body.paymentDate) : existing.paymentDate,
         method: req.body.method ?? existing.method,
         status: req.body.status ?? existing.status,
@@ -121,21 +138,26 @@ export const updatePayment = async (req: Request, res: Response) => {
       },
       include: includePayment,
     });
-    const summary = await getInvoicePaymentSummary(updated.invoiceId, companyId);
+    const summary = await syncInvoicePaymentStatus(updated.invoiceId, companyId);
     await logActivity({
       companyId,
       actorId: companyId,
       actorType: 'USER',
-      actionType: 'UPDATED',
+      actionType: updated.status === 'CANCELLED' ? 'CANCELLED' : updated.status === 'PAID' ? 'PAID' : 'UPDATED',
       objectType: 'PAYMENT',
       objectId: updated.id,
-      message: `Reglement ${updated.reference || updated.id.slice(0, 8)} mis a jour.`,
+      message: updated.status === 'CANCELLED'
+        ? `Reglement ${updated.reference || updated.id.slice(0, 8)} annule.`
+        : updated.status === 'PAID'
+          ? `Reglement ${updated.reference || updated.id.slice(0, 8)} marque comme paye.`
+          : `Reglement ${updated.reference || updated.id.slice(0, 8)} mis a jour.`,
       oldValue: existing,
       newValue: updated,
       metadata: { invoiceId: updated.invoiceId, paymentStatus: summary?.paymentStatus },
     });
     res.status(200).json({ payment: updated, summary });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'INVALID_AMOUNT') return res.status(400).json({ message: 'Invalid payment amount' });
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -146,6 +168,7 @@ export const deletePayment = async (req: Request, res: Response) => {
     const existing = await assertOwnedPayment(routeParam(req.params.id), companyId);
     if (!existing) return res.status(404).json({ message: 'Payment not found' });
     await prisma.payment.delete({ where: { id: existing.id } });
+    const summary = await syncInvoicePaymentStatus(existing.invoiceId, companyId);
     await logActivity({
       companyId,
       actorId: companyId,
@@ -155,9 +178,9 @@ export const deletePayment = async (req: Request, res: Response) => {
       objectId: existing.id,
       message: `Reglement ${existing.reference || existing.id.slice(0, 8)} supprime.`,
       oldValue: existing,
-      metadata: { invoiceId: existing.invoiceId },
+      metadata: { invoiceId: existing.invoiceId, paymentStatus: summary?.paymentStatus },
     });
-    res.status(200).json({ message: 'Payment removed' });
+    res.status(200).json({ message: 'Payment removed', summary });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

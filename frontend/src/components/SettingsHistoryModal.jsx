@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   X, History, Clock, Calendar, ArrowRight, 
   ArrowLeftRight, Loader, AlertCircle 
@@ -7,18 +7,12 @@ import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 
 const SettingsHistoryModal = ({ isOpen, onClose }) => {
-  const { t, lang } = useLanguage();
+  const { lang } = useLanguage();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchHistory();
-    }
-  }, [isOpen]);
-
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -30,7 +24,13 @@ const SettingsHistoryModal = ({ isOpen, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [lang]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchHistory();
+    }
+  }, [isOpen, fetchHistory]);
 
   if (!isOpen) return null;
 

@@ -75,7 +75,7 @@ const RequestModal = ({ clients, onClose, onSaved }) => {
   const { t } = useLanguage();
   const [clientId, setClientId] = useState('');
   const [product, setProduct] = useState('');
-  const [desc, setDesc] = useState('');
+  const [desc] = useState('');
   const [lines, setLines] = useState([{ description: '', quantity: 1, unitPrice: 0, tvaRate: 19 }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

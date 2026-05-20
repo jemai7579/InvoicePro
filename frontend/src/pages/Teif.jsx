@@ -45,6 +45,8 @@ const COPY = {
     check: 'Verifier statut',
     submit: 'Envoyer a TTN',
     sign: 'Signer',
+    configureSignature: 'Configurer la signature',
+    configureTtn: 'Configurer TTN',
     generate: 'Generer XML',
     signatureProvider: 'Fournisseur',
     certificateType: 'Type de certificat',
@@ -76,6 +78,8 @@ const COPY = {
     check: 'Check status',
     submit: 'Submit to TTN',
     sign: 'Sign',
+    configureSignature: 'Configure signature',
+    configureTtn: 'Configure TTN',
     generate: 'Generate XML',
     signatureProvider: 'Provider',
     certificateType: 'Certificate type',
@@ -107,6 +111,8 @@ const COPY = {
     check: 'التحقق من الحالة',
     submit: 'ارسال الى TTN',
     sign: 'توقيع',
+    configureSignature: 'تهيئة التوقيع',
+    configureTtn: 'تهيئة TTN',
     generate: 'توليد XML',
     signatureProvider: 'المزود',
     certificateType: 'نوع الشهادة',
@@ -135,8 +141,12 @@ const Teif = () => {
 
   const fetchData = async () => {
     try {
-      const [settingsRes, invoicesRes] = await Promise.all([api.get('/settings'), api.get('/invoices')]);
-      setSettings(settingsRes.data);
+      const [settingsRes, statusRes, invoicesRes] = await Promise.all([
+        api.get('/settings'),
+        api.get('/settings/einvoice/status').catch(() => ({ data: null })),
+        api.get('/invoices'),
+      ]);
+      setSettings({ ...settingsRes.data, eInvoiceStatus: statusRes.data });
       setInvoices(invoicesRes.data || []);
     } catch (error) {
       console.error('Error loading compliance center', error);
@@ -151,8 +161,9 @@ const Teif = () => {
 
   const latestInvoices = useMemo(() => invoices.slice(0, 6), [invoices]);
   const compliance = settings?.compliance || {};
-  const ttnMode = compliance.ttnMode || 'mock';
-  const hasCertificate = compliance.signatureStatus === 'configured';
+  const eInvoiceStatus = settings?.eInvoiceStatus || {};
+  const ttnMode = eInvoiceStatus.mode || compliance.ttnMode || 'mock';
+  const hasCertificate = Boolean(eInvoiceStatus.signatureConfigured || compliance.signatureStatus === 'configured');
 
   const doAction = async (invoiceId, endpoint) => {
     try {
@@ -223,7 +234,7 @@ const Teif = () => {
                     </div>
                     <div className="rounded-2xl border border-slate-100 bg-slate-50/40 px-4 py-3">
                       <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{text.mode}</div>
-                      <div className="mt-1 font-bold text-slate-800">{ttnMode === 'mock' ? text.testMode : text.productionMode}</div>
+                      <div className="mt-1 font-bold text-slate-800">{ttnMode === 'mock' ? 'Mode simulation — non légal' : ttnMode === 'sandbox' ? 'Mode test TTN — non légal' : text.productionMode}</div>
                     </div>
                     <div className="rounded-2xl border border-slate-100 bg-slate-50/40 px-4 py-3">
                       <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">{text.signatureProvider}</div>
@@ -257,7 +268,7 @@ const Teif = () => {
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={hasCertificate ? 'success' : 'warning'}>{text.signatureStatus}: {hasCertificate ? text.configured : text.notConfigured}</Badge>
                     <Badge variant="primary">{text.teifTools}: {text.available}</Badge>
-                    <Badge variant={ttnMode === 'mock' ? 'warning' : 'success'}>{ttnMode === 'mock' ? text.testMode : text.productionMode}</Badge>
+                    <Badge variant={ttnMode === 'production' ? 'success' : 'warning'}>{ttnMode === 'mock' ? 'Mode simulation — non légal' : ttnMode === 'sandbox' ? 'Mode test TTN — non légal' : text.productionMode}</Badge>
                   </div>
                 </div>
               </div>
@@ -298,13 +309,13 @@ const Teif = () => {
                         </Button>
                       ) : null}
                       {invoice.complianceStatus === 'TEIF_GENERATED' ? (
-                        <Button size="sm" variant="secondary" onClick={() => doAction(invoice.id, `/invoices/${invoice.id}/sign-teif`)} loading={busyInvoiceId === invoice.id}>
-                          {text.sign}
+                        <Button size="sm" variant="secondary" onClick={() => hasCertificate ? doAction(invoice.id, `/invoices/${invoice.id}/sign-teif`) : navigate('/settings?tab=compliance')} loading={busyInvoiceId === invoice.id}>
+                          {hasCertificate ? text.sign : text.configureSignature}
                         </Button>
                       ) : null}
                       {invoice.complianceStatus === 'SIGNED' ? (
-                        <Button size="sm" onClick={() => doAction(invoice.id, `/invoices/${invoice.id}/submit-ttn`)} loading={busyInvoiceId === invoice.id}>
-                          {text.submit}
+                        <Button size="sm" onClick={() => (eInvoiceStatus.ttnConfigured || ttnMode === 'mock') ? doAction(invoice.id, `/invoices/${invoice.id}/submit-ttn`) : navigate('/settings?tab=compliance')} loading={busyInvoiceId === invoice.id}>
+                          {(eInvoiceStatus.ttnConfigured || ttnMode === 'mock') ? text.submit : text.configureTtn}
                         </Button>
                       ) : null}
                       {['SENT_TO_TTN', 'PENDING_TTN'].includes(invoice.complianceStatus) ? (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Loader, Mail, Send, Users, X } from 'lucide-react';
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -20,12 +20,12 @@ const Network = () => {
   const [toast, setToast] = useState(null);
   const [sending, setSending] = useState(false);
 
-  const showToast = (type, text) => {
+  const showToast = useCallback((type, text) => {
     setToast({ type, text });
     setTimeout(() => setToast(null), 3500);
-  };
+  }, []);
 
-  const fetchNetwork = async () => {
+  const fetchNetwork = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get('/network');
@@ -35,11 +35,11 @@ const Network = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     fetchNetwork();
-  }, []);
+  }, [fetchNetwork]);
 
   const invite = async (event) => {
     event.preventDefault();

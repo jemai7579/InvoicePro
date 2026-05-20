@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "typecheck": "node -e \"console.log('No TypeScript typecheck configured: this frontend is JavaScript React. Use npm run lint and npm run build for validation.')\"",
+    "test": "node -e \"console.log('No frontend test runner configured. Run npm run lint and npm run build, then follow PLATFORM_FUNCTIONALITY_AUDIT.md manual checks.')\"",
+    "smoke": "node -e \"console.log('Frontend smoke: run npm run build and open / and /e-invoice-guide locally.')\"",
     "preview": "vite preview"
   },
   "dependencies": {

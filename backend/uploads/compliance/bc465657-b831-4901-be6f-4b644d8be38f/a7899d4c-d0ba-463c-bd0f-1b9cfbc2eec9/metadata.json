@@ -1,0 +1,50 @@
+{
+  "workflowStatus": "ACCEPTED_TTN",
+  "lastStatusAt": "2026-05-20T00:28:09.596Z",
+  "statusHistory": [
+    {
+      "status": "VALIDATED",
+      "at": "2026-05-20T00:28:09.382Z",
+      "note": "Invoice validated"
+    },
+    {
+      "status": "TEIF_GENERATED",
+      "at": "2026-05-20T00:28:09.443Z",
+      "note": "TEIF XML generated"
+    },
+    {
+      "status": "SIGNED",
+      "at": "2026-05-20T00:28:09.495Z",
+      "note": "Electronic signature completed"
+    },
+    {
+      "status": "SENT_TO_TTN",
+      "at": "2026-05-20T00:28:09.542Z",
+      "note": "TTN integration is not configured yet. Simulation mode enabled."
+    },
+    {
+      "status": "ACCEPTED_TTN",
+      "at": "2026-05-20T00:28:09.596Z",
+      "note": "TTN integration is not configured yet. Simulation mode enabled."
+    }
+  ],
+  "teifXmlPath": "/uploads/compliance/bc465657-b831-4901-be6f-4b644d8be38f/a7899d4c-d0ba-463c-bd0f-1b9cfbc2eec9/teif.xml",
+  "teifXmlHash": "29b7b42c48efb1de784b8eb5d16ce61d8aecf6d125c9f23171327239d0f17336",
+  "teifGeneratedAt": "2026-05-20T00:28:09.437Z",
+  "teifVersion": null,
+  "complianceMode": "mock",
+  "signedXmlPath": "/uploads/compliance/bc465657-b831-4901-be6f-4b644d8be38f/a7899d4c-d0ba-463c-bd0f-1b9cfbc2eec9/teif.approved.xml",
+  "signatureProvider": "TunTrust / ANCE",
+  "certificateType": "USB token",
+  "lastSignatureTestDate": "2026-05-20T00:28:09.491Z",
+  "signatureStatus": "mock_signed",
+  "signatureTimestamp": "2026-05-20T00:28:09.491Z",
+  "signedByUserId": "bc465657-b831-4901-be6f-4b644d8be38f",
+  "certificateIdentifier": "MOCK_CERTIFICATE_NO_LEGAL_VALUE",
+  "ttnSubmissionId": "MOCK-SUB-A7899D4C-1779236889541",
+  "lastTtnSyncAt": "2026-05-20T00:28:09.594Z",
+  "ttnReference": "TTN-2026-A7899D4C",
+  "ttnQrCode": "{\"mode\":\"mock\",\"invoiceId\":\"a7899d4c-d0ba-463c-bd0f-1b9cfbc2eec9\",\"reference\":\"TTN-2026-A7899D4C\",\"acceptedAt\":\"2026-05-20T00:28:09.592Z\"}",
+  "ttnAcceptedAt": "2026-05-20T00:28:09.594Z",
+  "mockDecision": "accept"
+}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Loader, MessageSquare, Send } from 'lucide-react';
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -12,25 +12,27 @@ const Messages = () => {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
-  const showToast = (text) => {
+  const showToast = useCallback((text) => {
     setToast(text);
     setTimeout(() => setToast(null), 3500);
-  };
+  }, []);
 
-  const fetchPartners = async () => {
+  const fetchPartners = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get('/messages/conversations');
       setPartners(res.data || []);
-      if (!activePartner && res.data?.length) setActivePartner(res.data[0]);
+      if (res.data?.length) {
+        setActivePartner((current) => current || res.data[0]);
+      }
     } catch (error) {
       showToast(error.response?.data?.message || 'Impossible de charger les conversations.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
-  const fetchMessages = async (partner) => {
+  const fetchMessages = useCallback(async (partner) => {
     if (!partner) return;
     try {
       const res = await api.get(`/messages/${partner.partnerCompanyId}`);
@@ -38,15 +40,15 @@ const Messages = () => {
     } catch (error) {
       showToast(error.response?.data?.message || 'Impossible de charger les messages.');
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     fetchPartners();
-  }, []);
+  }, [fetchPartners]);
 
   useEffect(() => {
     fetchMessages(activePartner);
-  }, [activePartner]);
+  }, [activePartner, fetchMessages]);
 
   const sendMessage = async (event) => {
     event.preventDefault();

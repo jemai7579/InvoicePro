@@ -128,9 +128,9 @@ const generatePdf = async (docData, type = 'FACTURE', compliance) => {
                 .fillColor('#A8C4F0')
                 .text(type === 'FACTURE'
                 ? isFinalInvoice
-                    ? 'Plateforme El Fatoora · Conformite TTN'
-                    : 'Plateforme El Fatoora · Preparation TTN'
-                : 'Plateforme El Fatoora · Document commercial', MARGIN, 40);
+                    ? 'Plateforme InvoicePro · Conformite TTN'
+                    : 'Plateforme InvoicePro · Preparation TTN'
+                : 'Plateforme InvoicePro · Document commercial', MARGIN, 40);
             doc
                 .fillColor(C.white)
                 .fontSize(8.5)
@@ -170,7 +170,7 @@ const generatePdf = async (docData, type = 'FACTURE', compliance) => {
                 .fillColor(C.white)
                 .font('Helvetica')
                 .fontSize(7)
-                .text(`El Fatoora · ${type === 'FACTURE' ? 'Facturation electronique' : 'Devis'} · Ref. ${ref} · Page ${page} / ${total}`, 0, FOOTER_Y + 7, { width: PAGE_W, align: 'center' });
+                .text(`InvoicePro · ${type === 'FACTURE' ? 'Facturation electronique' : 'Devis'} · Ref. ${ref} · Page ${page} / ${total}`, 0, FOOTER_Y + 7, { width: PAGE_W, align: 'center' });
         };
         const ensureSpace = (needed) => {
             if (y + needed <= BODY_MAX)
@@ -352,34 +352,6 @@ const generatePdf = async (docData, type = 'FACTURE', compliance) => {
         ensureSpace(16);
         doc.fillColor(C.muted).font('Helvetica').fontSize(8.5).text('Mode de paiement : Espèce', MARGIN, y);
         y += 14;
-        ensureSpace(70);
-        y += 8;
-        doc.rect(MARGIN, y, CONTENT_W, 1).fill(C.border);
-        y += 8;
-        let legalText = 'Ce document est genere par la plateforme El Fatoora dans le cadre du workflow de facturation electronique TTN. ' +
-            'Les donnees de montant, client, reference et statut sont tracees dans le systeme.';
-        if (type === 'FACTURE' && isFinalInvoice) {
-            legalText += ` La facture a ete acceptee par TTN${compliance?.ttnReference ? ` sous la reference ${compliance.ttnReference}` : ''}.`;
-            if (isMockMode) {
-                legalText += ' Ce document a ete produit en mode test et ne doit pas etre utilise comme justificatif fiscal de production.';
-            }
-        }
-        else if (type === 'FACTURE') {
-            legalText += ' Cette version reste un brouillon ou une version intermediaire tant que la signature electronique et la validation TTN ne sont pas terminees.';
-        }
-        else {
-            legalText += ' Ce devis n a pas valeur de facture fiscale.';
-        }
-        doc.fillColor(C.muted).font('Helvetica-Oblique').fontSize(7.5).text(legalText, MARGIN, y, {
-            width: CONTENT_W,
-            align: 'justify',
-        });
-        y += doc.heightOfString(legalText, { width: CONTENT_W }) + 10;
-        doc
-            .fillColor(C.muted)
-            .font('Helvetica')
-            .fontSize(7.5)
-            .text("Conditions de paiement : paiement a reception. Une facture est fiscalement valide uniquement apres acceptation TTN.", MARGIN, y, { width: CONTENT_W, align: 'center' });
         const range = doc.bufferedPageRange();
         for (let i = 0; i < range.count; i += 1) {
             doc.switchToPage(range.start + i);

@@ -16,6 +16,7 @@ import { getInvoices, getInvoiceById, createInvoice,
 } from '../controllers/invoiceController';
 import { protect } from '../middleware/authMiddleware';
 import { checkInvoiceQuota } from '../middleware/subscriptionMiddleware';
+import { requireCompanyRole, requireEInvoicePermission } from '../middleware/permissionMiddleware';
 import multer from 'multer';
 import { createInvoicePayment, getInvoicePayments } from '../controllers/paymentController';
 
@@ -24,7 +25,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 
 router.route('/')
   .get(protect, getInvoices)
-  .post(protect, checkInvoiceQuota, createInvoice);
+  .post(protect, requireCompanyRole(['admin', 'accountant'], 'création de facture'), checkInvoiceQuota, createInvoice);
 
 router.route('/:id')
   .get(protect, getInvoiceById)
@@ -44,16 +45,16 @@ router.route('/:id/validate-teif')
   .post(protect, validateInvoiceTeifController);
 
 router.route('/:id/generate-teif')
-  .post(protect, generateInvoiceTeifController);
+  .post(protect, requireCompanyRole(['admin', 'accountant'], 'génération TEIF'), generateInvoiceTeifController);
 
 router.route('/:id/sign-teif')
-  .post(protect, signInvoiceTeifController);
+  .post(protect, requireEInvoicePermission('sign'), signInvoiceTeifController);
 
 router.route('/:id/send-email')
   .post(protect, sendInvoiceEmailController);
 
 router.route('/:id/submit-ttn')
-  .post(protect, submitToTTNController);
+  .post(protect, requireEInvoicePermission('submit-ttn'), submitToTTNController);
 
 router.route('/:id/check-ttn-status')
   .post(protect, checkTTNStatusController);

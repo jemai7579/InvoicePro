@@ -2,7 +2,6 @@ import React, { useContext, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
-  ShieldCheck,
   ArrowRight,
   Loader,
   User,
@@ -14,6 +13,25 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import BrandLogo from '../components/BrandLogo';
+import { PLAN_OPTIONS, normalizePlanValue } from '../utils/planLabels';
+
+const getRegisterErrorMessage = (err) => {
+  const data = err.response?.data;
+
+  if (typeof data === 'string' && data.trim()) return data;
+  if (data?.message) return data.message;
+  if (data?.error) return data.error;
+  if (err.message) return err.message;
+  if (Array.isArray(data?.errors) && data.errors.length > 0) {
+    return data.errors
+      .map((item) => item.message || item.msg || item.error)
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  return 'Erreur lors de la création du compte. Veuillez vérifier les informations.';
+};
 
 const Register = () => {
   const { t, lang } = useLanguage();
@@ -24,30 +42,7 @@ const Register = () => {
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const selectedPlan = searchParams.get('plan') || 'starter';
-
-  const planDetails = {
-    starter: {
-      name: t('auth.planSummary.starter'),
-      price: '19',
-      features: [t('landing.pricing.starter.feat1'), t('landing.pricing.starter.feat2'), t('landing.pricing.starter.feat3'), t('landing.pricing.starter.feat4')],
-      color: 'bg-indigo-50 border-indigo-100 text-indigo-600',
-    },
-    professional: {
-      name: t('auth.planSummary.professional'),
-      price: '99',
-      features: [t('landing.pricing.pro.feat1'), t('landing.pricing.pro.feat2'), t('landing.pricing.pro.feat3'), t('landing.pricing.pro.feat4')],
-      color: 'bg-amber-50 border-amber-100 text-amber-600',
-    },
-    enterprise: {
-      name: t('auth.planSummary.enterprise'),
-      price: '199',
-      features: [t('landing.pricing.enterprise.feat1'), t('landing.pricing.enterprise.feat2'), t('landing.pricing.enterprise.feat3'), t('landing.pricing.enterprise.feat4')],
-      color: 'bg-slate-900 border-slate-800 text-white',
-    },
-  };
-
-  const currentPlan = planDetails[selectedPlan.toLowerCase()] || planDetails.starter;
+  const [selectedPlan, setSelectedPlan] = useState(() => normalizePlanValue(searchParams.get('plan')));
 
   const [formData, setFormData] = useState({
     name: '',
@@ -90,7 +85,7 @@ const Register = () => {
 
     setLoading(true);
     try {
-      await register({
+      const payload = {
         name: formData.name,
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -100,13 +95,21 @@ const Register = () => {
         registreCommerce: formData.registreCommerce,
         address: formData.address,
         phone: formData.phone,
-        plan: selectedPlan.toUpperCase(),
-      });
+        plan: selectedPlan,
+      };
+
+      if (import.meta.env.DEV) {
+        console.log('REGISTER PAYLOAD:', payload);
+      }
+
+      await register(payload);
       setSuccess(t('auth.success'));
       setTimeout(() => navigate('/dashboard'), 1200);
     } catch (err) {
-      console.error('Registration failed', err);
-      setError(err.response?.data?.message || 'Erreur lors de la création du compte');
+      if (import.meta.env.DEV) {
+        console.error('Register error:', err.response?.data || err.message);
+      }
+      setError(getRegisterErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -122,10 +125,7 @@ const Register = () => {
 
         <div className="relative z-10 max-w-md text-white flex flex-col items-center justify-center text-center">
           <Link to="/" className="inline-flex items-center gap-3 mb-10 group">
-            <div className="bg-indigo-600 p-3 rounded-2xl shadow-xl shadow-indigo-900/20 group-hover:scale-110 transition-transform">
-              <ShieldCheck className="w-8 h-8 text-white" />
-            </div>
-            <span className="text-3xl font-black tracking-tight">El Fatoura</span>
+            <BrandLogo tone="dark" className="h-14 w-auto max-w-[270px]" />
           </Link>
 
           <h2 className="text-4xl font-black leading-tight mb-8">{t('auth.registerPromo.title')}</h2>
@@ -152,10 +152,7 @@ const Register = () => {
           <div className="w-full max-w-lg space-y-5 animate-in slide-in-from-bottom-4 duration-700">
             <div className="lg:hidden text-center mb-6">
               <Link to="/" className="inline-flex items-center gap-3 mb-4">
-                <div className="bg-indigo-600 p-2.5 rounded-xl">
-                  <ShieldCheck className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-2xl font-black text-slate-900 tracking-tight">El Fatoura</span>
+                <BrandLogo className="h-11 w-auto max-w-[220px]" />
               </Link>
             </div>
 
@@ -179,25 +176,34 @@ const Register = () => {
                 </div>
               )}
 
-              <div className={`mb-10 p-6 rounded-3xl border-2 transition-all ${currentPlan.color}`}>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{t('auth.planSummary.selected')}</span>
-                    <h4 className="text-xl font-black font-display uppercase tracking-tight">{currentPlan.name}</h4>
-                  </div>
-                  <div className="text-end">
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{t('auth.planSummary.price')}</span>
-                    <div className="text-xl font-black">{currentPlan.price}<span className="text-[10px] ms-1">{t('landing.pricing.currency')}</span></div>
-                  </div>
+              <div className="mb-10 rounded-3xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
+                <div className="mb-5">
+                  <h4 className="font-display text-xl font-black tracking-tight text-slate-900">Choisissez votre formule</h4>
+                  <p className="mt-1 text-sm font-medium text-slate-500">
+                    Vous pourrez modifier votre formule plus tard depuis votre espace abonnement.
+                  </p>
                 </div>
-                <div className="h-px bg-current opacity-10 mb-4" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {currentPlan.features.map((feature) => (
-                    <div key={feature} className="flex items-center gap-2 text-[11px] font-bold">
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                      <span className="opacity-80">{feature}</span>
-                    </div>
-                  ))}
+                <div className="rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+                  <div className="grid grid-cols-3 gap-1">
+                    {PLAN_OPTIONS.map((plan) => {
+                      const isSelected = selectedPlan === plan.value;
+                      return (
+                        <button
+                          key={plan.value}
+                          type="button"
+                          onClick={() => setSelectedPlan(plan.value)}
+                          aria-pressed={isSelected}
+                          className={`min-h-11 rounded-xl px-3 text-center text-sm font-black transition-all focus:outline-none focus:ring-4 focus:ring-indigo-500/10 sm:text-base ${
+                            isSelected
+                              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                              : 'bg-transparent text-slate-700 hover:bg-slate-50 hover:text-indigo-700'
+                          }`}
+                        >
+                          {plan.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -410,7 +416,7 @@ const Register = () => {
             </div>
 
             <p className="text-center text-xs text-slate-400 font-medium">
-              © 2024 El Fatoura. {t('landing.footer.madeIn')}
+              © 2024 InvoicePro. {t('landing.footer.madeIn')}
             </p>
           </div>
         </div>

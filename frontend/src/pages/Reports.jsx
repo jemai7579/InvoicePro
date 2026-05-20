@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   Loader,
   Calendar,
@@ -136,7 +136,7 @@ const Reports = () => {
   const [endDate, setEndDate] = useState('');
   const reportRef = useRef(null);
 
-  const fetchReports = async (start = startDate, end = endDate) => {
+  const fetchReports = useCallback(async (start = startDate, end = endDate) => {
     if (!user || isStarter) return;
     setLoading(true);
     try {
@@ -151,11 +151,11 @@ const Reports = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [endDate, isStarter, startDate, text.noData, user]);
 
   useEffect(() => {
     fetchReports();
-  }, [user?.id, isStarter]);
+  }, [fetchReports]);
 
   const handleFilter = (e) => {
     e.preventDefault();

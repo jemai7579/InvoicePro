@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec \"tsx\" src/index.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "node -e \"console.log('No backend test runner configured. Run npm run build, then follow PLATFORM_FUNCTIONALITY_AUDIT.md API smoke checks.')\"",
+    "smoke": "node -e \"console.log('Backend smoke: start the server and request /health plus the protected-route checks in PLATFORM_FUNCTIONALITY_AUDIT.md.')\"",
     "start": "node dist/index.js"
   },
   "keywords": [],

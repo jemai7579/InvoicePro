@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const settingsController_1 = require("../controllers/settingsController");
 const authMiddleware_1 = require("../middleware/authMiddleware");
+const permissionMiddleware_1 = require("../middleware/permissionMiddleware");
 const multer_1 = __importDefault(require("multer"));
 const router = (0, express_1.Router)();
 const upload = (0, multer_1.default)({
@@ -22,8 +23,9 @@ const upload = (0, multer_1.default)({
 });
 router.route('/')
     .get(authMiddleware_1.protect, settingsController_1.getSettings)
-    .put(authMiddleware_1.protect, settingsController_1.updateSettings);
-router.post('/certificate', authMiddleware_1.protect, upload.single('certificate'), settingsController_1.uploadCertificate);
+    .put(authMiddleware_1.protect, (0, permissionMiddleware_1.requireCompanyRole)(['admin'], 'configuration des paramètres'), settingsController_1.updateSettings);
+router.post('/certificate', authMiddleware_1.protect, (0, permissionMiddleware_1.requireCompanyRole)(['admin'], 'configuration de la signature électronique'), upload.single('certificate'), settingsController_1.uploadCertificate);
 router.post('/logo', authMiddleware_1.protect, upload.single('logo'), settingsController_1.uploadLogo);
 router.get('/history', authMiddleware_1.protect, settingsController_1.getSettingsHistory);
+router.get('/einvoice/status', authMiddleware_1.protect, settingsController_1.getEInvoiceStatus);
 exports.default = router;

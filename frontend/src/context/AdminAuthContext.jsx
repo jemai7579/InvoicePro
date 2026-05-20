@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import React, { createContext, useState, useCallback, useEffect } from 'react';
 import api from '../services/api';
 import { jwtDecode } from 'jwt-decode';
 
@@ -7,6 +8,26 @@ export const AdminAuthContext = createContext();
 export const AdminAuthProvider = ({ children }) => {
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const adminLogout = useCallback(() => {
+    localStorage.removeItem('adminToken');
+    setAdmin(null);
+    setLoading(false);
+  }, []);
+
+  const fetchAdmin = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const { data } = await api.get('/admin/profile', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAdmin(data);
+    } catch {
+      adminLogout();
+    } finally {
+      setLoading(false);
+    }
+  }, [adminLogout]);
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -18,38 +39,19 @@ export const AdminAuthProvider = ({ children }) => {
         } else {
           fetchAdmin();
         }
-      } catch (error) {
+      } catch {
         adminLogout();
       }
     } else {
       setLoading(false);
     }
-  }, []);
-
-  const fetchAdmin = async () => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const { data } = await api.get('/admin/profile', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setAdmin(data);
-    } catch (error) {
-      adminLogout();
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [adminLogout, fetchAdmin]);
 
   const adminLogin = async (email, password) => {
     const { data } = await api.post('/admin/login', { email, password });
     localStorage.setItem('adminToken', data.token);
     setAdmin(data);
     return data;
-  };
-
-  const adminLogout = () => {
-    localStorage.removeItem('adminToken');
-    setAdmin(null);
   };
 
   return (

@@ -1,68 +1,165 @@
-import React, { useEffect, useState } from 'react';
-import { Calendar, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Calendar, CheckCircle2, HelpCircle, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 
-const choiceGuides = [
+const emptyForm = {
+  name: '',
+  companyName: '',
+  email: '',
+  phone: '',
+  needType: 'E_HOUWIYA_MOBILE_ID',
+  message: '',
+};
+
+const journeySteps = [
   {
-    title: 'Je suis entrepreneur / freelance',
-    text: 'Regarder d abord les chemins E-Houwiya / Huwaya ID ou Digigo si le parcours officiel confirme la compatibilite TTN et le prix.',
+    title: 'Vérifier E-Houwiya / Mobile ID',
+    text: 'Confirmez si un identifiant est nécessaire selon votre statut.',
+    status: 'À vérifier',
   },
   {
-    title: 'Je suis TPE',
-    text: 'Comparer E-Houwiya / Digigo et certificat formel selon volume de factures, statut fiscal et procedure TTN.',
+    title: 'Préparer l’adhésion TTN',
+    text: 'Rassemblez les informations demandées pour le parcours TTN.',
+    status: 'À vérifier',
   },
   {
-    title: 'Je suis PME',
-    text: 'TunTrust / ANCE ou une procedure encadree peut etre plus adaptee si vous avez des besoins de certificat, controle interne ou volume plus eleve.',
+    title: 'Choisir le type de signature',
+    text: 'Comparez E-Houwiya, TunTrust / ANCE, HERS ou un tiers de confiance.',
+    status: 'En cours',
   },
   {
-    title: 'J’ai déjà une signature électronique',
-    text: 'Verifier son format, sa validite, son fournisseur, son usage avec TTN et la possibilite technique de signer les XML TEIF.',
+    title: 'Configurer InvoicePro',
+    text: 'Renseignez la configuration et les éléments de signature disponibles.',
+    status: 'En cours',
   },
   {
-    title: 'Je ne sais pas encore quoi choisir',
-    text: 'Lister votre statut, volume de factures, contraintes TTN et niveau d accompagnement souhaite avant de choisir.',
-  },
-  {
-    title: 'Je veux être accompagné',
-    text: 'Demander un rendez-vous pour cadrer adhesion TTN, choix signature, couts, pieces requises et configuration plateforme.',
+    title: 'Tester l’envoi d’une facture',
+    text: 'Validez le parcours en mode test avant toute mise en production.',
+    status: 'À vérifier',
   },
 ];
 
+const situations = [
+  { title: 'Je suis entrepreneur / freelance', text: 'Commencez par vérifier E-Houwiya / Mobile ID et le parcours TTN adapté.' },
+  { title: 'Je suis TPE', text: 'Comparez une signature simple, un certificat et le niveau d’accompagnement nécessaire.' },
+  { title: 'Je suis PME', text: 'Privilégiez un parcours structuré avec contrôle interne et procédure fournisseur claire.' },
+  { title: 'J’ai déjà une signature', text: 'Vérifiez son format, sa validité et sa compatibilité TEIF / TTN.' },
+  { title: 'Je ne sais pas quoi choisir', text: 'Décrivez votre statut et votre volume pour être orienté.' },
+  { title: 'Je veux être accompagné', text: 'Envoyez une demande pour cadrer les étapes et les pièces requises.' },
+];
+
+const fallbackOptions = [
+  {
+    id: 'static-e-houwiya',
+    name: 'E-Houwiya / Mobile ID',
+    targetUsers: 'Entrepreneurs, freelances et petites structures.',
+    status: 'À vérifier',
+    setupInstructions: 'Étape d’identification numérique à confirmer avant la configuration TTN.',
+  },
+  {
+    id: 'static-tuntrust',
+    name: 'TunTrust / ANCE',
+    targetUsers: 'Sociétés avec besoin de certificat formel.',
+    status: 'Prévu',
+    setupInstructions: 'Certificat et procédure fournisseur à vérifier avant production.',
+  },
+  {
+    id: 'static-hers',
+    name: 'HERS ou autre type',
+    targetUsers: 'Cas spécifiques à confirmer.',
+    status: 'À vérifier',
+    setupInstructions: 'Documentation, prix et compatibilité TTN à confirmer.',
+  },
+  {
+    id: 'static-trust-provider',
+    name: 'Tiers de confiance / service provider',
+    targetUsers: 'Entreprises voulant un accompagnement délégué.',
+    status: 'À vérifier',
+    setupInstructions: 'Peut nécessiter un contrat, un accès API ou une validation officielle.',
+  },
+];
+
+const statusVariant = (status) => {
+  if (status === 'Terminé' || status === 'AVAILABLE') return 'success';
+  if (status === 'En cours' || status === 'PLANNED' || status === 'Prévu') return 'primary';
+  return 'warning';
+};
+
+const normalizeStatus = (status) => {
+  if (status === 'AVAILABLE') return 'Terminé';
+  if (status === 'PLANNED') return 'Prévu';
+  return 'À vérifier';
+};
+
 const SignatureTTN = () => {
   const [options, setOptions] = useState([]);
-  const [form, setForm] = useState({ name: '', companyName: '', email: '', phone: '', needType: 'TTN_ADHESION', message: '' });
-  const [sent, setSent] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [_sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
-    api.get('/onboarding/signature-providers').then((res) => setOptions(res.data || [])).catch(() => {});
+    api.get('/onboarding/signature-providers')
+      .then((res) => setOptions(res.data || []))
+      .catch(() => setOptions([]));
   }, []);
+
+  const signatureOptions = useMemo(() => {
+    const source = options.length > 0 ? options : fallbackOptions;
+    return source.slice(0, 4).map((option) => ({
+      ...option,
+      displayStatus: normalizeStatus(option.status),
+      note: option.setupInstructions || 'Conditions officielles à vérifier.',
+    }));
+  }, [options]);
 
   const submit = async (event) => {
     event.preventDefault();
-    await api.post('/onboarding/requests', form);
-    setSent(true);
+    setSubmitting(true);
+    setMessage(null);
+    try {
+      await api.post('/onboarding/requests', form);
+      setSent(true);
+      setForm(emptyForm);
+      setMessage({ type: 'success', text: 'Votre demande a été envoyée. Un conseiller pourra vous recontacter.' });
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Impossible d’envoyer la demande.' });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="space-y-8 pb-20">
-      <div>
+      <div className="max-w-3xl">
         <h1 className="text-2xl font-black text-slate-900 font-display">Accompagnement TTN & Signature</h1>
-        <p className="text-sm text-slate-500 font-medium">Informations preparatoires. Les integrations reelles doivent etre verifiees officiellement avant production.</p>
+        <p className="mt-2 text-sm text-slate-500 font-medium leading-6">
+          Suivez un parcours simple pour préparer votre facturation électronique : identification, adhésion TTN, choix de signature, configuration et test.
+        </p>
       </div>
 
-      <Card title="Quelle signature choisir ?" subtitle="Le choix depend de votre profil, de votre procedure TTN, de votre volume et du fournisseur.">
-        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5 mb-6">
-          <p className="text-sm font-bold text-amber-900 leading-6">
-            Le choix du type de signature dépend de votre statut, de votre procédure TTN, de votre volume de factures et des exigences techniques du fournisseur de signature. La plateforme peut vous accompagner, mais les conditions officielles doivent être vérifiées auprès des organismes ou prestataires concernés.
-          </p>
+      <Card icon={ShieldCheck} title="Parcours en 5 étapes">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {journeySteps.map((step, index) => (
+            <div key={step.title} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="text-xs font-black text-indigo-600">0{index + 1}</span>
+                <Badge variant={statusVariant(step.status)}>{step.status}</Badge>
+              </div>
+              <h3 className="text-sm font-black text-slate-900 leading-5">{step.title}</h3>
+              <p className="mt-2 text-xs font-semibold text-slate-500 leading-5">{step.text}</p>
+            </div>
+          ))}
         </div>
+      </Card>
+
+      <Card icon={HelpCircle} title="Quelle est votre situation ?">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {choiceGuides.map((item) => (
-            <div key={item.title} className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+          {situations.map((item) => (
+            <div key={item.title} className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-black text-slate-900 mb-2">{item.title}</h3>
               <p className="text-sm text-slate-500 font-medium leading-6">{item.text}</p>
             </div>
@@ -70,60 +167,52 @@ const SignatureTTN = () => {
         </div>
       </Card>
 
-      <Card icon={ShieldCheck} title="Avant la facturation electronique">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {['Adhesion TTN / El Fatoora', 'Signature electronique compatible', 'Certificat ou identite numerique', 'Configuration plateforme', 'Tiers de confiance si necessaire'].map((step, index) => (
-            <div key={step} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <div className="text-xs font-black text-indigo-600 mb-2">0{index + 1}</div>
-              <p className="text-sm font-bold text-slate-700">{step}</p>
+      <Card title="Types de signature">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {signatureOptions.map((option) => (
+            <div key={option.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <h3 className="text-sm font-black text-slate-900">{option.name}</h3>
+                <Badge variant={statusVariant(option.displayStatus)}>{option.displayStatus}</Badge>
+              </div>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">{option.targetUsers}</p>
+              <p className="text-sm text-slate-500 font-medium leading-6">{option.note}</p>
             </div>
           ))}
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {options.map((option) => (
-          <Card key={option.id} title={option.name} subtitle={option.targetUsers}>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <Badge variant={option.status === 'AVAILABLE' ? 'success' : 'warning'}>{option.status}</Badge>
-              <Badge variant="secondary">{option.difficulty}</Badge>
-            </div>
-            {option.costDescription ? (
-              <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">{option.costDescription}</p>
-            ) : null}
-            <p className="text-sm text-slate-500 font-medium">{option.setupInstructions}</p>
-          </Card>
-        ))}
-      </div>
-
-      <Card title="Important">
-        <p className="text-sm text-slate-600 font-medium leading-7">
-          Digigo / E-Houwiya peuvent etre etudies comme chemins d accompagnement potentiellement plus simples pour certains profils. Aucune integration active n est annoncee tant que les API, contrats, tarifs et validations officielles ne sont pas confirmes.
-        </p>
-      </Card>
-
       <Card title="Demander un accompagnement" icon={Calendar}>
-        {sent ? (
-          <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-5 text-sm font-bold text-emerald-700">Votre demande a ete envoyee. Un conseiller pourra vous recontacter.</div>
-        ) : (
-          <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input required className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Nom" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-            <input required className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Entreprise" value={form.companyName} onChange={(event) => setForm({ ...form, companyName: event.target.value })} />
-            <input required type="email" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-            <input className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Telephone" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
-            <select className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" value={form.needType} onChange={(event) => setForm({ ...form, needType: event.target.value })}>
-              <option value="TTN_ADHESION">Être guidé pour l'adhésion TTN</option>
-              <option value="SIGNATURE_SETUP">Configurer la signature</option>
-              <option value="MEETING">Prendre rendez-vous</option>
-            </select>
-            <textarea className="md:col-span-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Message" value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} />
-            <div className="md:col-span-2 flex flex-wrap gap-3">
-              <Button type="submit">Demander un accompagnement</Button>
-              <Button type="submit" variant="secondary">Prendre rendez-vous</Button>
+        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input required className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Nom" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+          <input required className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Entreprise" value={form.companyName} onChange={(event) => setForm({ ...form, companyName: event.target.value })} />
+          <input required type="email" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+          <input className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Téléphone" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
+          <select className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" value={form.needType} onChange={(event) => setForm({ ...form, needType: event.target.value })}>
+            <option value="E_HOUWIYA_MOBILE_ID">Aide identifiant E-Houwiya / Mobile ID</option>
+            <option value="TTN_ADHESION">Adhésion TTN</option>
+            <option value="SIGNATURE_SELECTION">Choix du type de signature</option>
+            <option value="CERTIFICATE_SETUP">Configuration certificat / signature</option>
+            <option value="SERVICE_PROVIDER_INFO">Tiers de confiance / prestataire</option>
+            <option value="OTHER">Autre besoin</option>
+          </select>
+          <textarea className="md:col-span-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" placeholder="Message" value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} />
+          {message ? (
+            <div className={`md:col-span-2 rounded-2xl px-4 py-3 text-sm font-bold ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
+              {message.text}
             </div>
-          </form>
-        )}
+          ) : null}
+          <div className="md:col-span-2">
+            <Button type="submit" loading={submitting} disabled={submitting} icon={CheckCircle2}>
+              Demander un accompagnement
+            </Button>
+          </div>
+        </form>
       </Card>
+
+      <p className="rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-xs font-bold text-slate-500 leading-5">
+        Les informations sont fournies à titre d’accompagnement. Les conditions officielles doivent être confirmées auprès des organismes concernés.
+      </p>
     </div>
   );
 };

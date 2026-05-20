@@ -19,6 +19,7 @@ import api from '../../services/api';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { getPlanLabel } from '../../utils/planLabels';
 
 const statusVariant = (value) => {
   if (['ACTIVE', 'healthy', 'configured'].includes(value)) return 'success';
@@ -86,7 +87,7 @@ const DetailModal = ({ companyId, onClose, onRefresh }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3"><strong>RNE:</strong> {data.registreCommerce || '-'}</div>
                     <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3"><strong>Matricule fiscal:</strong> {data.matriculeFiscal || '-'}</div>
-                    <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3"><strong>Plan:</strong> {data.subscription?.plan || 'STARTER'}</div>
+                    <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3"><strong>Plan:</strong> {getPlanLabel(data.subscription?.plan)}</div>
                     <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3"><strong>Statut abonnement:</strong> {data.subscription?.status || 'TRIAL'}</div>
                     <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3"><strong>Signature:</strong> {data.signatureConfiguration?.configured ? 'Configuree' : 'Non configuree'}</div>
                     <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3"><strong>Mode TTN:</strong> {data.ttnConfiguration?.mode || 'mock'}</div>
@@ -276,7 +277,7 @@ const AdminCompanies = () => {
                       <td className="px-5 py-4 text-sm text-slate-600">{company.phone || '-'}</td>
                       <td className="px-5 py-4 text-sm text-slate-600">{company.rne || '-'}</td>
                       <td className="px-5 py-4 text-sm text-slate-600">{company.matriculeFiscal || '-'}</td>
-                      <td className="px-5 py-4"><Badge variant="secondary">{company.subscription?.plan || 'STARTER'}</Badge></td>
+                      <td className="px-5 py-4"><Badge variant="secondary">{getPlanLabel(company.subscription?.plan)}</Badge></td>
                       <td className="px-5 py-4"><Badge variant={statusVariant(company.subscriptionStatus)}>{company.subscriptionStatus}</Badge></td>
                       <td className="px-5 py-4 text-sm font-bold text-slate-900">{company.invoicesUsedThisMonth}</td>
                       <td className="px-5 py-4"><Badge variant={statusVariant(company.ttnStatus)}>{company.ttnStatus}</Badge></td>
@@ -309,7 +310,7 @@ const AdminCompanies = () => {
                     <Badge variant={statusVariant(company.subscriptionStatus)}>{company.subscriptionStatus}</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Plan:</strong> {company.subscription?.plan || 'STARTER'}</div>
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Plan:</strong> {getPlanLabel(company.subscription?.plan)}</div>
                     <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Factures:</strong> {company.invoicesUsedThisMonth}</div>
                     <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>TTN:</strong> {company.ttnStatus}</div>
                     <div className="rounded-2xl bg-slate-50 px-4 py-3"><strong>Signature:</strong> {company.signatureStatus}</div>

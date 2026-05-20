@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import prisma from '../prisma';
 import bcrypt from 'bcryptjs';
 import { getTTNMode } from '../services/ttnProvider';
-import { logActivity } from '../services/auditTrailService';
+import { logActivity, getRequestAuditMeta } from '../services/auditTrailService';
+import { getEInvoiceReadiness } from '../services/einvoiceConfig';
 
 export const getSettings = async (req: Request, res: Response) => {
   try {
@@ -21,6 +22,9 @@ export const getSettings = async (req: Request, res: Response) => {
         phone: true,
         rib: true,
         logo: true,
+        eHouwiyaStatus: true,
+        eHouwiyaIdentifier: true,
+        eHouwiyaVerifiedAt: true,
         certificatePath: true,
         createdAt: true,
         updatedAt: true
@@ -57,7 +61,8 @@ export const getSettings = async (req: Request, res: Response) => {
       },
     });
 
-    const ttnMode = getTTNMode();
+    const readiness = getEInvoiceReadiness(raw);
+    const ttnMode = readiness.mode;
 
     const company = raw
       ? {
@@ -71,16 +76,8 @@ export const getSettings = async (req: Request, res: Response) => {
             companyFiscalIdentifier: raw.matriculeFiscal,
             lastSignatureTestDate: lastSignedInvoice?.updatedAt || null,
             ttnMode,
-            ttnConnectionStatus:
-              ttnMode === 'mock'
-                ? 'test'
-                : ttnMode === 'webservice' && process.env.TTN_API_BASE_URL && process.env.TTN_API_USERNAME
-                  ? 'configured'
-                  : ttnMode === 'sftp' && process.env.TTN_SFTP_HOST && process.env.TTN_SFTP_USERNAME
-                    ? 'configured'
-                    : ttnMode === 'provider' && process.env.TTN_PROVIDER_API_KEY
-                      ? 'configured'
-                      : 'not_configured',
+            ...readiness,
+            ttnConnectionStatus: readiness.ttnConfigured ? 'configured' : ttnMode === 'mock' ? 'test' : 'not_configured',
             teifAvailable: true,
             lastSubmission,
           },
@@ -97,9 +94,19 @@ export const getSettings = async (req: Request, res: Response) => {
   }
 };
 
+export const getEInvoiceStatus = async (req: Request, res: Response) => {
+  try {
+    res.status(200).json(getEInvoiceReadiness((req as any).company));
+  } catch (error: any) {
+    res.status(400).json({ message: error.message || 'Unable to read e-invoice configuration.' });
+  }
+};
+
+const E_HOUWIYA_STATUSES = ['NOT_STARTED', 'HAS_IDENTIFIER', 'NEED_HELP', 'NOT_SURE'];
+
 export const updateSettings = async (req: Request, res: Response) => {
   try {
-    const { name, matriculeFiscal, registreCommerce, address, city, zipCode, country, phone, rib, logo, newPassword, currentPassword } = req.body;
+    const { name, matriculeFiscal, registreCommerce, address, city, zipCode, country, phone, rib, logo, newPassword, currentPassword, eHouwiyaStatus, eHouwiyaIdentifier } = req.body;
     const companyId = (req as any).company.id;
 
     // Fetch the actual current values to compare
@@ -176,6 +183,30 @@ export const updateSettings = async (req: Request, res: Response) => {
       });
     }
 
+    if (eHouwiyaStatus !== undefined) {
+      if (!E_HOUWIYA_STATUSES.includes(eHouwiyaStatus)) {
+        return res.status(400).json({ message: 'Invalid E-Houwiya status.' });
+      }
+      if (eHouwiyaStatus !== (currentSettings as any).eHouwiyaStatus) {
+        updateData.eHouwiyaStatus = eHouwiyaStatus;
+        updateData.eHouwiyaVerifiedAt = eHouwiyaStatus === 'HAS_IDENTIFIER' ? new Date() : null;
+        changes.push({
+          field: 'E-Houwiya / Mobile ID',
+          oldValue: String((currentSettings as any).eHouwiyaStatus || 'NOT_STARTED'),
+          newValue: eHouwiyaStatus
+        });
+      }
+    }
+
+    if (eHouwiyaIdentifier !== undefined && eHouwiyaIdentifier !== (currentSettings as any).eHouwiyaIdentifier) {
+      updateData.eHouwiyaIdentifier = eHouwiyaIdentifier || null;
+      changes.push({
+        field: 'Identifiant E-Houwiya / Mobile ID',
+        oldValue: (currentSettings as any).eHouwiyaIdentifier ? 'Renseigné' : 'Non renseigné',
+        newValue: eHouwiyaIdentifier ? 'Renseigné' : 'Non renseigné'
+      });
+    }
+
     const updatedCompany = await prisma.company.update({
       where: { id: companyId },
       data: updateData,
@@ -191,7 +222,10 @@ export const updateSettings = async (req: Request, res: Response) => {
         country: true,
         phone: true,
         rib: true,
-        logo: true
+        logo: true,
+        eHouwiyaStatus: true,
+        eHouwiyaIdentifier: true,
+        eHouwiyaVerifiedAt: true
       }
     });
 
@@ -216,6 +250,24 @@ export const updateSettings = async (req: Request, res: Response) => {
         objectId: companyId,
         message: 'Parametres entreprise mis a jour.',
         metadata: { fields: changes.map((change) => change.field) },
+        ...getRequestAuditMeta(req),
+      });
+    }
+
+    if (changes.some((change) => change.field.includes('E-Houwiya'))) {
+      await logActivity({
+        companyId,
+        actorId: companyId,
+        actorType: 'USER',
+        actionType: 'PROFILE_UPDATED',
+        objectType: 'SETTINGS',
+        objectId: companyId,
+        message: 'Statut E-Houwiya mis à jour',
+        metadata: {
+          eHouwiyaStatus: updateData.eHouwiyaStatus ?? (currentSettings as any).eHouwiyaStatus,
+          hasIdentifier: Boolean(updateData.eHouwiyaIdentifier ?? (currentSettings as any).eHouwiyaIdentifier),
+        },
+        ...getRequestAuditMeta(req),
       });
     }
 
@@ -279,8 +331,7 @@ export const uploadCertificate = async (req: Request, res: Response) => {
       where: { id: companyId },
       data: {
         certificatePath: newPath,
-        // TODO(security): encrypt this value or move it to a secrets manager before production.
-        certificatePassword: password // In a real prod app, encrypt this or store safely
+        certificatePassword: null
       }
     });
     await logActivity({
@@ -291,7 +342,8 @@ export const uploadCertificate = async (req: Request, res: Response) => {
       objectType: 'SETTINGS',
       objectId: companyId,
       message: 'Certificat de signature televerse.',
-      metadata: { fileType: ext },
+      metadata: { fileType: ext, certificateSecretStored: false },
+      ...getRequestAuditMeta(req),
     });
 
     res.status(200).json({ message: 'Certificate uploaded successfully' });

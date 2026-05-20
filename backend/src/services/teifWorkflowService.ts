@@ -1,4 +1,5 @@
 import type { Invoice, Company, Client, InvoiceLine, Payment } from '@prisma/client';
+import crypto from 'crypto';
 import prisma from '../prisma';
 import generatePdf from '../utils/pdfGenerator';
 import { generateTeifXml } from '../utils/teifGenerator';
@@ -14,6 +15,12 @@ import {
 import { getSignatureProvider } from './signatureProvider';
 import { getTTNMode, getTTNProvider } from './ttnProvider';
 import { getInvoiceVisibleNumber } from './numberingService';
+import {
+  assertProductionTeifValidationConfigured,
+  getCompanyDossierStatus,
+  getEInvoiceConfig,
+  getEInvoiceReadiness,
+} from './einvoiceConfig';
 
 type FullInvoice = Invoice & {
   company: Company;
@@ -95,6 +102,40 @@ const LEGACY_STATUS_MAP: Record<string, ComplianceWorkflowStatus> = {
 const normalizeWorkflowStatus = (status?: string | null): ComplianceWorkflowStatus | null =>
   status ? LEGACY_STATUS_MAP[status] || null : null;
 
+const legalStatusMap: Record<ComplianceWorkflowStatus, string> = {
+  DRAFT: 'draft',
+  VALIDATED: 'draft',
+  TEIF_GENERATED: 'teif_generated',
+  SIGNED: 'signed',
+  SENT_TO_TTN: 'submitted_to_ttn',
+  PENDING_TTN: 'submitted_to_ttn',
+  ACCEPTED_TTN: 'accepted_by_ttn',
+  REJECTED_TTN: 'rejected_by_ttn',
+  CANCELLED: 'archived',
+  READY_FOR_TEIF: 'draft',
+  SIGNATURE_REQUIRED: 'ready_for_signature',
+  SUBMITTED_TO_TTN: 'submitted_to_ttn',
+  TTN_PROCESSING: 'submitted_to_ttn',
+  TTN_ACCEPTED: 'accepted_by_ttn',
+  TTN_REJECTED: 'rejected_by_ttn',
+  FINALIZED: 'archived',
+};
+
+const getBlockedRequirements = (nextAction: string) => {
+  const readiness = getEInvoiceReadiness();
+  const missingRequirements: string[] = [];
+  if (nextAction === 'generate-teif' && getEInvoiceConfig().isProductionMode && !readiness.teifConfigured) {
+    missingRequirements.push('Official TTN TEIF XSD not configured');
+  }
+  if (nextAction === 'sign-teif' && !readiness.signatureConfigured) {
+    missingRequirements.push('Signature provider not configured');
+  }
+  if (nextAction === 'submit-ttn' && !readiness.ttnConfigured && !readiness.mode.includes('mock')) {
+    missingRequirements.push('TTN API credentials missing');
+  }
+  return missingRequirements;
+};
+
 const isInvoiceContentComplete = (
   invoice: Pick<Invoice, 'status'> & {
     company?: Partial<Company> | null;
@@ -171,6 +212,7 @@ export const getInvoiceByIdForCompliance = async (invoiceId: string, companyId: 
 
 export const validateTeifXml = async (invoice: FullInvoice) => {
   const errors: string[] = [];
+  assertProductionTeifValidationConfigured();
 
   if (invoice.status !== 'VALIDATED') {
     errors.push('La facture doit etre validee avant la generation TEIF.');
@@ -204,6 +246,9 @@ export const generateInvoiceTeifXml = async (invoice: FullInvoice) => {
   }
 
   const xml = generateTeifXml(invoice);
+  const xmlHash = crypto.createHash('sha256').update(xml, 'utf8').digest('hex');
+  const teifGeneratedAt = new Date();
+  const teifVersion = process.env.TEIF_SCHEMA_VERSION || null;
   const xmlPath = await saveComplianceArtifact(invoice.companyId, invoice.id, 'teif.xml', xml);
   const metadata = await appendComplianceStatus(
     invoice.companyId,
@@ -211,7 +256,10 @@ export const generateInvoiceTeifXml = async (invoice: FullInvoice) => {
     'TEIF_GENERATED',
     {
       teifXmlPath: xmlPath,
-      complianceMode: getTTNMode() === 'mock' ? 'mock' : 'production',
+      teifXmlHash: xmlHash,
+      teifGeneratedAt: teifGeneratedAt.toISOString(),
+      teifVersion,
+      complianceMode: getEInvoiceConfig().mode === 'sandbox' ? 'test' : getEInvoiceConfig().mode === 'production' ? 'production' : 'mock',
     },
     'TEIF XML generated'
   );
@@ -221,6 +269,11 @@ export const generateInvoiceTeifXml = async (invoice: FullInvoice) => {
     data: {
       status: 'TEIF_GENERATED' as any,
       ttnStatus: 'TEIF_GENERATED',
+      legalStatus: 'teif_generated',
+      teifXmlPath: xmlPath,
+      teifXmlHash: xmlHash,
+      teifGeneratedAt,
+      teifVersion,
     },
   });
 
@@ -244,7 +297,12 @@ export const getDownloadableTeifXml = async (invoice: FullInvoice) => {
   return generated.xml;
 };
 
-export const signInvoiceTeifXml = async (invoice: FullInvoice) => {
+export const signInvoiceTeifXml = async (invoice: FullInvoice, signedByUserId?: string | null) => {
+  const dossier = getCompanyDossierStatus(invoice.company);
+  if (!dossier.complete) {
+    throw new Error(`Dossier entreprise incomplet: ${dossier.missingFields.join(', ')}`);
+  }
+
   const metadata = await readComplianceMetadata(invoice.companyId, invoice.id);
   const xml = metadata.teifXmlPath
     ? (await readComplianceArtifact(metadata.teifXmlPath))?.toString('utf-8')
@@ -256,6 +314,20 @@ export const signInvoiceTeifXml = async (invoice: FullInvoice) => {
 
   const provider = getSignatureProvider();
   const result = await provider.signTeifXml(xml, invoice.company);
+  if (!result.verified) {
+    await appendComplianceStatus(
+      invoice.companyId,
+      invoice.id,
+      'TEIF_GENERATED',
+      { signatureStatus: 'failed' },
+      'Electronic signature failed'
+    );
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { legalStatus: 'signature_failed', signatureStatus: 'failed' },
+    });
+    throw new Error('La signature électronique a échoué.');
+  }
   const signedXmlPath = await saveComplianceArtifact(invoice.companyId, invoice.id, 'teif.signed.xml', result.signedXml);
 
   const nextMetadata = await appendComplianceStatus(
@@ -267,7 +339,11 @@ export const signInvoiceTeifXml = async (invoice: FullInvoice) => {
       signatureProvider: result.providerLabel,
       certificateType: result.certificateType,
       lastSignatureTestDate: result.signedAt,
-      complianceMode: result.mode === 'mock' ? 'mock' : 'production',
+      signatureStatus: result.mode === 'mock' ? 'mock_signed' : 'signed',
+      signatureTimestamp: result.signedAt,
+      signedByUserId: signedByUserId || null,
+      certificateIdentifier: result.certificateIdentifier || null,
+      complianceMode: result.mode === 'mock' ? 'mock' : getEInvoiceConfig().mode === 'sandbox' ? 'test' : 'production',
     },
     'Electronic signature completed'
   );
@@ -277,6 +353,12 @@ export const signInvoiceTeifXml = async (invoice: FullInvoice) => {
     data: {
       status: 'SIGNED' as any,
       ttnStatus: 'SIGNED',
+      legalStatus: 'signed',
+      signedXmlPath,
+      signatureStatus: result.mode === 'mock' ? 'mock_signed' : 'signed',
+      signatureTimestamp: new Date(result.signedAt),
+      signedByUserId: signedByUserId || null,
+      certificateIdentifier: result.certificateIdentifier || null,
     },
   });
 
@@ -284,6 +366,11 @@ export const signInvoiceTeifXml = async (invoice: FullInvoice) => {
 };
 
 export const submitInvoiceToTTNWorkflow = async (invoice: FullInvoice) => {
+  const dossier = getCompanyDossierStatus(invoice.company);
+  if (!dossier.complete) {
+    throw new Error(`Dossier entreprise incomplet: ${dossier.missingFields.join(', ')}`);
+  }
+
   const metadata = await readComplianceMetadata(invoice.companyId, invoice.id);
   const signedXml = metadata.signedXmlPath
     ? (await readComplianceArtifact(metadata.signedXmlPath))?.toString('utf-8')
@@ -298,6 +385,7 @@ export const submitInvoiceToTTNWorkflow = async (invoice: FullInvoice) => {
   }
 
   const provider = getTTNProvider();
+  await provider.authenticate();
   const response = await provider.submitSignedInvoice({
     invoiceId: invoice.id,
     companyMatricule: invoice.company.matriculeFiscal,
@@ -311,7 +399,7 @@ export const submitInvoiceToTTNWorkflow = async (invoice: FullInvoice) => {
     {
       ttnSubmissionId: response.submissionId,
       lastTtnSyncAt: new Date().toISOString(),
-      complianceMode: response.mode === 'mock' ? 'mock' : 'production',
+      complianceMode: response.mode === 'mock' ? 'mock' : response.mode === 'sandbox' ? 'test' : 'production',
     },
     response.message
   );
@@ -322,6 +410,7 @@ export const submitInvoiceToTTNWorkflow = async (invoice: FullInvoice) => {
       status: 'SENT_TO_TTN' as any,
       ttnId: response.submissionId,
       ttnStatus: response.status,
+      legalStatus: 'submitted_to_ttn',
     },
   });
 
@@ -362,6 +451,7 @@ export const syncInvoiceTTNStatus = async (
       data: {
         status: 'PENDING_TTN' as any,
         ttnStatus: 'PENDING_TTN',
+        legalStatus: 'submitted_to_ttn',
       },
     });
 
@@ -384,6 +474,7 @@ export const syncInvoiceTTNStatus = async (
       data: {
         status: 'REJECTED_TTN' as any,
         ttnStatus: 'REJECTED_TTN',
+        legalStatus: 'rejected_by_ttn',
       },
     });
 
@@ -426,6 +517,8 @@ export const syncInvoiceTTNStatus = async (
       status: 'ACCEPTED_TTN' as any,
       ttnStatus: 'ACCEPTED_TTN',
       ttnId: result.ttnReference || metadata.ttnSubmissionId || metadata.ttnReference || null,
+      ttnReference: result.ttnReference || metadata.ttnReference || null,
+      legalStatus: 'accepted_by_ttn',
     },
   });
 
@@ -457,6 +550,7 @@ export const finalizeInvoicePdf = async (invoice: FullInvoice) => {
     data: {
       status: 'ACCEPTED_TTN' as any,
       ttnStatus: 'ACCEPTED_TTN',
+      legalStatus: 'accepted_by_ttn',
     },
   });
 
@@ -476,6 +570,15 @@ export const enrichInvoiceWithCompliance = async <T extends Invoice & { companyI
     .filter((payment: any) => ['PAID', 'PARTIALLY_PAID'].includes(payment.status))
     .reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0);
   const remainingAmount = Math.max(0, Number((invoice as any).netToPay || 0) - totalPaid);
+  const nextAction = getInvoiceNextAction(complianceStatus);
+  const computedPaymentStatus = totalPaid <= 0 ? 'unpaid' : remainingAmount <= 0 ? 'paid' : 'partially_paid';
+  const readiness = getEInvoiceReadiness((invoice as any).company || null);
+  const modeBadge =
+    readiness.mode === 'mock'
+      ? 'Mode simulation — non légal'
+      : readiness.mode === 'sandbox'
+        ? 'Mode test TTN — non légal'
+        : 'Mode production';
 
   return {
     ...invoice,
@@ -484,11 +587,18 @@ export const enrichInvoiceWithCompliance = async <T extends Invoice & { companyI
     amountInWords: numberToWordsTND(Number((invoice as any).netToPay || 0)),
     paymentMethod: 'Espèce',
     complianceStatus,
+    legalStatus: (invoice as any).legalStatus || legalStatusMap[complianceStatus] || 'draft',
+    teifStatus: metadata.teifXmlPath ? 'generated' : complianceStatus === 'REJECTED_TTN' ? 'validation_failed' : 'not_generated',
+    signatureStatus: metadata.signatureStatus || (invoice as any).signatureStatus || 'not_signed',
+    ttnStatus: metadata.ttnReference ? 'accepted_by_ttn' : (invoice as any).ttnStatus || complianceStatus,
     complianceLabelFr: getComplianceLabel(complianceStatus, 'fr'),
     complianceLabelEn: getComplianceLabel(complianceStatus, 'en'),
     complianceLabelAr: getComplianceLabel(complianceStatus, 'ar'),
     complianceTimeline: metadata.statusHistory || [],
     teifXmlPath: metadata.teifXmlPath || null,
+    teifXmlHash: metadata.teifXmlHash || (invoice as any).teifXmlHash || null,
+    teifGeneratedAt: metadata.teifGeneratedAt || (invoice as any).teifGeneratedAt || null,
+    teifVersion: metadata.teifVersion || (invoice as any).teifVersion || null,
     signedXmlPath: metadata.signedXmlPath || null,
     finalizedPdfPath: metadata.finalizedPdfPath || null,
     ttnSubmissionId: metadata.ttnSubmissionId || null,
@@ -500,10 +610,14 @@ export const enrichInvoiceWithCompliance = async <T extends Invoice & { companyI
     acceptedByTtnAt: metadata.ttnAcceptedAt || null,
     sentToTtnAt:
       metadata.statusHistory?.find((entry) => normalizeWorkflowStatus(entry.status) === 'SENT_TO_TTN')?.at || null,
-    complianceMode: metadata.complianceMode || (getTTNMode() === 'mock' ? 'mock' : 'production'),
+    complianceMode: metadata.complianceMode || (getTTNMode() === 'sandbox' ? 'test' : getTTNMode()),
+    eInvoiceMode: readiness.mode,
+    modeBadge,
+    eInvoiceReadiness: readiness,
     lastTtnSyncAt: metadata.lastTtnSyncAt || null,
     lastStatusAt: metadata.lastStatusAt || invoice.updatedAt,
-    nextAction: getInvoiceNextAction(complianceStatus),
+    nextAction,
+    missingRequirements: getBlockedRequirements(nextAction),
     signatureProvider: metadata.signatureProvider || null,
     certificateType: metadata.certificateType || null,
     lastSignatureTestDate: metadata.lastSignatureTestDate || null,
@@ -513,6 +627,6 @@ export const enrichInvoiceWithCompliance = async <T extends Invoice & { companyI
     ttnResponse: metadata.statusHistory?.[metadata.statusHistory.length - 1]?.note || null,
     totalPaid,
     remainingAmount,
-    paymentStatus: totalPaid <= 0 ? 'UNPAID' : remainingAmount <= 0 ? 'PAID' : 'PARTIALLY_PAID',
+    paymentStatus: ((invoice as any).paymentStatus || computedPaymentStatus).toLowerCase(),
   };
 };

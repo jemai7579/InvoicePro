@@ -159,9 +159,9 @@ export const generatePdf = async (
         .text(
           type === 'FACTURE'
             ? isFinalInvoice
-              ? 'Plateforme El Fatoora · Conformite TTN'
-              : 'Plateforme El Fatoora · Preparation TTN'
-            : 'Plateforme El Fatoora · Document commercial',
+              ? 'Plateforme InvoicePro · Conformite TTN'
+              : 'Plateforme InvoicePro · Preparation TTN'
+            : 'Plateforme InvoicePro · Document commercial',
           MARGIN,
           40
         );
@@ -208,7 +208,7 @@ export const generatePdf = async (
         .font('Helvetica')
         .fontSize(7)
         .text(
-          `El Fatoora · ${type === 'FACTURE' ? 'Facturation electronique' : 'Devis'} · Ref. ${ref} · Page ${page} / ${total}`,
+          `InvoicePro · ${type === 'FACTURE' ? 'Facturation electronique' : 'Devis'} · Ref. ${ref} · Page ${page} / ${total}`,
           0,
           FOOTER_Y + 7,
           { width: PAGE_W, align: 'center' }

@@ -6,7 +6,7 @@ const AIAssistant = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: "Bonjour ! Je suis votre assistant virtuel El Fatoora. Comment puis-je vous aider aujourd'hui ?" }
+    { role: 'assistant', text: "Bonjour ! Je suis votre assistant virtuel InvoicePro. Comment puis-je vous aider aujourd'hui ?" }
   ]);
   const messagesEndRef = useRef(null);
 
@@ -86,7 +86,7 @@ const AIAssistant = () => {
               <Bot className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="font-black text-sm font-display tracking-tight text-white/90">Assistant El Fatoora</h3>
+              <h3 className="font-black text-sm font-display tracking-tight text-white/90">Assistant InvoicePro</h3>
               <p className="text-[10px] text-emerald-400 font-black uppercase tracking-widest flex items-center mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 me-2 animate-pulse"></span>
                 AI Connecté
@@ -164,9 +164,12 @@ const AIAssistant = () => {
           </form>
           <div className="text-center mt-3 flex items-center justify-center gap-2">
             <div className="h-px w-8 bg-slate-100"></div>
-            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">El Fatoora Intelligence</span>
+            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">InvoicePro Intelligence</span>
             <div className="h-px w-8 bg-slate-100"></div>
           </div>
+          <p className="mt-2 text-center text-[10px] font-bold text-slate-400 leading-4">
+            L’assistant IA peut aider à comprendre l’étape E-Houwiya / Mobile ID, mais la création, la validité et l’usage officiel de cet identifiant doivent être vérifiés auprès des organismes concernés.
+          </p>
         </div>
       </div>
     </>
@@ -174,4 +177,3 @@ const AIAssistant = () => {
 };
 
 export default AIAssistant;
-

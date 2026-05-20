@@ -268,7 +268,7 @@ const Devis = () => {
         clientId,
         status,
         note: projectReference ? `Projet: ${projectReference}` : null,
-        lines: lines.map(({ id, ...line }) => line),
+        lines: lines.map((line) => Object.fromEntries(Object.entries(line).filter(([key]) => key !== 'id'))),
       });
       await fetchData();
       setIsModalOpen(false);

@@ -36,6 +36,14 @@ export interface InvoiceComplianceMetadata {
   ttnQrCode?: string | null;
   ttnAcceptedAt?: string | null;
   complianceMode?: 'mock' | 'test' | 'production';
+  teifXmlHash?: string | null;
+  teifGeneratedAt?: string | null;
+  teifVersion?: string | null;
+  signatureStatus?: string | null;
+  signatureTimestamp?: string | null;
+  signedByUserId?: string | null;
+  certificateIdentifier?: string | null;
+  ttnProofPath?: string | null;
   lastTtnSyncAt?: string | null;
   lastStatusAt?: string | null;
   signatureProvider?: string | null;
