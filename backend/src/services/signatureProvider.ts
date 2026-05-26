@@ -1,7 +1,7 @@
 import type { Company } from '@prisma/client';
 import fs from 'fs-extra';
 import crypto from 'crypto';
-import { getEInvoiceConfig, assertProductionSignatureConfigured } from './einvoiceConfig';
+import { getEInvoiceConfig, assertNoMockInProduction, assertProductionSignatureConfigured } from './einvoiceConfig';
 import { signXml } from '../utils/signer';
 
 export interface SignatureResult {
@@ -20,6 +20,7 @@ export interface SignatureProvider {
 
 class MockSignatureProvider implements SignatureProvider {
   async signTeifXml(xml: string, company: Pick<Company, 'name' | 'matriculeFiscal'>): Promise<SignatureResult> {
+    assertNoMockInProduction('Mock signature');
     const config = getEInvoiceConfig();
     if (!config.isMockMode) {
       throw new Error("Impossible de signer : la signature électronique n'est pas configurée.");

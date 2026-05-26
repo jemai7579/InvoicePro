@@ -169,6 +169,12 @@ const Devis = () => {
   const [devisList, setDevisList] = useState([]);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
+  const [tvaRates, setTvaRates] = useState([
+    { rate: 19, label: 'Standard' },
+    { rate: 13, label: 'Spécial' },
+    { rate: 7, label: 'Réduit' },
+    { rate: 0, label: 'Exonéré' },
+  ]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -180,10 +186,16 @@ const Devis = () => {
 
   const fetchData = async () => {
     try {
-      const [devisRes, clientsRes, productsRes] = await Promise.all([api.get('/devis'), api.get('/clients'), api.get('/products')]);
+      const [devisRes, clientsRes, productsRes, tvaRatesRes] = await Promise.all([
+        api.get('/devis'),
+        api.get('/clients'),
+        api.get('/products'),
+        api.get('/tva-rates').catch(() => ({ data: [] })),
+      ]);
       setDevisList(devisRes.data);
       setClients(clientsRes.data);
       setProducts(productsRes.data || []);
+      if (Array.isArray(tvaRatesRes.data) && tvaRatesRes.data.length) setTvaRates(tvaRatesRes.data);
     } catch (error) {
       console.error('Error fetching data', error);
     } finally {
@@ -205,22 +217,22 @@ const Devis = () => {
           description: prefilledProject.title || '',
           quantity: 1,
           unitPrice: Number(prefilledProject.optionalBudget || 0),
-          tvaRate: 19,
+          tvaRate: tvaRates[0]?.rate ?? 19,
         }),
       ]);
       setIsModalOpen(true);
     }
-  }, [prefilledProject]);
+  }, [prefilledProject, tvaRates]);
 
   const openModal = () => {
     setClientId('');
     setStatus('PENDING');
     setProjectReference('');
-    setLines([createLineItem()]);
+    setLines([createLineItem({ tvaRate: tvaRates[0]?.rate ?? 19 })]);
     setIsModalOpen(true);
   };
 
-  const handleAddLine = () => setLines((prev) => [...prev, createLineItem()]);
+  const handleAddLine = () => setLines((prev) => [...prev, createLineItem({ tvaRate: tvaRates[0]?.rate ?? 19 })]);
   const handleRemoveLine = (lineId) => setLines((prev) => prev.filter((line) => line.id !== lineId));
   const handleLineChange = (lineId, field, value) => {
     setLines((prev) => prev.map((line) => (line.id === lineId ? { ...line, [field]: value } : line)));
@@ -700,10 +712,9 @@ const Devis = () => {
                                 }
                                 className="w-full px-2 sm:px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
                               >
-                                <option value={19}>19 %</option>
-                                <option value={13}>13 %</option>
-                                <option value={7}>7 %</option>
-                                <option value={0}>0 %</option>
+                                {tvaRates.map((item) => (
+                                  <option key={item.id || item.rate} value={item.rate}>{item.rate} %</option>
+                                ))}
                               </select>
                             </div>
 

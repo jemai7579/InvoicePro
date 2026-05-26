@@ -54,9 +54,16 @@ export interface InvoiceComplianceMetadata {
 }
 
 const complianceRoot = path.resolve('uploads/compliance');
+const uploadsRoot = path.resolve('uploads');
+
+const isWithinDirectory = (baseDir: string, candidate: string) =>
+  candidate === baseDir || candidate.startsWith(`${baseDir}${path.sep}`);
 
 const ensureInvoiceDir = async (companyId: string, invoiceId: string) => {
-  const dir = path.join(complianceRoot, companyId, invoiceId);
+  const dir = path.resolve(complianceRoot, companyId, invoiceId);
+  if (!isWithinDirectory(complianceRoot, dir)) {
+    throw new Error('Invalid compliance storage path.');
+  }
   await fs.ensureDir(dir);
   return dir;
 };
@@ -66,7 +73,16 @@ const buildPublicPath = (absolutePath: string) => {
   return `/uploads/${relative}`;
 };
 
-const buildAbsolutePath = (publicPath: string) => path.resolve('uploads', publicPath.replace(/^\/uploads\//, ''));
+const buildAbsolutePath = (publicPath: string) => {
+  if (!publicPath.startsWith('/uploads/compliance/')) {
+    throw new Error('Invalid compliance artifact path.');
+  }
+  const absolutePath = path.resolve(uploadsRoot, publicPath.replace(/^\/uploads\//, ''));
+  if (!isWithinDirectory(complianceRoot, absolutePath)) {
+    throw new Error('Invalid compliance artifact path.');
+  }
+  return absolutePath;
+};
 
 export const readComplianceMetadata = async (companyId: string, invoiceId: string): Promise<InvoiceComplianceMetadata> => {
   const dir = await ensureInvoiceDir(companyId, invoiceId);
@@ -124,7 +140,11 @@ export const saveComplianceArtifact = async (
   content: Buffer | string
 ) => {
   const dir = await ensureInvoiceDir(companyId, invoiceId);
-  const absolutePath = path.join(dir, fileName);
+  const safeFileName = path.basename(fileName);
+  const absolutePath = path.resolve(dir, safeFileName);
+  if (!isWithinDirectory(dir, absolutePath)) {
+    throw new Error('Invalid compliance artifact file name.');
+  }
   await fs.writeFile(absolutePath, content);
   return buildPublicPath(absolutePath);
 };

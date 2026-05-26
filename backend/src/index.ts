@@ -1,36 +1,27 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import { getEInvoiceConfig } from './services/einvoiceConfig';
-
-// ── Startup environment validation ────────────────────────────────────────────
-// Fail immediately with a clear message if required variables are missing.
-// This prevents the app from starting in a broken/insecure state.
-const REQUIRED_ENV_VARS = ['DATABASE_URL', 'JWT_SECRET'];
-const missingVars = REQUIRED_ENV_VARS.filter((v) => !process.env[v]);
-if (missingVars.length > 0) {
-  console.error('\n❌  FATAL: Missing required environment variables:');
-  missingVars.forEach((v) => console.error(`   • ${v}`));
-  console.error('\n   Copy backend/.env.example to backend/.env and fill in the values.\n');
-  process.exit(1);
-}
+import { validateStartupEnvironment } from './config/validateEnvironment';
 
 try {
-  const eInvoiceConfig = getEInvoiceConfig();
+  const { warnings, eInvoiceConfig } = validateStartupEnvironment();
+  warnings.forEach((warning) => console.warn(`WARNING: ${warning}`));
   console.log(`E-invoice mode: ${eInvoiceConfig.mode} (${eInvoiceConfig.appEnv})`);
 } catch (error: any) {
-  console.error(`\n❌  FATAL: ${error.message}\n`);
+  console.error(`FATAL: ${error.message}`);
   process.exit(1);
 }
+
+const isProdEnv = process.env.NODE_ENV === 'production';
 
 // Warn about optional integrations that are not configured
 if (!process.env.GEMINI_API_KEY) {
-  console.warn('⚠️  GEMINI_API_KEY not set — AI Assistant feature will return a 503 response.');
+  console.warn('WARNING: GEMINI_API_KEY not set; AI Assistant will return a 503 response.');
 }
 if (!process.env.TTN_BASE_URL || !process.env.TTN_SUBMIT_INVOICE_ENDPOINT) {
-  console.warn('⚠️  TTN API endpoints not set — TTN submission is available only in mock mode.');
+  console.warn('WARNING: TTN API endpoints not set; TTN submission is available only in mock mode.');
 }
 if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-  console.warn('⚠️  SMTP credentials not set — email sending will use Ethereal test accounts (dev only).');
+  console.warn('WARNING: SMTP credentials not set; email sending uses development behavior only.');
 }
 
 import express from 'express';
@@ -59,11 +50,13 @@ import networkRoutes from './routes/networkRoutes';
 import messageRoutes from './routes/messageRoutes';
 import supportRoutes from './routes/supportRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
+import tvaRateRoutes from './routes/tvaRateRoutes';
+import opportunityRoutes from './routes/opportunityRoutes';
 
 import { errorHandler } from './middleware/errorMiddleware';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5005;
 
 // Security 1: Helmet
 app.use(helmet({ 
@@ -71,11 +64,20 @@ app.use(helmet({
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
 }));
 
-// Security 2: CORS (Strict)
-const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:5173'];
+// Security 2: CORS (strict in production, Vite-friendly in development)
+const parseAllowedOrigins = () =>
+  (process.env.FRONTEND_URL || 'http://localhost:5173')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+const allowedOrigins = parseAllowedOrigins();
+const isLocalDevOrigin = (origin: string) =>
+  !isProdEnv && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || isLocalDevOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -85,13 +87,12 @@ app.use(cors({
 }));
 
 // Security 3: Rate Limiting
-const isProd = process.env.NODE_ENV === 'production';
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 // General limiter for all API routes
 const limiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
-  max: isProd ? 100 : 10000,
+  max: isProdEnv ? 100 : 10000,
   message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -101,7 +102,7 @@ app.use('/api', limiter);
 // Stricter limiter for login endpoints — brute-force protection
 const authLimiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
-  max: isProd ? 10 : 10000,
+  max: isProdEnv ? 10 : 10000,
   message: { success: false, message: 'Too many login attempts from this IP. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -136,6 +137,8 @@ app.use('/api/network', networkRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/tva-rates', tvaRateRoutes);
+app.use('/api/opportunities', opportunityRoutes);
 
 app.get('/', (req, res) => {
   res.status(200).json({ success: true, message: 'InvoicePro API is running' });
@@ -154,12 +157,12 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server hardened and running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
 // Process Reliability
 process.on('unhandledRejection', (err: any) => {
-  console.error('❌ UNHANDLED REJECTION! Shutting down...');
+  console.error('UNHANDLED REJECTION: Shutting down.');
   console.error(err);
   if (server) {
     server.close(() => {
@@ -171,7 +174,7 @@ process.on('unhandledRejection', (err: any) => {
 });
 
 process.on('uncaughtException', (err: Error) => {
-  console.error('❌ UNCAUGHT EXCEPTION! Shutting down...');
+  console.error('UNCAUGHT EXCEPTION: Shutting down.');
   console.error(err.name, err.message);
   process.exit(1);
 });

@@ -21,7 +21,18 @@ import multer from 'multer';
 import { createInvoicePayment, getInvoicePayments } from '../controllers/paymentController';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+const xmlMimeTypes = new Set(['application/xml', 'text/xml', 'application/octet-stream']);
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (!/\.xml$/i.test(file.originalname) || !xmlMimeTypes.has(file.mimetype)) {
+      cb(new Error('Only XML invoice files are allowed.'));
+      return;
+    }
+    cb(null, true);
+  },
+});
 
 router.route('/')
   .get(protect, getInvoices)

@@ -3,10 +3,11 @@ const translations = {
   fr: {
     nav: {
       dashboard: 'Tableau de bord',
+      opportunities: 'Opportunités',
       projectIdeas: 'Mes idées de projet',
       offers: 'Offres & bons de commande',
       quotes: 'Devis',
-      tracking: 'Suivi TTN',
+      tracking: 'Suivi de factures',
       clients: 'Clients',
       network: 'Réseau professionnel',
       messages: 'Messages',
@@ -415,6 +416,8 @@ const translations = {
         profile: 'Profil Entreprise',
         security: 'Sécurité',
         compliance: 'Conformité TEIF',
+        subscription: 'Abonnement',
+        help: "Centre d’aide",
         team: 'Équipe & CRM',
       },
       save: 'Enregistrer',
@@ -705,10 +708,11 @@ const translations = {
   en: {
     nav: {
       dashboard: 'Dashboard',
+      opportunities: 'Opportunities',
       projectIdeas: 'Project ideas',
       offers: 'Offers & purchase orders',
       quotes: 'Quotes',
-      tracking: 'TTN tracking',
+      tracking: 'Invoice tracking',
       clients: 'Clients',
       network: 'Professional network',
       messages: 'Messages',
@@ -1100,6 +1104,8 @@ const translations = {
         profile: "Company Profile",
         security: "Security",
         compliance: "TEIF Compliance",
+        subscription: "Subscription",
+        help: "Help Center",
         team: "Team & CRM"
       },
       loading: "Loading profile...",
@@ -1211,10 +1217,11 @@ const translations = {
   ar: {
     nav: {
       dashboard: 'لوحة القيادة',
+      opportunities: 'الفرص',
       projectIdeas: 'أفكار المشاريع',
       offers: 'العروض وأوامر الشراء',
       quotes: 'عروض الأسعار',
-      tracking: 'متابعة TTN',
+      tracking: 'متابعة الفواتير',
       clients: 'العملاء',
       network: 'الشبكة المهنية',
       messages: 'الرسائل',
@@ -1603,6 +1610,8 @@ const translations = {
         profile: "ملف الشركة",
         security: "الأمان",
         compliance: "الامتثال لـ TEIF",
+        subscription: "الاشتراك",
+        help: "مركز المساعدة",
         team: "الفريق و CRM"
       },
       loading: "جاري تحميل الملف الشخصي...",

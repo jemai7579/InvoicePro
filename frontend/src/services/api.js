@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const normalizeBaseUrl = (url) => String(url || '').replace(/\/+$/, '');
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5005/api',
+  baseURL: normalizeBaseUrl(import.meta.env.VITE_API_URL || 'http://localhost:5005/api'),
+  timeout: 15000,
 });
 
 // Request interceptor: add dynamic token (user or admin based on current flow)
@@ -29,9 +32,11 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    if (!error.response) {
+      error.userMessage = 'Backend indisponible. Vérifiez que le serveur API est lancé et que VITE_API_URL pointe vers le bon port.';
+    }
     return Promise.reject(error);
   }
 );
 
 export default api;
-

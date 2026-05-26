@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BellRing, CheckCircle2, KeyRound, Loader2, Save, Settings, ShieldCheck, Sparkles, Wrench } from 'lucide-react';
+import { BellRing, CheckCircle2, KeyRound, Loader2, Plus, Save, Settings, ShieldCheck, Sparkles, Wrench } from 'lucide-react';
 import api from '../../services/api';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -59,13 +59,18 @@ const AdminSettings = () => {
   const [integrations, setIntegrations] = useState(null);
   const [integrationDrafts, setIntegrationDrafts] = useState({});
   const [savingIntegration, setSavingIntegration] = useState('');
+  const [tvaRates, setTvaRates] = useState([]);
+  const [tvaDraft, setTvaDraft] = useState({ rate: '', label: '', active: true, sortOrder: 0 });
+  const [savingTva, setSavingTva] = useState('');
 
   const load = async () => {
     try {
       const res = await api.get('/admin/settings');
       const integrationsRes = await api.get('/admin/integrations/status').catch(() => ({ data: null }));
+      const tvaRes = await api.get('/admin/tva-rates').catch(() => ({ data: [] }));
       setSettings(res.data || []);
       setIntegrations(integrationsRes.data);
+      setTvaRates(tvaRes.data || []);
       setDrafts(
         (res.data || []).reduce((acc, item) => {
           acc[item.id] = item.value || '';
@@ -130,6 +135,24 @@ const AdminSettings = () => {
       console.error('Unable to save integration', error);
     } finally {
       setSavingIntegration('');
+    }
+  };
+
+  const saveTvaRate = async (rate = null) => {
+    const payload = rate || tvaDraft;
+    setSavingTva(rate?.id || 'new');
+    try {
+      if (rate?.id) {
+        await api.put(`/admin/tva-rates/${rate.id}`, payload);
+      } else {
+        await api.post('/admin/tva-rates', payload);
+        setTvaDraft({ rate: '', label: '', active: true, sortOrder: 0 });
+      }
+      await load();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Impossible d’enregistrer la TVA.');
+    } finally {
+      setSavingTva('');
     }
   };
 
@@ -259,6 +282,83 @@ const AdminSettings = () => {
                   <div className="text-sm font-black text-slate-900">Feature flags</div>
                   <div className="text-sm text-slate-500">Activez ou desactivez les fonctions de maniere progressive.</div>
                 </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card title="TVA globale" subtitle="Taux actifs utilises pour les nouveaux produits, devis et factures">
+            <div className="space-y-3">
+              {tvaRates.map((rate) => (
+                <div key={rate.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-[90px_1fr_90px_auto] sm:items-center">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={rate.rate}
+                      onChange={(event) => setTvaRates((items) => items.map((item) => item.id === rate.id ? { ...item, rate: event.target.value } : item))}
+                      className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm font-black outline-none focus:ring-4 focus:ring-premium-100"
+                    />
+                    <input
+                      value={rate.label}
+                      onChange={(event) => setTvaRates((items) => items.map((item) => item.id === rate.id ? { ...item, label: event.target.value } : item))}
+                      className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm font-semibold outline-none focus:ring-4 focus:ring-premium-100"
+                    />
+                    <input
+                      type="number"
+                      value={rate.sortOrder}
+                      onChange={(event) => setTvaRates((items) => items.map((item) => item.id === rate.id ? { ...item, sortOrder: Number(event.target.value) } : item))}
+                      className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm font-semibold outline-none focus:ring-4 focus:ring-premium-100"
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setTvaRates((items) => items.map((item) => item.id === rate.id ? { ...item, active: !item.active } : item))}
+                        className={`rounded-xl px-3 py-2 text-xs font-black ${rate.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-500'}`}
+                      >
+                        {rate.active ? 'Actif' : 'Inactif'}
+                      </button>
+                      <Button size="sm" icon={Save} isLoading={savingTva === rate.id} onClick={() => saveTvaRate(rate)}>
+                        OK
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[90px_1fr_90px_auto] sm:items-center">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    placeholder="TVA"
+                    value={tvaDraft.rate}
+                    onChange={(event) => setTvaDraft((current) => ({ ...current, rate: event.target.value }))}
+                    className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-black outline-none focus:ring-4 focus:ring-premium-100"
+                  />
+                  <input
+                    placeholder="Libelle"
+                    value={tvaDraft.label}
+                    onChange={(event) => setTvaDraft((current) => ({ ...current, label: event.target.value }))}
+                    className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-semibold outline-none focus:ring-4 focus:ring-premium-100"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Ordre"
+                    value={tvaDraft.sortOrder}
+                    onChange={(event) => setTvaDraft((current) => ({ ...current, sortOrder: Number(event.target.value) }))}
+                    className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-semibold outline-none focus:ring-4 focus:ring-premium-100"
+                  />
+                  <Button size="sm" icon={Plus} isLoading={savingTva === 'new'} onClick={() => saveTvaRate()}>
+                    Ajouter
+                  </Button>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-amber-50 px-4 py-3 text-xs font-bold text-amber-800">
+                Les anciennes factures ne sont pas recalculées. Les changements s’appliquent aux nouveaux produits, devis et factures.
               </div>
             </div>
           </Card>

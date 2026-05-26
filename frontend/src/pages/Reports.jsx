@@ -26,8 +26,6 @@ import {
   AreaChart,
   Area,
 } from 'recharts';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import { AuthContext } from '../context/AuthContext';
@@ -35,6 +33,20 @@ import UpgradeOverlay from '../components/Subscription/UpgradeOverlay';
 import Card from '../components/ui/Card';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9', '#8b5cf6'];
+const emptyReports = {
+  monthlyRevenue: [],
+  statusBreakdown: [],
+  revenueByClient: [],
+  recentActivity: [],
+  totalKPIs: {
+    revenueTTC: 0,
+    invoiceCount: 0,
+    paidCount: 0,
+    pendingCount: 0,
+    averageInvoiceValue: 0,
+    monthlyComparison: 0,
+  },
+};
 
 const copyByLang = {
   fr: {
@@ -139,6 +151,7 @@ const Reports = () => {
   const fetchReports = useCallback(async (start = startDate, end = endDate) => {
     if (!user || isStarter) return;
     setLoading(true);
+    setFetchError(null);
     try {
       const params = {};
       if (start) params.startDate = start;
@@ -147,7 +160,8 @@ const Reports = () => {
       setReportsData(response.data);
     } catch (error) {
       console.error('Error fetching reports', error);
-      setFetchError(text.noData);
+      setReportsData(emptyReports);
+      setFetchError(error.response?.data?.message || text.noData);
     } finally {
       setLoading(false);
     }
@@ -166,6 +180,10 @@ const Reports = () => {
     if (!reportRef.current) return;
     setIsExporting(true);
     try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
@@ -276,16 +294,21 @@ const Reports = () => {
       </div>
 
       <div ref={reportRef} className="space-y-8">
+        {fetchError ? (
+          <div className="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700">
+            {fetchError}
+          </div>
+        ) : null}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
           {kpis.map((kpi) => (
-            <Card key={kpi.label} className="p-6">
+            <Card key={kpi.label} className="min-w-0 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className={`p-2.5 rounded-xl bg-slate-50 ${kpi.color}`}>
                   <kpi.icon className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{kpi.label}</p>
-              <h3 className="text-2xl font-black text-slate-900 font-display">
+              <p className="mb-1 break-words text-[10px] font-black uppercase tracking-widest text-slate-400">{kpi.label}</p>
+              <h3 className="break-words text-xl font-black text-slate-900 font-display sm:text-2xl">
                 {kpi.raw ? kpi.value : kpi.percent ? `${Number(kpi.value || 0).toFixed(1)}%` : formatCurrency(kpi.value)}
               </h3>
               {kpi.percent ? (
@@ -300,9 +323,9 @@ const Reports = () => {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <Card title={text.revenueTrend} subtitle={text.revenueTrendSub} className="p-2">
             {reportsData.monthlyRevenue?.length ? (
-              <div className="h-80">
+              <div className="h-80 min-w-0 overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={reportsData.monthlyRevenue}>
+                  <AreaChart data={reportsData.monthlyRevenue} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
@@ -323,7 +346,7 @@ const Reports = () => {
 
           <Card title={text.statusBreakdown} subtitle={text.statusBreakdownSub} className="p-2">
             {reportsData.statusBreakdown?.length ? (
-              <div className="h-80">
+              <div className="h-80 min-w-0 overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -351,9 +374,9 @@ const Reports = () => {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
           <Card title={text.revenueByClient} subtitle={text.revenueByClientSub} className="p-2">
             {reportsData.revenueByClient?.length ? (
-              <div className="h-80">
+              <div className="h-80 min-w-0 overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={reportsData.revenueByClient}>
+                  <BarChart data={reportsData.revenueByClient} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />

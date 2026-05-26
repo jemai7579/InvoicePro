@@ -22,6 +22,7 @@ const getRegisterErrorMessage = (err) => {
   if (typeof data === 'string' && data.trim()) return data;
   if (data?.message) return data.message;
   if (data?.error) return data.error;
+  if (err.userMessage) return err.userMessage;
   if (err.message) return err.message;
   if (Array.isArray(data?.errors) && data.errors.length > 0) {
     return data.errors
@@ -97,10 +98,6 @@ const Register = () => {
         phone: formData.phone,
         plan: selectedPlan,
       };
-
-      if (import.meta.env.DEV) {
-        console.log('REGISTER PAYLOAD:', payload);
-      }
 
       await register(payload);
       setSuccess(t('auth.success'));

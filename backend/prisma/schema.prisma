@@ -266,6 +266,16 @@ model SystemSetting {
   description String?
 }
 
+model TvaRate {
+  id        String   @id @default(uuid())
+  rate      Float    @unique
+  label     String
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Client {
   id              String    @id @default(uuid())
   companyId       String
@@ -300,6 +310,8 @@ model Product {
   description String?
   priceHT     Float
   tvaRate     Float    @default(19)
+  unit        String?  @default("unité")
+  imageUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   company     Company  @relation(fields: [companyId], references: [id])

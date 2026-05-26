@@ -21,7 +21,7 @@ const AdminLogin = () => {
       await adminLogin(email, password);
       navigate('/admin/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || "Accès refusé. Vérifiez vos identifiants.");
+      setError(err.response?.data?.message || err.userMessage || "Accès refusé. Vérifiez vos identifiants.");
     } finally {
       setLoading(false);
     }

@@ -5,6 +5,7 @@ export type EInvoiceMode = 'mock' | 'sandbox' | 'production';
 
 const allowedAppEnvs: AppEnv[] = ['development', 'test', 'production'];
 const allowedModes: EInvoiceMode[] = ['mock', 'sandbox', 'production'];
+const isNodeProduction = () => (process.env.NODE_ENV || '').toLowerCase() === 'production';
 
 const readAppEnv = (): AppEnv => {
   const value = (process.env.APP_ENV || process.env.NODE_ENV || 'development').toLowerCase() as AppEnv;
@@ -26,8 +27,8 @@ export const getEInvoiceConfig = () => {
   const appEnv = readAppEnv();
   const mode = readEInvoiceMode();
 
-  if (appEnv === 'production' && mode === 'mock') {
-    throw new Error('INVALID_E_INVOICE_CONFIGURATION: E_INVOICE_MODE=mock is not allowed when APP_ENV=production.');
+  if ((appEnv === 'production' || isNodeProduction()) && mode === 'mock') {
+    throw new Error('INVALID_E_INVOICE_CONFIGURATION: E_INVOICE_MODE=mock is not allowed in production.');
   }
 
   return {
@@ -41,7 +42,7 @@ export const getEInvoiceConfig = () => {
 
 export const assertNoMockInProduction = (operation: string) => {
   const config = getEInvoiceConfig();
-  if (config.appEnv === 'production' && config.mode === 'mock') {
+  if ((config.appEnv === 'production' || isNodeProduction()) && config.mode === 'mock') {
     throw new Error(`MOCK_NOT_ALLOWED_IN_PRODUCTION: ${operation} cannot run in mock mode in production.`);
   }
 };

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../prisma';
-import { getJwtSecret } from '../utils/jwtSecret';
+import { getJwtExpiresIn, getJwtSecret } from '../utils/jwtSecret';
 
 export const adminLogin = async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -16,7 +16,7 @@ export const adminLogin = async (req: Request, res: Response) => {
       const token = jwt.sign(
         { id: admin.id, role: 'admin' },
         getJwtSecret(),
-        { expiresIn: '30d' }
+        { expiresIn: getJwtExpiresIn() as jwt.SignOptions['expiresIn'] }
       );
 
       // Log activity

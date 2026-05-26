@@ -1,4 +1,4 @@
-import { getEInvoiceConfig, assertProductionTTNConfigured } from './einvoiceConfig';
+import { getEInvoiceConfig, assertNoMockInProduction, assertProductionTTNConfigured } from './einvoiceConfig';
 
 type TTNTransportMode = 'mock' | 'sandbox' | 'production';
 
@@ -35,10 +35,12 @@ const getMode = (): TTNTransportMode => getEInvoiceConfig().mode;
 
 class MockTTNProvider implements TTNProvider {
   async authenticate() {
+    assertNoMockInProduction('Mock TTN authentication');
     return { accessToken: 'mock-token', mode: 'mock' as const };
   }
 
   async submitSignedInvoice({ invoiceId }: { invoiceId: string }) {
+    assertNoMockInProduction('Mock TTN submission');
     return {
       submissionId: `MOCK-SUB-${invoiceId.slice(0, 8).toUpperCase()}-${Date.now()}`,
       status: 'SENT_TO_TTN' as const,
@@ -57,6 +59,7 @@ class MockTTNProvider implements TTNProvider {
     signedXml: string;
     simulationDecision?: 'accept' | 'reject' | null;
   }) {
+    assertNoMockInProduction('Mock TTN status response');
     if (!simulationDecision) {
       return {
         status: 'PENDING_TTN' as const,

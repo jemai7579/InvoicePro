@@ -45,7 +45,7 @@ const Login = () => {
       navigate('/dashboard');
     } catch (err) {
       console.error('Failed to login', err);
-      setError(err.response?.data?.message || t('error.invalidCredentials'));
+      setError(err.response?.data?.message || err.userMessage || t('error.invalidCredentials'));
     } finally {
       setLoading(false);
     }

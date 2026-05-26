@@ -1235,6 +1235,66 @@ export const updateSystemSetting = async (req: Request, res: Response) => {
   }
 };
 
+export const getTvaRates = async (req: Request, res: Response) => {
+  try {
+    const rates = await prisma.tvaRate.findMany({ orderBy: [{ sortOrder: 'asc' }, { rate: 'desc' }] });
+    res.json({ success: true, data: rates });
+  } catch {
+    res.status(500).json({ success: false, message: 'Error fetching TVA rates' });
+  }
+};
+
+export const upsertTvaRate = async (req: Request, res: Response) => {
+  try {
+    const routeId = getRouteId(req);
+    const rate = Number(req.body.rate);
+    const label = String(req.body.label || '').trim();
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+      return res.status(400).json({ success: false, message: 'TVA rate must be between 0 and 100.' });
+    }
+    if (!label) {
+      return res.status(400).json({ success: false, message: 'TVA label is required.' });
+    }
+
+    const data = {
+      rate,
+      label,
+      active: req.body.active === undefined ? true : Boolean(req.body.active),
+      sortOrder: Number.isFinite(Number(req.body.sortOrder)) ? Number(req.body.sortOrder) : 0,
+    };
+
+    const saved = routeId && routeId !== 'new'
+      ? await prisma.tvaRate.update({ where: { id: routeId as string }, data })
+      : await prisma.tvaRate.upsert({
+          where: { rate },
+          update: data,
+          create: data,
+        });
+
+    await logAdminAction(req, 'UPDATE_TVA_RATE', `TVA ${saved.rate}% updated (${saved.label}, active=${saved.active})`);
+    res.json({ success: true, data: saved });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error?.code === 'P2002' ? 'TVA rate already exists.' : 'Error saving TVA rate' });
+  }
+};
+
+export const getActiveTvaRates = async (req: Request, res: Response) => {
+  try {
+    const rates = await prisma.tvaRate.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: 'asc' }, { rate: 'desc' }],
+    });
+    res.json(rates.length ? rates : [
+      { id: 'fallback-19', rate: 19, label: 'Standard', active: true, sortOrder: 1 },
+      { id: 'fallback-13', rate: 13, label: 'Spécial', active: true, sortOrder: 2 },
+      { id: 'fallback-7', rate: 7, label: 'Réduit', active: true, sortOrder: 3 },
+      { id: 'fallback-0', rate: 0, label: 'Exonéré', active: true, sortOrder: 4 },
+    ]);
+  } catch {
+    res.status(500).json({ message: 'Error fetching TVA rates' });
+  }
+};
+
 export const getIntegrationsStatus = async (req: Request, res: Response) => {
   try {
     res.json({ success: true, data: await getIntegrationStatus() });

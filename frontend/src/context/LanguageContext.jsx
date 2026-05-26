@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
 import translations from '../i18n/translations';
 
@@ -406,6 +406,12 @@ export const LanguageProvider = ({ children }) => {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.setAttribute('dir', dir);
+    document.documentElement.setAttribute('lang', lang);
+  }, [lang]);
 
   const t = useCallback((key, params = {}) => {
     if (!key) return '';

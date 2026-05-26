@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, X, Loader, Package, Tag, Info, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { Plus, Search, Edit2, Trash2, X, Loader, Package, Tag, Info, DollarSign, CheckCircle, AlertCircle, Upload, Image, Eye } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import api from '../services/api';
 import Button from '../components/ui/Button';
@@ -8,8 +8,55 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 
+const importColumns = ['Code', 'Nom', 'Description', 'Prix HT', 'TVA', 'Unité', 'Catégorie', 'Image'];
+const normalizeCell = (value) => String(value ?? '').trim();
+const toProductRow = (row) => ({
+  code: normalizeCell(row.Code || row.Reference || row.SKU),
+  name: normalizeCell(row.Nom || row.Name || row.Designation),
+  description: normalizeCell(row.Description),
+  priceHT: Number(String(row['Prix HT'] ?? row.priceHT ?? row.UnitPrice ?? '').replace(',', '.')),
+  tvaRate: row.TVA === undefined || row.TVA === '' ? 19 : Number(String(row.TVA).replace('%', '').replace(',', '.')),
+  unit: normalizeCell(row['Unité'] || row.Unit || row.Unite) || 'unité',
+  category: normalizeCell(row['Catégorie'] || row.Category),
+  imageUrl: normalizeCell(row.Image || row.imageUrl || row['Image URL']),
+});
+
+const isExternalImage = (value = '') => /^https?:\/\//i.test(value) || value.startsWith('data:') || value.startsWith('blob:');
+
+const ProductImage = ({ product, className = 'h-full w-full rounded-2xl object-cover', placeholderClassName = 'w-5 h-5' }) => {
+  const [localImage, setLocalImage] = useState({ productId: '', src: '' });
+  const externalSrc = product?.imageUrl && isExternalImage(product.imageUrl) ? product.imageUrl : '';
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = '';
+    if (!product?.id || !product?.imageUrl || externalSrc) {
+      return () => {};
+    }
+
+    api.get(`/products/${product.id}/image`, { responseType: 'blob' })
+      .then((res) => {
+        if (!active) return;
+        objectUrl = URL.createObjectURL(res.data);
+        setLocalImage({ productId: product.id, src: objectUrl });
+      });
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [externalSrc, product?.id, product?.imageUrl]);
+
+  const src = externalSrc || (localImage.productId === product?.id ? localImage.src : '');
+  if (!src) return <Package className={placeholderClassName} />;
+  return <img src={src} alt="" className={className} />;
+};
+
+const productPriceTTC = (product) => Number(product.priceHT || 0) * (1 + Number(product.tvaRate || 0) / 100);
+
 const Products = () => {
   const { t } = useLanguage();
+  const fileInputRef = useRef(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -18,6 +65,20 @@ const Products = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [showImport, setShowImport] = useState(false);
+  const [previewRows, setPreviewRows] = useState([]);
+  const [importErrors, setImportErrors] = useState([]);
+  const [viewingProduct, setViewingProduct] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [removeImage, setRemoveImage] = useState(false);
+  const [tvaRates, setTvaRates] = useState([
+    { rate: 19, label: 'Standard' },
+    { rate: 13, label: 'Spécial' },
+    { rate: 7, label: 'Réduit' },
+    { rate: 0, label: 'Exonéré' },
+  ]);
 
   const [formData, setFormData] = useState({
     code: '',
@@ -25,26 +86,45 @@ const Products = () => {
     name: '',
     description: '',
     priceHT: '',
-    tvaRate: 19
+    tvaRate: 19,
+    unit: 'unité',
+    imageUrl: ''
   });
 
-  const fetchProducts = async () => {
+  const showToast = useCallback((type, message) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  }, []);
+
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get('/products');
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products', error);
+      showToast('error', 'Impossible de charger les produits.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     fetchProducts();
+  }, [fetchProducts]);
+
+  useEffect(() => {
+    api.get('/tva-rates')
+      .then((res) => {
+        if (Array.isArray(res.data) && res.data.length) setTvaRates(res.data);
+      })
+      .catch(() => {});
   }, []);
 
   const openModal = (product = null) => {
+    setImageFile(null);
+    setImagePreview('');
+    setRemoveImage(false);
     if (product) {
       setEditingProduct(product);
       setFormData({
@@ -53,11 +133,13 @@ const Products = () => {
         name: product.name,
         description: product.description || '',
         priceHT: product.priceHT.toString(),
-        tvaRate: product.tvaRate
+        tvaRate: product.tvaRate,
+        unit: product.unit || 'unité',
+        imageUrl: product.imageUrl || ''
       });
     } else {
       setEditingProduct(null);
-      setFormData({ code: '', category: '', name: '', description: '', priceHT: '', tvaRate: 19 });
+      setFormData({ code: '', category: '', name: '', description: '', priceHT: '', tvaRate: tvaRates[0]?.rate ?? 19, unit: 'unité', imageUrl: '' });
     }
     setErrors({});
     setIsModalOpen(true);
@@ -66,6 +148,39 @@ const Products = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
+    setImageFile(null);
+    setImagePreview('');
+    setRemoveImage(false);
+  };
+
+  useEffect(() => {
+    if (!imageFile) return undefined;
+    const url = URL.createObjectURL(imageFile);
+    setImagePreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [imageFile]);
+
+  const handleImageSelect = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(file.type)) {
+      showToast('error', 'Formats acceptés: PNG, JPG, JPEG, WEBP.');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      showToast('error', 'Image trop volumineuse (4 Mo max).');
+      return;
+    }
+    setImageFile(file);
+    setRemoveImage(false);
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setRemoveImage(true);
+    setFormData((prev) => ({ ...prev, imageUrl: '' }));
   };
 
   const handleInputChange = (field, value) => {
@@ -101,18 +216,31 @@ const Products = () => {
       priceHT: parseFloat(formData.priceHT),
       tvaRate: parseFloat(formData.tvaRate)
     };
+    const requestBody = imageFile || removeImage
+      ? Object.entries(payload).reduce((form, [key, value]) => {
+          form.append(key, value ?? '');
+          return form;
+        }, new FormData())
+      : payload;
+
+    if (requestBody instanceof FormData) {
+      if (imageFile) requestBody.append('image', imageFile);
+      if (removeImage) requestBody.append('removeImage', 'true');
+    }
 
     try {
       if (editingProduct) {
-        await api.put(`/products/${editingProduct.id}`, payload);
+        await api.put(`/products/${editingProduct.id}`, requestBody);
       } else {
-        await api.post('/products', payload);
+        await api.post('/products', requestBody);
       }
       fetchProducts();
       closeModal();
+      showToast('success', editingProduct ? 'Produit modifié.' : 'Produit créé.');
     } catch (error) {
       console.error('Error saving product', error);
       setSubmitError(error.response?.data?.message || t('settings.error'));
+      showToast('error', error.response?.data?.message || 'Enregistrement impossible.');
     } finally {
       setIsSubmitting(false);
     }
@@ -123,27 +251,87 @@ const Products = () => {
       try {
         await api.delete(`/products/${id}`);
         fetchProducts();
+        showToast('success', 'Produit supprimé.');
       } catch (error) {
         console.error('Error deleting product', error);
+        showToast('error', error.response?.data?.message || 'Suppression impossible.');
       }
     }
   };
 
-  const filteredProducts = products.filter(p => 
+  const filteredProducts = useMemo(() => products.filter(p =>
     (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (p.code || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    (p.code || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.category || '').toLowerCase().includes(searchQuery.toLowerCase())
+  ), [products, searchQuery]);
+
+  const handleImportFile = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!/\.(xlsx|xls)$/i.test(file.name)) {
+      showToast('error', 'Format accepté: .xlsx ou .xls.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('error', 'Fichier Excel trop volumineux (2 Mo max).');
+      return;
+    }
+    // TODO: replace xlsx with a maintained parser; keep this bounded and user-triggered meanwhile.
+    const XLSX = await import('xlsx');
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' }).map(toProductRow);
+    if (rows.length > 500) {
+      showToast('error', 'Maximum 500 produits par import.');
+      return;
+    }
+    const nextErrors = [];
+    rows.forEach((row, index) => {
+      if (!row.name) nextErrors.push({ row: index + 1, message: 'Nom manquant.' });
+      if (!Number.isFinite(row.priceHT) || row.priceHT < 0) nextErrors.push({ row: index + 1, message: 'Prix HT invalide.' });
+      if (!Number.isFinite(row.tvaRate) || row.tvaRate < 0 || row.tvaRate > 100) nextErrors.push({ row: index + 1, message: 'TVA invalide.' });
+    });
+    setPreviewRows(rows);
+    setImportErrors(nextErrors);
+  };
+
+  const importProducts = async () => {
+    const validRows = previewRows.filter((row) => row.name && Number.isFinite(row.priceHT) && row.priceHT >= 0 && Number.isFinite(row.tvaRate));
+    try {
+      const res = await api.post('/products/import', { rows: validRows });
+      showToast('success', `${res.data.imported} produits importés, ${res.data.skipped} ignorés.`);
+      setShowImport(false);
+      setPreviewRows([]);
+      setImportErrors([]);
+      fetchProducts();
+    } catch (error) {
+      showToast('error', error.response?.data?.message || 'Import impossible.');
+    }
+  };
 
   return (
     <div className="pb-20 animate-in fade-in duration-500">
+      {toast && (
+        <div className={`fixed top-20 right-6 z-[100] flex max-w-sm items-center gap-3 rounded-2xl border px-5 py-4 text-sm font-semibold shadow-2xl ${
+          toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+          {toast.message}
+        </div>
+      )}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
         <div>
           <h2 className="text-2xl font-black text-slate-900 font-display tracking-tight uppercase">{t('products.title')}</h2>
           <p className="text-sm text-slate-500 font-medium">{t('products.subtitle')}</p>
         </div>
-        <Button onClick={() => openModal()} icon={Plus} className="!rounded-2xl shadow-lg shadow-indigo-100">
-          {t('products.new')}
-        </Button>
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          <Button variant="secondary" onClick={() => setShowImport(true)} icon={Upload} className="w-full sm:w-auto">
+            Importer depuis Excel
+          </Button>
+          <Button onClick={() => openModal()} icon={Plus} className="w-full !rounded-2xl shadow-lg shadow-indigo-100 sm:w-auto">
+            {t('products.new')}
+          </Button>
+        </div>
       </div>
 
       {/* Search & Filters */}
@@ -205,11 +393,15 @@ const Products = () => {
                     <td className="px-8 py-6">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 me-4 border border-indigo-100 shadow-sm shadow-indigo-50">
-                          <Package className="w-5 h-5" />
+                          {product.imageUrl ? (
+                            <ProductImage product={product} />
+                          ) : (
+                            <Package className="w-5 h-5" />
+                          )}
                         </div>
                         <div>
                           <div className="text-sm font-bold text-slate-900">{product.name}</div>
-                          <div className="text-[11px] text-slate-400 font-medium truncate max-w-[200px]">{product.description || '-'}</div>
+                          <div className="text-[11px] text-slate-400 font-medium truncate max-w-[200px]">{product.description || product.unit || '-'}</div>
                         </div>
                       </div>
                     </td>
@@ -226,6 +418,9 @@ const Products = () => {
                     </td>
                     <td className="px-8 py-6 text-end">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setViewingProduct(product)} className="p-2 text-slate-400 hover:text-slate-900 transition-colors" title="Voir">
+                          <Eye className="w-4 h-4" />
+                        </button>
                         <button onClick={() => openModal(product)} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -254,7 +449,11 @@ const Products = () => {
             <div key={product.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col gap-4">
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
-                    <Package className="w-6 h-6" />
+                    {product.imageUrl ? (
+                      <ProductImage product={product} placeholderClassName="w-6 h-6" />
+                    ) : (
+                      <Package className="w-6 h-6" />
+                    )}
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
@@ -273,6 +472,9 @@ const Products = () => {
                     </p>
                   </div>
                   <div className="flex gap-2">
+                    <button onClick={() => setViewingProduct(product)} className="p-3 bg-slate-50 rounded-2xl text-slate-400">
+                      <Eye className="w-4 h-4" />
+                    </button>
                     <button onClick={() => openModal(product)} className="p-3 bg-slate-50 rounded-2xl text-slate-400">
                       <Edit2 className="w-4 h-4" />
                     </button>
@@ -321,13 +523,65 @@ const Products = () => {
                   />
                 </div>
 
-                <Input
-                  label="Catégorie"
+                  <Input
+                    label="Catégorie"
                   placeholder="ex: Services, Matériel..."
                   value={formData.category}
                   onChange={(e) => handleInputChange('category', e.target.value)}
                   icon={Tag}
                 />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <Input
+                    label="Unité"
+                    placeholder="unité, heure, kg..."
+                    value={formData.unit}
+                    onChange={(e) => handleInputChange('unit', e.target.value)}
+                    icon={Tag}
+                  />
+                  <Input
+                    label="Image URL"
+                    placeholder="https://..."
+                    value={formData.imageUrl}
+                    onChange={(e) => handleInputChange('imageUrl', e.target.value)}
+                    icon={Image}
+                  />
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-300">
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="Prévisualisation produit" className="h-full w-full object-cover" />
+                      ) : editingProduct?.imageUrl && !removeImage ? (
+                        <ProductImage product={editingProduct} className="h-full w-full object-cover" placeholderClassName="w-8 h-8" />
+                      ) : formData.imageUrl && isExternalImage(formData.imageUrl) && !removeImage ? (
+                        <img src={formData.imageUrl} alt="Prévisualisation produit" className="h-full w-full object-cover" />
+                      ) : (
+                        <Image className="h-8 w-8" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-widest text-slate-500">Image produit</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-400">PNG, JPG, JPEG ou WEBP. 4 Mo maximum.</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-white px-4 py-2 text-xs font-black text-slate-700 ring-1 ring-slate-200 transition-colors hover:bg-slate-100">
+                          <Upload className="h-4 w-4" />
+                          Importer une image depuis mon appareil
+                          <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" className="hidden" onChange={handleImageSelect} />
+                        </label>
+                        {(imagePreview || editingProduct?.imageUrl || formData.imageUrl) && !removeImage ? (
+                          <button type="button" onClick={clearImage} className="rounded-2xl px-4 py-2 text-xs font-black text-rose-600 hover:bg-rose-50">
+                            Retirer
+                          </button>
+                        ) : null}
+                      </div>
+                      {imageFile ? <p className="truncate text-xs font-semibold text-indigo-600">{imageFile.name}</p> : null}
+                    </div>
+                  </div>
+                </div>
 
                 <Input 
                    label={t('form.desc')}
@@ -354,12 +608,7 @@ const Products = () => {
                     label={t('products.table.tva')}
                     value={formData.tvaRate}
                     onChange={(e) => handleInputChange('tvaRate', e.target.value)}
-                    options={[
-                      { value: 19, label: '19% (Standard)' },
-                      { value: 13, label: '13% (Spécial)' },
-                      { value: 7, label: '7% (Réduit)' },
-                      { value: 0, label: '0% (Exonéré)' }
-                    ]}
+                    options={tvaRates.map((item) => ({ value: item.rate, label: `${item.rate}% (${item.label})` }))}
                   />
                 </div>
 
@@ -385,6 +634,98 @@ const Products = () => {
                   </Button>
                 </div>
              </form>
+          </Card>
+        </div>
+      )}
+
+      {viewingProduct && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(event) => { if (event.target === event.currentTarget) setViewingProduct(null); }}>
+          <Card
+            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            title="Détails du produit"
+            subtitle={viewingProduct.name}
+            action={<button onClick={() => setViewingProduct(null)}><X className="w-5 h-5 text-slate-400" /></button>}
+          >
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+              <div className="overflow-hidden rounded-3xl border border-slate-100 bg-slate-50 p-3">
+                <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-white text-slate-300">
+                  {viewingProduct.imageUrl ? (
+                    <ProductImage product={viewingProduct} className="h-full w-full object-cover" placeholderClassName="w-12 h-12" />
+                  ) : (
+                    <Package className="h-12 w-12" />
+                  )}
+                </div>
+              </div>
+              <div className="space-y-5">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-900">{viewingProduct.name}</h3>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">{viewingProduct.description || 'Aucune description.'}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {[
+                    ['Code', viewingProduct.code || 'N/A'],
+                    ['Catégorie', viewingProduct.category || '-'],
+                    ['Unité', viewingProduct.unit || 'unité'],
+                    ['Prix HT', `${Number(viewingProduct.priceHT || 0).toFixed(3)} TND`],
+                    ['TVA', `${viewingProduct.tvaRate ?? 0}%`],
+                    ['Prix TTC', `${productPriceTTC(viewingProduct).toFixed(3)} TND`],
+                    ['Créé le', viewingProduct.createdAt ? new Date(viewingProduct.createdAt).toLocaleDateString() : '-'],
+                    ['Mis à jour le', viewingProduct.updatedAt ? new Date(viewingProduct.updatedAt).toLocaleDateString() : '-'],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+                      <p className="mt-1 break-words text-sm font-black text-slate-900">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {showImport && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-5xl max-h-[90vh] overflow-y-auto" title="Importer des produits depuis Excel" action={<button onClick={() => setShowImport(false)}><X className="w-5 h-5" /></button>}>
+            <div className="space-y-5">
+              <p className="text-sm text-slate-600">Colonnes attendues: {importColumns.join(', ')}. Prix HT et TVA doivent être numériques.</p>
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportFile} className="hidden" />
+              <Button variant="secondary" icon={Upload} onClick={() => fileInputRef.current?.click()}>Choisir un fichier</Button>
+              {importErrors.length > 0 ? (
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                  {importErrors.slice(0, 12).map((error, index) => <div key={index} className="text-sm font-semibold text-amber-800">Ligne {error.row}: {error.message}</div>)}
+                </div>
+              ) : null}
+              {previewRows.length > 0 ? (
+                <>
+                  <div className="overflow-x-auto rounded-2xl border border-slate-100">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>{importColumns.map((column) => <th key={column} className="px-4 py-3 text-[10px] uppercase tracking-widest text-slate-400">{column}</th>)}</tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {previewRows.slice(0, 20).map((row, index) => (
+                          <tr key={index}>
+                            <td className="px-4 py-3">{row.code || '-'}</td>
+                            <td className="px-4 py-3 font-bold">{row.name || '-'}</td>
+                            <td className="px-4 py-3">{row.description || '-'}</td>
+                            <td className="px-4 py-3">{Number.isFinite(row.priceHT) ? row.priceHT : '-'}</td>
+                            <td className="px-4 py-3">{Number.isFinite(row.tvaRate) ? row.tvaRate : '-'}</td>
+                            <td className="px-4 py-3">{row.unit || 'unité'}</td>
+                            <td className="px-4 py-3">{row.category || '-'}</td>
+                            <td className="px-4 py-3 max-w-[180px] truncate">{row.imageUrl || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <Badge variant="neutral">{previewRows.length} lignes, {previewRows.length - importErrors.length} valides</Badge>
+                    <Button onClick={importProducts}>Importer les lignes valides</Button>
+                  </div>
+                </>
+              ) : null}
+            </div>
           </Card>
         </div>
       )}

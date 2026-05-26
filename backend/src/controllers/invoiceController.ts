@@ -24,7 +24,8 @@ import {
 import { appendComplianceStatus, writeComplianceMetadata } from '../services/complianceStorage';
 import { logActivity, getRequestAuditMeta } from '../services/auditTrailService';
 
-const VALID_STATUSES = ['DRAFT', 'VALIDATED', 'TEIF_GENERATED', 'SIGNED', 'SENT_TO_TTN', 'PENDING_TTN', 'ACCEPTED_TTN', 'REJECTED_TTN', 'CANCELLED'];
+const MANUAL_STATUSES = ['DRAFT', 'VALIDATED', 'CANCELLED'];
+const WORKFLOW_ONLY_STATUSES = ['TEIF_GENERATED', 'SIGNED', 'SENT_TO_TTN', 'PENDING_TTN', 'ACCEPTED_TTN', 'REJECTED_TTN'];
 
 const getOwnedInvoice = async (invoiceId: string, companyId: string) =>
   getInvoiceByIdForCompliance(invoiceId, companyId);
@@ -81,6 +82,12 @@ const buildInvoiceTotals = (normalizedLines: NormalizedInvoiceLine[], stampDuty 
     totalTTC,
     netToPay,
   };
+};
+
+const validateActiveTvaRates = async (lines: NormalizedInvoiceLine[]) => {
+  const activeRates = await prisma.tvaRate.findMany({ where: { active: true }, select: { rate: true } });
+  const allowedRates = activeRates.length ? activeRates.map((item) => item.rate) : [0, 7, 13, 19];
+  return lines.every((line) => allowedRates.includes(line.tvaRate));
 };
 
 export const getInvoices = async (req: Request, res: Response) => {
@@ -349,6 +356,9 @@ export const createInvoice = async (req: Request, res: Response) => {
     if (normalizedLines.some((line) => !line.description || line.quantity <= 0 || line.unitPrice < 0)) {
       return res.status(400).json({ message: 'Each invoice line must include a description, quantity and unit price.' });
     }
+    if (!(await validateActiveTvaRates(normalizedLines))) {
+      return res.status(400).json({ message: 'One or more TVA rates are not active.' });
+    }
 
     const productIds = Array.from(
       new Set(
@@ -468,6 +478,9 @@ export const updateInvoice = async (req: Request, res: Response) => {
     const normalizedLines: NormalizedInvoiceLine[] = lines.map(normalizeInvoiceLine);
     if (normalizedLines.some((line) => !line.description || line.quantity <= 0 || line.unitPrice < 0)) {
       return res.status(400).json({ message: 'Each invoice line must include a description, quantity and unit price.' });
+    }
+    if (!(await validateActiveTvaRates(normalizedLines))) {
+      return res.status(400).json({ message: 'One or more TVA rates are not active.' });
     }
 
     const productIds = Array.from(
@@ -657,9 +670,15 @@ export const updateInvoiceStatus = async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
 
-    if (!status || !VALID_STATUSES.includes(status)) {
+    if (WORKFLOW_ONLY_STATUSES.includes(status)) {
+      return res.status(403).json({
+        message: 'This legal invoice status is workflow-controlled and cannot be set manually.',
+      });
+    }
+
+    if (!status || !MANUAL_STATUSES.includes(status)) {
       return res.status(400).json({
-        message: `Statut invalide. Valeurs acceptees : ${VALID_STATUSES.join(', ')}`,
+        message: `Statut invalide. Valeurs modifiables manuellement : ${MANUAL_STATUSES.join(', ')}`,
       });
     }
 
@@ -672,6 +691,12 @@ export const updateInvoiceStatus = async (req: Request, res: Response) => {
 
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    if (WORKFLOW_ONLY_STATUSES.includes(invoice.status) && status !== invoice.status) {
+      return res.status(403).json({
+        message: 'An invoice in a legal workflow cannot be manually reset or cancelled.',
+      });
     }
 
     if (status === 'VALIDATED') {
@@ -709,8 +734,19 @@ export const updateInvoiceStatus = async (req: Request, res: Response) => {
     } else {
       await prisma.invoice.update({
         where: { id: req.params.id as string },
-        data: { status },
+        data: {
+          status: status as any,
+          ttnStatus: status,
+          legalStatus: status === 'CANCELLED' ? 'archived' : 'draft',
+        },
       });
+      await appendComplianceStatus(
+        (req as any).company.id,
+        req.params.id as string,
+        status as 'DRAFT' | 'CANCELLED',
+        {},
+        `Invoice manually changed to ${status}`
+      );
     }
 
     const updated = await getSerializedInvoice(req.params.id as string, (req as any).company.id);

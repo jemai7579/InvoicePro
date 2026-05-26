@@ -4,7 +4,7 @@ import {
   Image as ImageIcon, Plus, Building2, Users2, ShieldAlert,
   ChevronRight, CheckCircle2, AlertCircle, Trash2, Camera,
   MapPin, Phone, Mail, Globe, Briefcase, BadgeCheck, Zap, Cpu,
-  User, CreditCard, Hash, Home, FileText, History
+  User, CreditCard, Hash, Home, FileText, History, HelpCircle
 } from 'lucide-react';
 import api from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
@@ -165,6 +165,10 @@ const Settings = () => {
   const handleCertificateUpload = async (e) => {
     e.preventDefault();
     if (!certFile || !certPassword) return;
+    if (!/\.(p12|pfx)$/i.test(certFile.name) || certFile.size > 2 * 1024 * 1024) {
+      alert('Only .p12 or .pfx certificates up to 2 MB are allowed.');
+      return;
+    }
     setIsUploadingCert(true);
     const certFormData = new FormData();
     certFormData.append('certificate', certFile);
@@ -203,6 +207,10 @@ const Settings = () => {
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+      alert('Only PNG, JPG, or WEBP logo images up to 2 MB are allowed.');
+      return;
+    }
     setIsUploadingLogo(true);
     const logoFormData = new FormData();
     logoFormData.append('logo', file);
@@ -253,9 +261,35 @@ const Settings = () => {
         <TabButton id="profile" icon={Building2} label={t('settings.tabs.profile')} />
         <TabButton id="security" icon={Lock} label={t('settings.tabs.security')} />
         <TabButton id="compliance" icon={ShieldCheck} label={t('settings.tabs.compliance')} />
-        <TabButton id="subscription" icon={CreditCard} label="Abonnement" />
+        <TabButton id="subscription" icon={CreditCard} label={t('settings.tabs.subscription')} />
+        <TabButton id="help" icon={HelpCircle} label={t('settings.tabs.help')} />
         <TabButton id="team" icon={Users2} label={t('settings.tabs.team')} />
       </nav>
+
+      <Card className="border-slate-100 bg-white">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600">
+              <History className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">
+                {lang === 'ar' ? 'السجل والتتبع' : lang === 'en' ? 'History & Traceability' : 'Historique & Traçabilité'}
+              </h2>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                {lang === 'ar'
+                  ? 'راجع سجل الإجراءات الحساسة والتغييرات من داخل الإعدادات.'
+                  : lang === 'en'
+                    ? 'Review sensitive actions and traceability logs from Settings.'
+                    : 'Consultez les actions sensibles et la traçabilité depuis les paramètres.'}
+              </p>
+            </div>
+          </div>
+          <Button type="button" variant="secondary" icon={ChevronRight} onClick={() => navigate('/historique')}>
+            {lang === 'ar' ? 'فتح السجل' : lang === 'en' ? 'Open history' : 'Ouvrir l’historique'}
+          </Button>
+        </div>
+      </Card>
 
       <div className="animate-in slide-in-from-bottom-6 duration-700 delay-100">
         {activeTab === 'profile' && (
@@ -272,7 +306,7 @@ const Settings = () => {
                      </div>
                      <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white cursor-pointer shadow-xl shadow-indigo-200 hover:bg-slate-900 transition-all hover:scale-110 active:scale-90">
                         {isUploadingLogo ? <Loader className="w-4 h-4 animate-spin" /> : <Camera className="w-5 h-5" />}
-                        <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                        <input type="file" className="hidden" accept="image/png,image/jpeg,image/webp" onChange={handleLogoUpload} />
                      </label>
                   </div>
                   <div className="flex-1 space-y-2 text-center md:text-left">
@@ -549,7 +583,7 @@ const Settings = () => {
                         <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('settings.compliance.file_label')}</label>
                         <div className="relative group">
                            <FileText className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition-colors" />
-                           <input type="file" accept=".p12" onChange={e => setCertFile(e.target.files[0])} className="w-full bg-slate-50/50 border border-slate-100 rounded-[1.5rem] pl-14 pr-4 py-4 text-xs font-bold text-slate-500 cursor-pointer file:hidden hover:bg-white hover:ring-4 hover:ring-indigo-500/5 transition-all outline-none" />
+                           <input type="file" accept=".p12,.pfx" onChange={e => setCertFile(e.target.files[0])} className="w-full bg-slate-50/50 border border-slate-100 rounded-[1.5rem] pl-14 pr-4 py-4 text-xs font-bold text-slate-500 cursor-pointer file:hidden hover:bg-white hover:ring-4 hover:ring-indigo-500/5 transition-all outline-none" />
                            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-indigo-600 uppercase tracking-widest pointer-events-none">{certFile ? certFile.name : t('settings.compliance.choose_file')}</span>
                         </div>
                      </div>
@@ -769,6 +803,35 @@ const Settings = () => {
                   </button>
                </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'help' && (
+          <div className="space-y-6">
+            <Card className="border-slate-100 bg-white">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600">
+                    <HelpCircle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">
+                      {lang === 'ar' ? 'مركز المساعدة' : lang === 'en' ? 'Help Center' : "Centre d’aide"}
+                    </h2>
+                    <p className="mt-1 text-sm font-medium text-slate-500">
+                      {lang === 'ar'
+                        ? 'افتح الدعم والاسئلة الشائعة من داخل الإعدادات.'
+                        : lang === 'en'
+                          ? 'Open support resources and guides from Settings.'
+                          : 'Retrouvez le support, les guides et les questions fréquentes depuis les paramètres.'}
+                    </p>
+                  </div>
+                </div>
+                <Button type="button" variant="secondary" icon={ChevronRight} onClick={() => navigate('/help')}>
+                  {lang === 'ar' ? 'فتح مركز المساعدة' : lang === 'en' ? 'Open help center' : "Ouvrir le centre d’aide"}
+                </Button>
+              </div>
+            </Card>
           </div>
         )}
 

@@ -133,6 +133,9 @@ export const importClients = async (req: Request, res: Response) => {
     if (rows.length === 0) {
       return res.status(400).json({ message: 'No clients to import.' });
     }
+    if (rows.length > 500) {
+      return res.status(400).json({ message: 'Maximum 500 clients per import.' });
+    }
 
     const warnings: Array<{ row: number; message: string }> = [];
     const candidates = rows.map((row: any, index: number) => {

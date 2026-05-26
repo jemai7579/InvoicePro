@@ -25,6 +25,7 @@ import MiniChart from '../components/ui/MiniChart';
 import Stepper from '../components/ui/Stepper';
 import SubscriptionQuotaCard from '../components/Subscription/SubscriptionQuotaCard';
 import { getClientNumber, getInvoiceNumber } from '../utils/businessNumbers';
+import invoiceWorkflowImage from '../assets/workflows/invoice-workflow.png';
 
 const COPY = {
   fr: {
@@ -35,15 +36,16 @@ const COPY = {
     workflowTitle: 'Workflow de facturation',
     workflowSubtitle: 'Suivez votre activité depuis l’idée jusqu’au règlement, avec les étapes TTN clairement séparées.',
     workflowSteps: [
-      'Creer la facture',
-      'Verifier les informations',
-      'Generer XML TEIF',
-      'Signer electroniquement',
-      'Envoyer a TTN',
-      'Attendre la validation',
-      'Recevoir reference + QR',
-      'Telecharger la facture finale',
+      'Créer la facture',
+      'Vérifier les informations',
+      'Générer XML TEIF',
+      'Signer électroniquement',
+      'Envoyer à TTN',
+      'Attendre la validation TTN',
+      'Recevoir référence + QR code',
+      'Télécharger la facture finale',
     ],
+    workflowLegalNote: 'La référence, le QR code et la facture finale ne sont disponibles qu’après acceptation TTN. En mode simulation, ces éléments n’ont aucune valeur légale.',
     projects: 'Idées de projet',
     quotes: 'Devis',
     invoices: 'Factures',
@@ -67,6 +69,8 @@ const COPY = {
     openCompliance: 'Centre de conformite',
     ttnModeTest: 'Mode test',
     ttnModeLive: 'Connecte',
+    invoiceWorkflowTitle: 'Workflow de facturation électronique',
+    invoiceWorkflowDescription: 'Suivez les étapes essentielles pour créer, signer et envoyer vos factures pour validation TTN.',
   },
   en: {
     hello: 'Hello',
@@ -85,6 +89,7 @@ const COPY = {
       'Receive reference + QR',
       'Download the final invoice',
     ],
+    workflowLegalNote: 'The reference, QR code and final invoice are available only after TTN acceptance. In simulation mode, they have no legal value.',
     projects: 'Projects',
     quotes: 'Quotes',
     invoices: 'Invoices',
@@ -108,6 +113,8 @@ const COPY = {
     openCompliance: 'Compliance center',
     ttnModeTest: 'Test mode',
     ttnModeLive: 'Connected',
+    invoiceWorkflowTitle: 'Electronic invoicing workflow',
+    invoiceWorkflowDescription: 'Follow the key steps to create, sign and submit invoices for TTN validation.',
   },
   ar: {
     hello: 'مرحبا',
@@ -126,6 +133,7 @@ const COPY = {
       'استلام المرجع وQR',
       'تنزيل الفاتورة النهائية',
     ],
+    workflowLegalNote: 'المرجع وQR والفاتورة النهائية تظهر فقط بعد قبول TTN. وضع المحاكاة لا يملك قيمة قانونية.',
     projects: 'المشاريع',
     quotes: 'العروض',
     invoices: 'الفواتير',
@@ -149,6 +157,8 @@ const COPY = {
     openCompliance: 'مركز الامتثال',
     ttnModeTest: 'وضع الاختبار',
     ttnModeLive: 'متصل',
+    invoiceWorkflowTitle: 'مسار الفوترة الإلكترونية',
+    invoiceWorkflowDescription: 'تابع الخطوات الأساسية لإنشاء الفواتير وتوقيعها وإرسالها لاعتماد TTN.',
   },
 };
 
@@ -163,27 +173,34 @@ const WorkflowModal = ({ open, onClose, text }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:p-4"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <Card
-        className="w-full max-w-3xl"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-7xl overflow-y-auto"
         noPadding
-        title={text.workflowTitle}
-        subtitle={text.workflowSubtitle}
+        title={text.invoiceWorkflowTitle}
+        subtitle={text.invoiceWorkflowDescription}
         action={
           <button onClick={onClose} className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100">
             <X className="w-5 h-5" />
           </button>
         }
       >
-        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {text.workflowSteps.map((step, index) => (
-            <div key={step} className="rounded-3xl border border-slate-100 bg-slate-50/60 p-5 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center text-sm font-black text-indigo-600">
-                {index + 1}
-              </div>
-              <p className="text-sm font-semibold text-slate-700 leading-6">{step}</p>
-            </div>
-          ))}
+        <div className="space-y-4 p-4 sm:p-6">
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-200/60 sm:p-3">
+            <img
+              src={invoiceWorkflowImage}
+              alt="Workflow de facturation électronique: créer, vérifier, générer XML TEIF, signer, envoyer TTN, attendre validation, recevoir référence QR, télécharger facture finale"
+              className="max-h-[calc(100dvh-13rem)] w-full rounded-2xl object-contain"
+            />
+          </div>
+          <div className="rounded-2xl border border-amber-100 bg-amber-50 px-5 py-4 text-sm font-bold text-amber-800">
+            {text.workflowLegalNote}
+          </div>
         </div>
       </Card>
     </div>

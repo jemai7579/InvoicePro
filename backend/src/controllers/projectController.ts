@@ -3,10 +3,11 @@ import nodemailer from 'nodemailer';
 import prisma from '../prisma';
 import { createNotif } from '../utils/notificationHelper';
 import { sendEmail } from '../utils/mailer';
+import { logActivity } from '../services/auditTrailService';
 import { generateBusinessNumber } from '../services/numberingService';
+import { hasAcceptedConnection } from '../services/networkService';
 
 const PROJECT_KIND = 'PROJECT';
-const INVITATION_KIND = 'INVITATION';
 const PRIVATE_PROJECT_CLIENT_NAME = '__PRIVATE_PROJECTS__';
 
 const getJsonObject = (value: any): Record<string, any> =>
@@ -42,22 +43,6 @@ const getPrivateProjectClient = async (companyId: string) => {
   });
 };
 
-const findAcceptedContact = async (companyId: string, targetCompanyId: string) => {
-  const requests = await prisma.invoiceRequest.findMany({
-    where: {
-      OR: [
-        { companyId, data: { path: ['connectedCompanyId'], equals: targetCompanyId } },
-        { companyId: targetCompanyId, data: { path: ['connectedCompanyId'], equals: companyId } },
-      ],
-    },
-  });
-
-  return requests.find((request) => {
-    const data = getJsonObject(request.data);
-    return data.kind === INVITATION_KIND && data.workflowStatus === 'ACCEPTED';
-  }) || null;
-};
-
 const buildSharedContactPayload = async (companyId: string, payload: any) => {
   if (!payload.sharedWithCompanyId) {
     return {
@@ -76,8 +61,8 @@ const buildSharedContactPayload = async (companyId: string, payload: any) => {
     throw new Error('CONTACT_NOT_FOUND');
   }
 
-  const acceptedInvitation = await findAcceptedContact(companyId, targetCompany.id);
-  if (!acceptedInvitation) {
+  const acceptedConnection = await hasAcceptedConnection(companyId, targetCompany.id);
+  if (!acceptedConnection) {
     throw new Error('CONTACT_NOT_ACCEPTED');
   }
 
@@ -234,7 +219,27 @@ export const createProject = async (req: Request, res: Response) => {
     });
     });
 
-    res.status(201).json(toProjectDto(project));
+    const dto = toProjectDto(project);
+    if ((sharing as any).sharedWithCompanyId) {
+      await createNotif(
+        (sharing as any).sharedWithCompanyId,
+        'Projet partage avec vous',
+        `${(req as any).company.name} vous a donné un accès en lecture au projet "${dto.title || 'Sans titre'}".`,
+        'PROJECT_SHARED'
+      );
+      await logActivity({
+        companyId,
+        actorId: companyId,
+        actorType: 'USER',
+        actionType: 'SHARED',
+        objectType: 'SETTINGS',
+        objectId: project.id,
+        message: 'Projet partage avec un contact du reseau professionnel.',
+        metadata: { target: 'PROJECT', sharedWithCompanyId: (sharing as any).sharedWithCompanyId },
+      });
+    }
+
+    res.status(201).json(dto);
   } catch (error) {
     console.error('Error creating project:', error);
     res.status(500).json({ message: 'Server error' });
@@ -306,6 +311,25 @@ export const updateProject = async (req: Request, res: Response) => {
       },
     });
 
+    if (sharing.sharedWithCompanyId && sharing.sharedWithCompanyId !== currentData.connectedCompanyId) {
+      await createNotif(
+        sharing.sharedWithCompanyId,
+        'Projet partage avec vous',
+        `${(req as any).company.name} vous a donné un accès en lecture au projet "${getJsonObject(updated.data).title || 'Sans titre'}".`,
+        'PROJECT_SHARED'
+      );
+      await logActivity({
+        companyId,
+        actorId: companyId,
+        actorType: 'USER',
+        actionType: 'SHARED',
+        objectType: 'SETTINGS',
+        objectId: updated.id,
+        message: 'Projet partage avec un contact du reseau professionnel.',
+        metadata: { target: 'PROJECT', sharedWithCompanyId: sharing.sharedWithCompanyId },
+      });
+    }
+
     res.status(200).json(toProjectDto(updated));
   } catch (error) {
     console.error('Error updating project:', error);
@@ -333,8 +357,8 @@ export const sendProject = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Choose an accepted contact before sending this order.' });
     }
 
-    const acceptedInvitation = await findAcceptedContact(companyId, String(data.connectedCompanyId));
-    if (!acceptedInvitation) {
+    const acceptedConnection = await hasAcceptedConnection(companyId, String(data.connectedCompanyId));
+    if (!acceptedConnection) {
       return res.status(400).json({ message: 'This contact is not connected yet. Invite them first.' });
     }
 

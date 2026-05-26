@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import * as XLSX from 'xlsx';
 import { AlertCircle, CheckCircle2, Edit2, FileText, Loader, Mail, MapPin, Plus, Search, Trash2, Upload, User, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
@@ -32,7 +31,7 @@ const parseCsv = (content) => {
   });
 };
 
-const rowsFromWorksheet = (worksheet) => {
+const rowsFromWorksheet = (worksheet, XLSX) => {
   const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: 'vide' });
   return jsonRows.map((row) => {
     const normalized = {};
@@ -179,6 +178,10 @@ const Clients = () => {
       showToast('error', 'Format accepté: .xlsx, .xls ou .csv.');
       return;
     }
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('error', 'Fichier d’import trop volumineux (2 Mo max).');
+      return;
+    }
 
     let parsed = [];
     if (/\.csv$/i.test(file.name)) {
@@ -191,9 +194,15 @@ const Clients = () => {
         return normalized;
       });
     } else {
+      // TODO: replace xlsx with a maintained parser; keep this bounded and user-triggered meanwhile.
+      const XLSX = await import('xlsx');
       const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      parsed = rowsFromWorksheet(firstSheet);
+      parsed = rowsFromWorksheet(firstSheet, XLSX);
+    }
+    if (parsed.length > 500) {
+      showToast('error', 'Maximum 500 clients par import.');
+      return;
     }
 
     const warnings = [];

@@ -65,11 +65,13 @@ Apply the database schema:
 npx prisma migrate deploy
 ```
 
-If you are using an existing non-empty local database that was not created through Prisma migrations, use:
+For local-only prototyping against a disposable database, Prisma also supports:
 
 ```bash
 npx prisma db push
 ```
+
+Never run `prisma db push` or `prisma migrate dev` in production. Use `npx prisma migrate deploy`.
 
 Optional seed data:
 
@@ -140,8 +142,10 @@ http://localhost:5173
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string. Local Docker default: `postgresql://elfatoora:secretpassword@localhost:5440/elfatooradb` |
 | `JWT_SECRET` | Long random JWT signing secret, at least 32 characters |
+| `JWT_EXPIRES_IN` | JWT lifetime. Default: `12h` |
 | `PORT` | Backend port. Development default: `5005` |
 | `NODE_ENV` | `development` or `production` |
+| `APP_ENV` | Must be `production` alongside `NODE_ENV=production` |
 | `FRONTEND_URL` | Frontend origin allowed by CORS. Development default: `http://localhost:5173` |
 
 ### Backend Optional
@@ -169,6 +173,8 @@ http://localhost:5173
 
 ## Production Deployment
 
+For cPanel / Passenger hosting, follow [`CPANEL_DEPLOYMENT.md`](./CPANEL_DEPLOYMENT.md). Docker Compose below is an alternative for a VPS with Docker.
+
 Production uses the root `docker-compose.prod.yml`.
 
 ```bash
@@ -184,6 +190,8 @@ Set `backend/.env.production` for the Docker network:
 DATABASE_URL="postgresql://elfatoora:<DB_PASSWORD>@postgres:5432/elfatooradb"
 JWT_SECRET="<very-long-random-secret>"
 NODE_ENV=production
+APP_ENV=production
+JWT_EXPIRES_IN="12h"
 PORT=5005
 FRONTEND_URL="https://your-domain.com"
 ```

@@ -235,6 +235,12 @@ const Invoices = () => {
   const [invoices, setInvoices] = useState([]);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
+  const [tvaRates, setTvaRates] = useState([
+    { rate: 19, label: 'Standard' },
+    { rate: 13, label: 'Spécial' },
+    { rate: 7, label: 'Réduit' },
+    { rate: 0, label: 'Exonéré' },
+  ]);
   const [eInvoiceStatus, setEInvoiceStatus] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -254,15 +260,17 @@ const Invoices = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [invoicesRes, clientsRes, productsRes, eInvoiceRes] = await Promise.all([
+      const [invoicesRes, clientsRes, productsRes, eInvoiceRes, tvaRatesRes] = await Promise.all([
         api.get('/invoices'),
         api.get('/clients'),
         api.get('/products'),
         api.get('/settings/einvoice/status').catch(() => ({ data: null })),
+        api.get('/tva-rates').catch(() => ({ data: [] })),
       ]);
       setInvoices(invoicesRes.data || []);
       setClients(clientsRes.data || []);
       setProducts(productsRes.data || []);
+      if (Array.isArray(tvaRatesRes.data) && tvaRatesRes.data.length) setTvaRates(tvaRatesRes.data);
       setEInvoiceStatus(eInvoiceRes.data);
     } catch (error) {
       console.error('Error fetching invoices', error);
@@ -283,7 +291,7 @@ const Invoices = () => {
     }
     setEditingInvoiceId(null);
     setClientId('');
-    setLines([createLineItem()]);
+    setLines([createLineItem({ tvaRate: tvaRates[0]?.rate ?? 19 })]);
     setErrors({});
     setIsModalOpen(true);
   };
@@ -762,7 +770,7 @@ const Invoices = () => {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">{text.createTitle}</h3>
-                        <Button size="sm" variant="secondary" type="button" onClick={() => setLines((current) => [...current, createLineItem()])}>
+                        <Button size="sm" variant="secondary" type="button" onClick={() => setLines((current) => [...current, createLineItem({ tvaRate: tvaRates[0]?.rate ?? 19 })])}>
                           {text.addLine}
                         </Button>
                       </div>
@@ -843,12 +851,7 @@ const Invoices = () => {
                                 value={line.tvaRate}
                                 onChange={(event) => handleLineChange(line.id, 'tvaRate', Number(event.target.value))}
                                 className="min-h-[50px] font-black"
-                                options={[
-                                  { value: 19, label: '19%' },
-                                  { value: 13, label: '13%' },
-                                  { value: 7, label: '7%' },
-                                  { value: 0, label: '0%' },
-                                ]}
+                                options={tvaRates.map((item) => ({ value: item.rate, label: `${item.rate}% ${item.label ? `- ${item.label}` : ''}` }))}
                               />
                             </div>
                             <div className="flex items-end sm:justify-end">

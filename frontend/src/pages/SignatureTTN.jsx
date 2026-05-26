@@ -42,6 +42,30 @@ const journeySteps = [
   },
 ];
 
+const workflowTimeline = [
+  { label: 'Créer la facture', status: 'Brouillon' },
+  { label: 'Générer XML TEIF', status: 'XML TEIF' },
+  { label: 'Signature requise', status: 'À signer' },
+  { label: 'Signer électroniquement', status: 'Signature' },
+  { label: 'Envoyer à TTN', status: 'Soumis' },
+  { label: 'En attente de validation TTN', status: 'En attente' },
+  { label: 'Acceptée par TTN / Rejetée par TTN', status: 'Résultat' },
+];
+
+const readinessBadges = [
+  { label: 'Mode simulation/mock - non légal', variant: 'warning' },
+  { label: 'Mode sandbox - test non légal', variant: 'primary' },
+  { label: 'Mode production', variant: 'success' },
+  { label: 'Provider signature manquant', variant: 'warning' },
+  { label: 'Configuration TTN manquante', variant: 'warning' },
+  { label: 'Signature requise', variant: 'warning' },
+  { label: 'En attente de validation TTN', variant: 'primary' },
+  { label: 'Acceptée par TTN', variant: 'success' },
+  { label: 'Rejetée par TTN', variant: 'rejected' },
+  { label: 'XSD officiel manquant', variant: 'warning' },
+  { label: 'Dossier entreprise incomplet', variant: 'warning' },
+];
+
 const situations = [
   { title: 'Je suis entrepreneur / freelance', text: 'Commencez par vérifier E-Houwiya / Mobile ID et le parcours TTN adapté.' },
   { title: 'Je suis TPE', text: 'Comparez une signature simple, un certificat et le niveau d’accompagnement nécessaire.' },
@@ -152,6 +176,25 @@ const SignatureTTN = () => {
               <h3 className="text-sm font-black text-slate-900 leading-5">{step.title}</h3>
               <p className="mt-2 text-xs font-semibold text-slate-500 leading-5">{step.text}</p>
             </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card title="Timeline e-facturation" subtitle="Les modes simulation et sandbox sont des environnements de test et ne produisent pas une signature légale ni une acceptation TTN officielle.">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
+          {workflowTimeline.map((step, index) => (
+            <div key={step.label} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <span className="text-xs font-black text-indigo-600">{index + 1}</span>
+                <Badge variant={index < 2 ? 'success' : index < 5 ? 'primary' : 'warning'}>{step.status}</Badge>
+              </div>
+              <p className="text-sm font-black text-slate-900">{step.label}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {readinessBadges.map((badge) => (
+            <Badge key={badge.label} variant={badge.variant}>{badge.label}</Badge>
           ))}
         </div>
       </Card>

@@ -5,23 +5,20 @@ import {
   BarChart3,
   Bell,
   Bot,
+  BriefcaseBusiness,
   CheckCircle2,
   ClipboardList,
   FileCode2,
-  FileText,
-  HelpCircle,
-  History,
   LayoutDashboard,
-  Lightbulb,
   Link2,
   LogOut,
   MessageSquare,
   Menu,
-  ClipboardCheck,
   CreditCard,
   Receipt,
   Search,
   Settings,
+  Package,
   Users,
   X,
   XCircle,
@@ -34,21 +31,17 @@ import BrandLogo from './BrandLogo';
 
 const NAV_ITEMS = [
   { id: 'dashboard', path: '/dashboard', icon: LayoutDashboard },
-  // TODO: replace the current InvoiceRequest-backed project implementation with a first-class ProjectIdea model if it becomes risky.
-  { id: 'projectIdeas', path: '/projects', icon: Lightbulb },
-  { id: 'offers', path: '/offers', icon: ClipboardCheck },
-  { id: 'quotes', path: '/devis', icon: FileText },
+  { id: 'opportunities', path: '/opportunities', icon: BriefcaseBusiness },
   { id: 'invoices', path: '/invoices', icon: Receipt },
   { id: 'payments', path: '/payments', icon: CreditCard },
   { id: 'tracking', path: '/invoice-tracking', icon: Activity },
   { id: 'clients', path: '/clients', icon: Users },
+  { id: 'products', path: '/products', icon: Package },
   { id: 'network', path: '/network', icon: Link2 },
   { id: 'messages', path: '/messages', icon: MessageSquare },
-  { id: 'history', path: '/historique', icon: History },
   { id: 'reports', path: '/reports', icon: BarChart3 },
   { id: 'ai', path: '/ai', icon: Bot },
   { id: 'settings', path: '/settings', icon: Settings },
-  { id: 'help', path: '/help', icon: HelpCircle },
 ];
 
 const LANG_OPTIONS = [
@@ -165,9 +158,18 @@ const NotifDropdown = ({ lang, onClose }) => {
 
   const unread = notifs.filter((item) => !item.read).length;
 
+  const isRtl = lang === 'ar';
+
   return (
-    <div className="absolute right-0 top-full mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl z-50">
-      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+    <div
+      dir={isRtl ? 'rtl' : 'ltr'}
+      className={`
+        fixed left-3 right-3 top-16 z-[80] max-h-[calc(100dvh-5rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl
+        sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[22rem] sm:max-w-[calc(100vw-2rem)]
+        ${isRtl ? 'sm:left-0 sm:right-auto' : ''}
+      `}
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
         <div className="flex items-center gap-2">
           <Bell className="h-4 w-4 text-premium-500" />
           <span className="text-sm font-bold uppercase tracking-tight text-slate-800">{copy.notifications}</span>
@@ -189,7 +191,7 @@ const NotifDropdown = ({ lang, onClose }) => {
         </div>
       </div>
 
-      <div className="max-h-96 divide-y divide-gray-50 overflow-y-auto">
+      <div className="max-h-[min(24rem,calc(100dvh-9rem))] divide-y divide-gray-50 overflow-y-auto overscroll-contain">
         {loading ? (
           <div className="py-8 text-center text-sm text-gray-400">{copy.loading}</div>
         ) : notifs.length === 0 ? (
@@ -207,7 +209,7 @@ const NotifDropdown = ({ lang, onClose }) => {
                 key={notif.id}
                 type="button"
                 onClick={() => markOne(notif.id)}
-                className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 ${
+                className={`flex w-full items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-gray-50 ${
                   !notif.read ? 'bg-blue-50/40' : ''
                 }`}
               >
@@ -216,12 +218,12 @@ const NotifDropdown = ({ lang, onClose }) => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className={`truncate text-xs font-semibold ${notif.read ? 'text-gray-600' : 'text-gray-900'}`}>
+                    <p className={`min-w-0 break-words text-xs font-semibold ${notif.read ? 'text-gray-600' : 'text-gray-900'}`}>
                       {notif.title}
                     </p>
                     <span className="flex-shrink-0 text-xs text-gray-400">{timeAgo(notif.createdAt, copy)}</span>
                   </div>
-                  <p className="mt-0.5 line-clamp-2 text-xs text-gray-500">{notif.message}</p>
+                  <p className="mt-0.5 line-clamp-2 break-words text-xs leading-5 text-gray-500">{notif.message}</p>
                 </div>
                 {!notif.read ? <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" /> : null}
               </button>

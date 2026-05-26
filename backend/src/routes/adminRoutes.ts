@@ -9,6 +9,8 @@ import {
   getSubscriptions,
   getSystemSettings,
   updateSystemSetting,
+  getTvaRates,
+  upsertTvaRate,
   getIntegrationsStatus,
   updateIntegration,
   testIntegration,
@@ -105,6 +107,9 @@ router.put('/system-errors/:id', upsertSystemErrorController);
 // System Settings
 router.get('/settings', getSystemSettings);
 router.put('/settings/:id', updateSettingValidator, validateRequest, updateSystemSetting);
+router.get('/tva-rates', getTvaRates);
+router.post('/tva-rates', upsertTvaRate);
+router.put('/tva-rates/:id', upsertTvaRate);
 router.get('/integrations/status', getIntegrationsStatus);
 router.put('/integrations/:id', updateIntegration);
 router.post('/integrations/:id/test', testIntegration);

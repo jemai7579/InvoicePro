@@ -1,59 +1,59 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Demo from './pages/Demo';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
-import Dashboard from './pages/Dashboard';
-import Invoices from './pages/Invoices';
-import Clients from './pages/Clients';
-import Demandes from './pages/Demandes';
-import Devis from './pages/Devis';
-import Teif from './pages/Teif';
-import Settings from './pages/Settings';
-import AI from './pages/AI';
-import Products from './pages/Products';
-import Reports from './pages/Reports';
-import Help from './pages/Help';
-import Projects from './pages/Projects';
-import InvoiceTracking from './pages/InvoiceTracking';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
-import Legal from './pages/Legal';
-import Contact from './pages/Contact';
-import Pricing from './pages/Pricing';
-import EInvoiceGuide from './pages/EInvoiceGuide';
-import Offers from './pages/Offers';
-import Payments from './pages/Payments';
-import AuditTrail from './pages/AuditTrail';
-import SignatureTTN from './pages/SignatureTTN';
-import PublicOffer from './pages/PublicOffer';
-import Network from './pages/Network';
-import Messages from './pages/Messages';
-
-// Admin Pages
-import AdminLogin from './pages/admin/AdminLogin';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminCompanies from './pages/admin/AdminCompanies';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminInvoices from './pages/admin/AdminInvoices';
-import AdminTTN from './pages/admin/AdminTTN';
-import AdminCompliance from './pages/admin/AdminCompliance';
-import AdminPayments from './pages/admin/AdminPayments';
-import AdminSupport from './pages/admin/AdminSupport';
-import AdminSubscriptions from './pages/admin/AdminSubscriptions';
-import AdminActivity from './pages/admin/AdminActivity';
-import AdminSystemErrors from './pages/admin/AdminSystemErrors';
-import AdminSettings from './pages/admin/AdminSettings';
-import AdminAnalyticsSeo from './pages/admin/AdminAnalyticsSeo';
 import AdminLayout from './components/AdminLayout';
 import AdminPrivateRoute from './components/AdminPrivateRoute';
 
 import { AdminAuthProvider } from './context/AdminAuthContext';
 import { trackEvent, trackPageView } from './services/analytics';
+
+const Landing = React.lazy(() => import('./pages/Landing'));
+const Login = React.lazy(() => import('./pages/Login'));
+const Register = React.lazy(() => import('./pages/Register'));
+const Demo = React.lazy(() => import('./pages/Demo'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Invoices = React.lazy(() => import('./pages/Invoices'));
+const Clients = React.lazy(() => import('./pages/Clients'));
+const Demandes = React.lazy(() => import('./pages/Demandes'));
+const Devis = React.lazy(() => import('./pages/Devis'));
+const Teif = React.lazy(() => import('./pages/Teif'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const AI = React.lazy(() => import('./pages/AI'));
+const Products = React.lazy(() => import('./pages/Products'));
+const Reports = React.lazy(() => import('./pages/Reports'));
+const Help = React.lazy(() => import('./pages/Help'));
+const Projects = React.lazy(() => import('./pages/Projects'));
+const InvoiceTracking = React.lazy(() => import('./pages/InvoiceTracking'));
+const Privacy = React.lazy(() => import('./pages/Privacy'));
+const Terms = React.lazy(() => import('./pages/Terms'));
+const Legal = React.lazy(() => import('./pages/Legal'));
+const Contact = React.lazy(() => import('./pages/Contact'));
+const Pricing = React.lazy(() => import('./pages/Pricing'));
+const EInvoiceGuide = React.lazy(() => import('./pages/EInvoiceGuide'));
+const Offers = React.lazy(() => import('./pages/Offers'));
+const Payments = React.lazy(() => import('./pages/Payments'));
+const AuditTrail = React.lazy(() => import('./pages/AuditTrail'));
+const SignatureTTN = React.lazy(() => import('./pages/SignatureTTN'));
+const PublicOffer = React.lazy(() => import('./pages/PublicOffer'));
+const Network = React.lazy(() => import('./pages/Network'));
+const Messages = React.lazy(() => import('./pages/Messages'));
+const Opportunities = React.lazy(() => import('./pages/Opportunities'));
+const AdminLogin = React.lazy(() => import('./pages/admin/AdminLogin'));
+const AdminDashboard = React.lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminCompanies = React.lazy(() => import('./pages/admin/AdminCompanies'));
+const AdminUsers = React.lazy(() => import('./pages/admin/AdminUsers'));
+const AdminInvoices = React.lazy(() => import('./pages/admin/AdminInvoices'));
+const AdminTTN = React.lazy(() => import('./pages/admin/AdminTTN'));
+const AdminCompliance = React.lazy(() => import('./pages/admin/AdminCompliance'));
+const AdminPayments = React.lazy(() => import('./pages/admin/AdminPayments'));
+const AdminSupport = React.lazy(() => import('./pages/admin/AdminSupport'));
+const AdminSubscriptions = React.lazy(() => import('./pages/admin/AdminSubscriptions'));
+const AdminActivity = React.lazy(() => import('./pages/admin/AdminActivity'));
+const AdminSystemErrors = React.lazy(() => import('./pages/admin/AdminSystemErrors'));
+const AdminSettings = React.lazy(() => import('./pages/admin/AdminSettings'));
+const AdminAnalyticsSeo = React.lazy(() => import('./pages/admin/AdminAnalyticsSeo'));
 
 const routerBaseName = (import.meta.env.VITE_BASE_PATH || '/').replace(/\/$/, '');
 
@@ -82,6 +82,7 @@ function App() {
     <Router basename={routerBaseName === '' ? undefined : routerBaseName}>
       <AnalyticsTracker />
       <AdminAuthProvider>
+        <React.Suspense fallback={null}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Landing />} />
@@ -134,6 +135,7 @@ function App() {
               <Route path="/reseau" element={<Network />} />
               <Route path="/reseau-professionnel" element={<Network />} />
               <Route path="/messages" element={<Messages />} />
+              <Route path="/opportunities" element={<Opportunities />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/mes-projets" element={<Projects />} />
               <Route path="/offers" element={<Offers />} />
@@ -158,6 +160,7 @@ function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </React.Suspense>
       </AdminAuthProvider>
     </Router>
   );

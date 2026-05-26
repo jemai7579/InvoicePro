@@ -2,11 +2,12 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import prisma from '../prisma';
-import { getJwtSecret } from '../utils/jwtSecret';
+import { getJwtExpiresIn, getJwtSecret } from '../utils/jwtSecret';
 import { getRequestAuditMeta, logActivity } from '../services/auditTrailService';
 
 const generateToken = (id: string) => {
-  return jwt.sign({ id }, getJwtSecret(), { expiresIn: '30d' });
+  // TODO: migrate browser authentication to secure httpOnly cookies with CSRF protection.
+  return jwt.sign({ id }, getJwtSecret(), { expiresIn: getJwtExpiresIn() as jwt.SignOptions['expiresIn'] });
 };
 
 const ALLOWED_REGISTRATION_PLANS = ['STARTER', 'PROFESSIONAL', 'ENTERPRISE'];
@@ -24,11 +25,6 @@ const normalizeRegistrationPlan = (plan?: string) => {
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, name, firstName, lastName, matriculeFiscal, registreCommerce, address, phone, rib, plan } = req.body;
-
-    if (isDevelopment) {
-      const { password: _password, ...safeBody } = req.body;
-      console.log('REGISTER BODY:', safeBody);
-    }
 
     const requiredFields = { email, password, name, firstName, lastName, matriculeFiscal, address, phone };
     const missingField = Object.entries(requiredFields).find(([, value]) => !String(value || '').trim())?.[0];

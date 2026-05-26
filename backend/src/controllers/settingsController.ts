@@ -310,7 +310,7 @@ export const uploadCertificate = async (req: Request, res: Response) => {
     }
 
     // Move file to a permanent secure location (e.g., /uploads/certificates)
-    const ext = path.extname(file.originalname);
+    const ext = path.extname(file.originalname).toLowerCase();
     if (ext.toLowerCase() !== '.p12' && ext.toLowerCase() !== '.pfx') {
        await fs.remove(file.path);
        return res.status(400).json({ message: 'Only .p12 or .pfx files are allowed' });
@@ -367,7 +367,11 @@ export const uploadLogo = async (req: Request, res: Response) => {
     const uploadDir = path.resolve('uploads/logos');
     await fs.ensureDir(uploadDir);
 
-    const ext = path.extname(file.originalname);
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+      await fs.remove(file.path);
+      return res.status(400).json({ message: 'Only PNG, JPG, or WEBP logo images are allowed.' });
+    }
     const newFileName = `logo_${companyId}_${Date.now()}${ext}`;
     const newPath = path.join(uploadDir, newFileName);
 

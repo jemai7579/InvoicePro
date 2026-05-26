@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ClipboardCheck, Loader, Plus, Send, FileText } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import api from '../services/api';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -24,6 +25,8 @@ const statusVariant = (status) => {
 };
 
 const Offers = () => {
+  const location = useLocation();
+  const prefilledProject = location.state?.project;
   const [offers, setOffers] = useState([]);
   const [clients, setClients] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -47,6 +50,21 @@ const Offers = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!prefilledProject) return;
+    setEditingId(null);
+    setForm({
+      title: prefilledProject.title || '',
+      clientId: prefilledProject.clientId || '',
+      description: prefilledProject.description || prefilledProject.estimatedNeeds || '',
+      estimatedAmount: prefilledProject.optionalBudget || '',
+      deliveryDelay: prefilledProject.deadline ? `Échéance: ${new Date(prefilledProject.deadline).toLocaleDateString()}` : '',
+      validUntil: prefilledProject.deadline ? String(prefilledProject.deadline).slice(0, 10) : '',
+      terms: prefilledProject.projectReference ? `Projet: ${prefilledProject.projectReference}` : '',
+      purchaseOrderReference: prefilledProject.projectReference || '',
+    });
+  }, [prefilledProject]);
 
   const resetForm = () => {
     setForm(emptyForm);

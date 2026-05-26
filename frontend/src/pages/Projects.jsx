@@ -46,7 +46,7 @@ const copyByLang = {
     receivedTitle: 'Bons de commande recus',
     receivedEmpty: 'Aucun projet partage recu pour le moment.',
     acceptedContactsHint: 'Le partage est disponible uniquement avec vos contacts acceptes.',
-    noContacts: "Invitez d'abord un contact depuis la page Clients pour partager une idee.",
+    noContacts: "Invitez d'abord un contact depuis le Réseau professionnel pour partager une idee.",
     ideaCount: 'Idees',
     sharedCount: 'Partagees',
     sentCount: 'Envoyees',
@@ -54,6 +54,8 @@ const copyByLang = {
     privateLabel: 'Projet prive',
     sharedWith: 'Partage avec',
     shareAction: 'Partager avec un contact',
+    transformOffer: 'Transformer en offre',
+    createDevis: 'Créer un devis',
     sendAction: 'Envoyer comme bon de commande',
     convertAction: 'Convertir en devis',
     editAction: 'Modifier',
@@ -106,7 +108,7 @@ const copyByLang = {
     receivedTitle: 'Received orders',
     receivedEmpty: 'No shared project received yet.',
     acceptedContactsHint: 'Sharing is only available with accepted contacts.',
-    noContacts: 'Invite a contact from the Clients page before sharing an idea.',
+    noContacts: 'Invite a contact from the Professional Network before sharing an idea.',
     ideaCount: 'Ideas',
     sharedCount: 'Shared',
     sentCount: 'Sent',
@@ -114,6 +116,8 @@ const copyByLang = {
     privateLabel: 'Private project',
     sharedWith: 'Shared with',
     shareAction: 'Share with a contact',
+    transformOffer: 'Create offer',
+    createDevis: 'Create quote',
     sendAction: 'Send as order',
     convertAction: 'Convert to quote',
     editAction: 'Edit',
@@ -174,6 +178,8 @@ const copyByLang = {
     privateLabel: 'مشروع خاص',
     sharedWith: 'مشترك مع',
     shareAction: 'مشاركة مع جهة اتصال',
+    transformOffer: 'تحويل الى عرض',
+    createDevis: 'انشاء عرض سعر',
     sendAction: 'ارسال كطلب',
     convertAction: 'تحويل الى عرض سعر',
     editAction: 'تعديل',
@@ -372,28 +378,12 @@ const ProjectModal = ({ open, onClose, onSubmit, contacts, initialProject, savin
   );
 };
 
-const buildAcceptedContacts = (invitations) => {
-  const all = [...(invitations?.sent || []), ...(invitations?.received || [])];
-  const accepted = all.filter((invite) => invite.status === 'ACCEPTED');
-  const map = new Map();
-
-  accepted.forEach((invite) => {
-    const companyId = invite.connectedCompanyId || invite.company?.id;
-    const label = invite.company?.name || invite.client?.name || invite.recipientEmail;
-    const email = invite.company?.email || invite.recipientEmail || invite.client?.email || '';
-    const key = companyId || email;
-
-    if (!key || map.has(key)) return;
-    map.set(key, {
-      companyId,
-      label: email ? `${label} - ${email}` : label,
-      name: label,
-      email,
-    });
-  });
-
-  return Array.from(map.values()).filter((contact) => contact.companyId);
-};
+const buildAcceptedContacts = (network) => (network?.partners || []).map((partner) => ({
+  companyId: partner.partnerCompanyId,
+  label: partner.email ? `${partner.name} - ${partner.email}` : partner.name,
+  name: partner.name,
+  email: partner.email,
+}));
 
 const Projects = () => {
   const { lang } = useLanguage();
@@ -417,15 +407,15 @@ const Projects = () => {
 
   const fetchData = async () => {
     try {
-      const [projectsRes, receivedRes, invitationsRes] = await Promise.all([
+      const [projectsRes, receivedRes, networkRes] = await Promise.all([
         api.get('/projects'),
         api.get('/projects/received'),
-        api.get('/clients/invitations'),
+        api.get('/network'),
       ]);
 
       setProjects(projectsRes.data);
       setReceivedProjects(receivedRes.data);
-      setContacts(buildAcceptedContacts(invitationsRes.data));
+      setContacts(buildAcceptedContacts(networkRes.data));
     } catch (error) {
       console.error('Error loading projects:', error);
     } finally {
@@ -492,6 +482,10 @@ const Projects = () => {
 
   const openCreateDevis = (project) => {
     navigate('/devis', { state: { project } });
+  };
+
+  const openCreateOffer = (project) => {
+    navigate('/offers', { state: { project } });
   };
 
   return (
@@ -626,11 +620,13 @@ const Projects = () => {
                       </Button>
                     ) : null}
 
-                    {project.status === 'ACCEPTED' ? (
-                      <Button onClick={() => openCreateDevis(project)} icon={FileText}>
-                        {text.convertAction}
-                      </Button>
-                    ) : null}
+                    <Button variant="secondary" onClick={() => openCreateOffer(project)} icon={Briefcase}>
+                      {text.transformOffer}
+                    </Button>
+
+                    <Button onClick={() => openCreateDevis(project)} icon={FileText}>
+                      {project.status === 'ACCEPTED' ? text.convertAction : text.createDevis}
+                    </Button>
                   </div>
                 </div>
               </div>

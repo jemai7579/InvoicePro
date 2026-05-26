@@ -17,6 +17,12 @@ type NormalizedDevisLine = {
   tvaRate: number;
 };
 
+const validateActiveTvaRates = async (lines: NormalizedDevisLine[]) => {
+  const activeRates = await prisma.tvaRate.findMany({ where: { active: true }, select: { rate: true } });
+  const allowedRates = activeRates.length ? activeRates.map((item) => item.rate) : [0, 7, 13, 19];
+  return lines.every((line) => allowedRates.includes(line.tvaRate));
+};
+
 export const getDevis = async (req: Request, res: Response) => {
   try {
     const devisList = await prisma.devis.findMany({
@@ -85,6 +91,9 @@ export const createDevis = async (req: Request, res: Response) => {
 
     if (normalizedLines.some((line) => !line.description || line.quantity <= 0 || line.unitPrice < 0)) {
       return res.status(400).json({ message: 'Each quote line must include a description, quantity and unit price.' });
+    }
+    if (!(await validateActiveTvaRates(normalizedLines))) {
+      return res.status(400).json({ message: 'One or more TVA rates are not active.' });
     }
 
     const productIds = Array.from(
