@@ -44,6 +44,17 @@ The platform includes a protected admin dashboard for the platform owner or oper
 
 Admin authentication uses its own frontend auth context, admin login endpoint, admin record lookup, and `adminProtect` backend middleware. Company/user authentication must remain separate from administrator authorization: normal users must never be able to access admin pages or admin APIs. The admin API exposes only its login endpoint publicly; the remaining `/api/admin/*` routes require an authenticated admin bearer token.
 
+### Demo Admin Credentials
+
+The Prisma development/demo seed creates the following admin account:
+
+| Field | Demo Value |
+|---|---|
+| Email address | `admin@invoicepro.tn` |
+| Password | `adminpassword123` |
+
+> **Development/demo only:** These credentials are seeded for local testing only. Never use them on the production deployment at `https://invoicepro.tn`, and never seed demo credentials into the production database.
+
 ### Admin Modules
 
 The current application includes admin screens and protected backend endpoints for the following operational areas:
