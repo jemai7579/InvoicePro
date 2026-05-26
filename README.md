@@ -30,6 +30,64 @@ The following modules are present in the application:
 | AI assistant | Gemini-backed assistant when `GEMINI_API_KEY` is configured |
 | Network / collaboration | Network connections, messages, offers, and project-sharing functionality |
 
+## Admin Dashboard
+
+The platform includes a protected admin dashboard for the platform owner or operational team to supervise SaaS-wide activity. It is not intended for normal company users. The admin area manages and monitors platform companies, user accounts, subscriptions, compliance workflows, payments, support activity, audit logs, and global configuration where those capabilities are available in the current implementation.
+
+### Admin Access
+
+| Area | Route |
+|---|---|
+| Admin login | `/admin/login` |
+| Protected admin dashboard and modules | `/admin/*` |
+| Admin backend API group | `/api/admin/*` |
+
+Admin authentication uses its own frontend auth context, admin login endpoint, admin record lookup, and `adminProtect` backend middleware. Company/user authentication must remain separate from administrator authorization: normal users must never be able to access admin pages or admin APIs. The admin API exposes only its login endpoint publicly; the remaining `/api/admin/*` routes require an authenticated admin bearer token.
+
+### Admin Modules
+
+The current application includes admin screens and protected backend endpoints for the following operational areas:
+
+| Module | Purpose |
+|---|---|
+| Admin Overview | Displays global SaaS statistics including companies, invoices, subscriptions, and recent operational activity. |
+| Companies Management | Views registered companies and company detail; monitors profiles, readiness/dossier status, plan/status, quota, notes, and activity history. |
+| Users / Accounts Supervision | Views platform administrator and company accounts, with account-status monitoring and admin notes to investigate inactive or problematic accounts. |
+| Subscriptions Management | Reviews plans and active/inactive subscription state, and supports monitoring plan assignment and usage/quota information exposed by the current implementation. |
+| Invoices & Compliance Monitoring | Monitors platform invoice activity, TEIF/signature compliance status, TTN workflow status, and failed or blocked workflow conditions exposed by the compliance and TTN views. |
+| Payments Monitoring | Tracks platform or subscription payment status through the admin payments module, depending on the payment data recorded in the current implementation. |
+| Support / Requests | Manages support tickets and replies; signature onboarding or TTN/signature setup requests can be followed when recorded through the implemented support/onboarding workflows. |
+| Audit Logs / Activity Logs | Reviews and exports admin activity logs, including login and administrative actions, for debugging, traceability, and security review. Invoice, TEIF, signature, TTN, and settings events appear only where the current implementation records them. |
+| Global Settings | Manages platform settings, TVA rates, notifications, and integration/provider status and configuration options implemented by the backend. Signature provider options are available only where implemented and configured. |
+
+Additional implemented admin views include system error/health monitoring and analytics/SEO monitoring.
+
+### Admin API
+
+Admin backend operations are grouped under:
+
+```text
+/api/admin/*
+```
+
+These APIs include protected endpoints for overview statistics, companies, users, invoices, subscriptions, TTN/compliance monitoring, payments, support, system errors, settings/integrations, analytics/SEO, activity logs, and notifications. They are administrative APIs and must never be exposed to, or callable as, normal company users.
+
+### Admin Security Notes
+
+- Admin credentials must never be hardcoded or reused as production credentials.
+- Demo admin seed credentials are development/demo data only and must not be used in production.
+- The Prisma seed is guarded to refuse execution when `NODE_ENV=production` or `APP_ENV=production`; retain this protection.
+- Admin JWT signing and authorization logic must be protected with a strong secret and careful middleware enforcement.
+- Admin pages should be excluded from search engine indexing in production.
+- The admin dashboard and `/api/admin/*` authorization boundaries must be tested separately from the normal user dashboard and APIs.
+
+### Useful Admin URLs
+
+| Environment | Admin Login URL |
+|---|---|
+| Local development | `http://localhost:5173/admin/login` |
+| Production | `https://invoicepro.tn/admin/login` |
+
 ## Tech Stack
 
 | Area | Technology |
