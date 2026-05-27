@@ -1,4 +1,4 @@
-# InvoicePro / El Fatoora — Tunisian Electronic Invoicing SaaS
+# InvoicePro  — Tunisian Electronic Invoicing SaaS
 
 InvoicePro / El Fatoora is a full-stack SaaS platform for managing Tunisian commercial invoicing workflows: customers, catalog items, quotes, invoices, payments, reporting, document exports, and compliance preparation.
 
