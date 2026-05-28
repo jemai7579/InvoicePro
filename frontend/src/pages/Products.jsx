@@ -312,7 +312,7 @@ const Products = () => {
   return (
     <div className="pb-20 animate-in fade-in duration-500">
       {toast && (
-        <div className={`fixed top-20 right-6 z-[100] flex max-w-sm items-center gap-3 rounded-2xl border px-5 py-4 text-sm font-semibold shadow-2xl ${
+        <div className={`fixed left-3 right-3 top-16 z-[100] flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold shadow-2xl sm:left-auto sm:right-6 sm:top-20 sm:max-w-sm sm:px-5 sm:py-4 ${
           toast.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'
         }`}>
           {toast.type === 'success' ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
@@ -437,7 +437,7 @@ const Products = () => {
         </div>
 
         {/* Mobile View */}
-        <div className="md:hidden p-4 space-y-4">
+        <div className="space-y-3 p-3 md:hidden sm:space-y-4 sm:p-4">
           {loading ? (
             <div className="flex justify-center py-16">
               <Loader className="w-8 h-8 animate-spin text-indigo-600" />
@@ -446,7 +446,7 @@ const Products = () => {
             <div className="py-16 text-center text-slate-400 italic text-sm">{t('products.empty')}</div>
           ) : null}
           {!loading && filteredProducts.map((product) => (
-            <div key={product.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col gap-4">
+            <div key={product.id} className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm min-[375px]:p-5 sm:rounded-[2rem]">
                <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100">
                     {product.imageUrl ? (
@@ -490,9 +490,9 @@ const Products = () => {
 
       {/* Modal Section */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 backdrop-blur-sm sm:p-4">
           <Card 
-            className="w-full max-w-lg animate-in zoom-in duration-300 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.15)]"
+            className="flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden animate-in zoom-in duration-300 shadow-[0_30px_100px_-20px_rgba(0,0,0,0.15)]"
             noPadding
             title={editingProduct ? t('products.form.title_edit') : t('products.form.title_new')}
             action={
@@ -501,7 +501,7 @@ const Products = () => {
               </button>
             }
           >
-             <form onSubmit={handleSubmit} className="p-8 space-y-6">
+             <form onSubmit={handleSubmit} className="min-h-0 space-y-4 overflow-y-auto p-4 sm:space-y-6 sm:p-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <Input
                     label={t('products.table.code')}
@@ -619,7 +619,7 @@ const Products = () => {
                   </div>
                 )}
 
-                <div className="pt-6 flex gap-4">
+                <div className="flex flex-col-reverse gap-3 pt-3 min-[375px]:flex-row sm:gap-4 sm:pt-6">
                   <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 !rounded-2xl">
                     {t('form.cancel')}
                   </Button>
@@ -639,9 +639,9 @@ const Products = () => {
       )}
 
       {viewingProduct && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={(event) => { if (event.target === event.currentTarget) setViewingProduct(null); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 backdrop-blur-sm sm:p-4" onClick={(event) => { if (event.target === event.currentTarget) setViewingProduct(null); }}>
           <Card
-            className="w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            className="max-h-[calc(100dvh-1rem)] w-full max-w-4xl overflow-y-auto sm:max-h-[90vh]"
             title="Détails du produit"
             subtitle={viewingProduct.name}
             action={<button onClick={() => setViewingProduct(null)}><X className="w-5 h-5 text-slate-400" /></button>}
@@ -685,7 +685,7 @@ const Products = () => {
       )}
 
       {showImport && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 backdrop-blur-sm sm:p-4">
           <Card className="w-full max-w-5xl max-h-[90vh] overflow-y-auto" title="Importer des produits depuis Excel" action={<button onClick={() => setShowImport(false)}><X className="w-5 h-5" /></button>}>
             <div className="space-y-5">
               <p className="text-sm text-slate-600">Colonnes attendues: {importColumns.join(', ')}. Prix HT et TVA doivent être numériques.</p>
@@ -698,8 +698,8 @@ const Products = () => {
               ) : null}
               {previewRows.length > 0 ? (
                 <>
-                  <div className="overflow-x-auto rounded-2xl border border-slate-100">
-                    <table className="w-full text-left text-sm">
+                  <div className="touch-scroll overflow-x-auto rounded-2xl border border-slate-100">
+                    <table className="min-w-[42rem] text-left text-sm">
                       <thead className="bg-slate-50">
                         <tr>{importColumns.map((column) => <th key={column} className="px-4 py-3 text-[10px] uppercase tracking-widest text-slate-400">{column}</th>)}</tr>
                       </thead>

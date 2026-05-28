@@ -77,20 +77,10 @@ class MockTTNProvider implements TTNProvider {
       };
     }
 
-    const ttnReference = `TTN-${new Date().getFullYear()}-${invoiceId.slice(0, 8).toUpperCase()}`;
-    const qrCodeData = JSON.stringify({
-      mode: 'mock',
-      invoiceId,
-      reference: ttnReference,
-      acceptedAt: new Date().toISOString(),
-    });
-
     return {
       status: 'ACCEPTED_TTN' as const,
-      message: 'TTN integration is not configured yet. Simulation mode enabled.',
-      ttnReference,
-      qrCodeData,
-      approvedXmlContent: `${signedXml}\n<!-- MOCK TTN ACCEPTED ${ttnReference} -->`,
+      message: 'Simulation TTN acceptee en mode test. Non legal, aucune reference officielle TTN generee.',
+      approvedXmlContent: `${signedXml}\n<!-- MOCK TTN ACCEPTED - NON LEGAL -->`,
       mode: 'mock' as const,
     };
   }

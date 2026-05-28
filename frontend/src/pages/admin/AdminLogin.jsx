@@ -4,6 +4,8 @@ import { AdminAuthContext } from '../../context/AdminAuthContext';
 import { Lock, Mail, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import BrandLogo from '../../components/BrandLogo';
 
+const AUTH_RATE_LIMIT_MESSAGE = 'Too many failed login attempts. Please wait a few minutes before trying again.';
+
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,14 +23,18 @@ const AdminLogin = () => {
       await adminLogin(email, password);
       navigate('/admin/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || err.userMessage || "Accès refusé. Vérifiez vos identifiants.");
+      setError(
+        err.response?.data?.code === 'AUTH_TOO_MANY_FAILED_ATTEMPTS'
+          ? AUTH_RATE_LIMIT_MESSAGE
+          : err.response?.data?.message || err.userMessage || "Accès refusé. Vérifiez vos identifiants."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden font-sans">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 p-4 font-sans sm:p-6">
       
       {/* Background Orbs */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-premium-900/20 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4" />
@@ -37,15 +43,15 @@ const AdminLogin = () => {
       <div className="w-full max-w-lg relative z-10">
         
         {/* Brand */}
-        <div className="flex flex-col items-center mb-10">
-          <BrandLogo tone="dark" className="mb-6 h-16 w-auto max-w-[280px]" />
-          <h1 className="text-3xl font-black text-white tracking-tight">
+        <div className="mb-6 flex flex-col items-center sm:mb-10">
+          <BrandLogo tone="dark" className="mb-4 h-12 w-auto max-w-[230px] sm:mb-6 sm:h-16 sm:max-w-[280px]" />
+          <h1 className="text-2xl font-black text-white tracking-tight sm:text-3xl">
             InvoicePro <span className="text-premium-500 italic">Admin</span>
           </h1>
           <p className="text-slate-500 font-medium mt-2 uppercase tracking-widest text-[10px]">Espace de contrôle global InvoicePro</p>
         </div>
 
-        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 p-10 rounded-[32px] shadow-2xl">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 shadow-2xl backdrop-blur-2xl sm:rounded-[32px] sm:p-10">
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {error && (

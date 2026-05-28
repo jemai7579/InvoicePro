@@ -21,6 +21,8 @@ const hasStrongJwtSecret = (value?: string) =>
       !/(replace|change[_-]?me|changeme|development[_-]?only|example)/i.test(value)
   );
 
+const productionFrontendOrigin = 'https://invoicepro.tn';
+
 export const validateStartupEnvironment = () => {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -46,7 +48,11 @@ export const validateStartupEnvironment = () => {
   if (isProduction) {
     if (nodeEnv !== 'production') errors.push('NODE_ENV must be production when APP_ENV=production.');
     if (appEnv !== 'production') errors.push('APP_ENV must be production when NODE_ENV=production.');
-    if (!process.env.FRONTEND_URL) errors.push('FRONTEND_URL is required in production for CORS.');
+    if (!process.env.FRONTEND_URL) {
+      errors.push('FRONTEND_URL is required in production for CORS.');
+    } else if (process.env.FRONTEND_URL !== productionFrontendOrigin) {
+      errors.push(`FRONTEND_URL must be ${productionFrontendOrigin} in production.`);
+    }
   }
 
   let eInvoiceConfig;

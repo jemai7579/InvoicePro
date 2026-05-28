@@ -34,7 +34,7 @@ const Terms = () => {
             <ScrollText className="w-3.5 h-3.5" />
             {t('landing.footer.terms')}
           </div>
-          <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6">
+          <h1 className="mb-6 text-3xl font-black leading-tight tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
             {t('terms.title')}
           </h1>
           <p className="text-lg text-slate-500 font-medium">

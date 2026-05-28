@@ -241,14 +241,14 @@ const Messages = () => {
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} className="pb-20 animate-in fade-in duration-500 space-y-6">
-      {toast && <div className="fixed top-20 right-6 z-[100] px-5 py-4 rounded-2xl shadow-2xl border bg-rose-50 border-rose-200 text-rose-800 text-sm font-semibold">{toast}</div>}
+      {toast && <div className="fixed left-3 right-3 top-16 z-[100] rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800 shadow-2xl sm:left-auto sm:right-6 sm:top-20 sm:max-w-sm sm:px-5 sm:py-4">{toast}</div>}
 
       <div>
         <h2 className="text-2xl font-black text-slate-900 font-display tracking-tight uppercase">Messages</h2>
         <p className="text-sm text-slate-500 font-medium">Chat entre partenaires connectés uniquement.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 min-h-[620px]">
+      <div className="grid min-h-[520px] grid-cols-1 gap-4 sm:gap-6 lg:min-h-[620px] lg:grid-cols-[320px_1fr]">
         <Card title="Partenaires">
           {loading ? (
             <div className="py-10 text-center"><Loader className="w-8 h-8 animate-spin text-indigo-600 inline" /></div>
@@ -278,7 +278,7 @@ const Messages = () => {
               <div className="text-sm">Sélectionnez un partenaire connecté.</div>
             </div>
           ) : (
-            <div className="flex flex-col h-[520px]">
+            <div className="flex h-[min(520px,calc(100dvh-13rem))] min-h-[360px] flex-col">
               <div className="flex-1 overflow-y-auto rounded-2xl bg-slate-50 p-4 space-y-3">
                 {messages.length === 0 ? (
                   <div className="text-sm text-slate-500">Aucun message pour cette conversation.</div>
@@ -286,7 +286,7 @@ const Messages = () => {
                   const own = message.senderCompanyId !== activePartner.partnerCompanyId;
                   return (
                     <div key={message.id} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${own ? 'bg-premium-600 text-white' : 'bg-white text-slate-700 border border-slate-100'}`}>
+                      <div className={`max-w-[90%] break-words rounded-2xl px-4 py-3 text-sm sm:max-w-[75%] ${own ? 'bg-premium-600 text-white' : 'bg-white text-slate-700 border border-slate-100'}`}>
                         {message.body}
                         {renderAttachment(message)}
                       </div>
@@ -294,9 +294,9 @@ const Messages = () => {
                   );
                 })}
               </div>
-              <form onSubmit={sendMessage} className="mt-4 flex gap-3">
+              <form onSubmit={sendMessage} className="mt-4 flex gap-2 sm:gap-3">
                 <div className="relative">
-                  <button type="button" onClick={() => setShowAttach((value) => !value)} className="h-full rounded-2xl border border-slate-200 bg-white px-4 text-slate-500 hover:text-premium-600">
+                  <button type="button" onClick={() => setShowAttach((value) => !value)} className="h-full rounded-2xl border border-slate-200 bg-white px-3 text-slate-500 hover:text-premium-600 sm:px-4">
                     <Paperclip className="h-5 w-5" />
                   </button>
                   {showAttach ? (
@@ -337,7 +337,7 @@ const Messages = () => {
                   placeholder="Écrire un message..."
                   className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-premium-500 focus:bg-white"
                 />
-                <Button type="submit" icon={Send}>Envoyer</Button>
+                <Button type="submit" icon={Send} className="px-3 sm:px-6"><span className="hidden sm:inline">Envoyer</span></Button>
               </form>
             </div>
           )}

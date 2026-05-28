@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 const Stepper = ({ steps, currentStep, onStepClick }) => {
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between relative mb-8">
+      <div className="relative mb-12 flex items-center justify-between sm:mb-8">
         {/* Progress Line */}
         <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -translate-y-1/2 z-0"></div>
         <div 
@@ -17,7 +17,12 @@ const Stepper = ({ steps, currentStep, onStepClick }) => {
           const isActive = index === currentStep;
           
           return (
-            <div key={index} className="relative z-10 flex flex-col items-center group">
+            <div
+              key={index}
+              className={`group relative z-10 flex min-w-0 flex-1 flex-col items-center ${
+                index === 0 ? 'items-start' : index === steps.length - 1 ? 'items-end' : ''
+              }`}
+            >
               <button
                 onClick={() => onStepClick && onStepClick(index)}
                 disabled={!onStepClick}
@@ -31,7 +36,9 @@ const Stepper = ({ steps, currentStep, onStepClick }) => {
               >
                 {isCompleted ? <Check className="w-5 h-5" /> : <span className="text-sm font-black">{index + 1}</span>}
               </button>
-              <div className="absolute top-12 whitespace-nowrap text-center">
+              <div className={`absolute top-12 max-w-[92px] text-center leading-3 sm:max-w-none sm:whitespace-nowrap ${
+                index === 0 ? 'text-start' : index === steps.length - 1 ? 'text-end' : ''
+              }`}>
                 <span className={`text-[10px] uppercase tracking-widest font-black transition-colors ${
                   isActive ? 'text-indigo-600' : isCompleted ? 'text-slate-900' : 'text-slate-400'
                 }`}>

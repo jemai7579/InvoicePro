@@ -11,7 +11,7 @@ const Button = ({
   ...props 
 }) => {
   const busy = isLoading || loading;
-  const baseStyles = 'inline-flex items-center justify-center font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none rounded-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-premium-100';
+  const baseStyles = 'inline-flex min-w-0 items-center justify-center text-center font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none rounded-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-premium-100';
   
   const variants = {
     primary: 'bg-premium-600 text-white shadow-lg shadow-premium-100 hover:bg-premium-700 hover:shadow-premium-200',
@@ -24,7 +24,7 @@ const Button = ({
   const sizes = {
     sm: 'px-4 py-2 text-xs gap-1.5',
     md: 'px-6 py-3 text-sm gap-2',
-    lg: 'px-8 py-4 text-base gap-3',
+    lg: 'px-6 py-4 text-base gap-3 sm:px-8',
   };
 
   return (
@@ -45,4 +45,3 @@ const Button = ({
 };
 
 export default Button;
-

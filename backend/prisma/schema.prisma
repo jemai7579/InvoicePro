@@ -56,6 +56,7 @@ model Company {
   adminPlatformPayments       AdminPlatformPayment[]
   adminDossierStatusHistory   AdminDossierStatusHistory[]
   adminCompanyStatusHistory   AdminCompanyStatusHistory[]
+  aiMonthlyUsages             AiMonthlyUsage[]
 }
 
 model Admin {
@@ -89,6 +90,33 @@ model ActivityLog {
   details   String?
   createdAt DateTime @default(now())
   admin     Admin    @relation(fields: [adminId], references: [id])
+}
+
+model FailedLoginAttempt {
+  id              String   @id @default(uuid())
+  keyHash         String   @unique
+  failedCount     Int      @default(0)
+  windowStartedAt DateTime
+  blockedUntil    DateTime?
+  lastFailedAt    DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([blockedUntil])
+  @@index([lastFailedAt])
+}
+
+model AiMonthlyUsage {
+  id         String   @id @default(uuid())
+  companyId  String
+  monthStart DateTime
+  usedTokens Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, monthStart])
+  @@index([monthStart])
 }
 
 model IntegrationSecret {

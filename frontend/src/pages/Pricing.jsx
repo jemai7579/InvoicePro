@@ -15,7 +15,7 @@ const Pricing = () => {
     <div className="min-h-screen bg-slate-50 px-4 py-12">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="text-center max-w-3xl mx-auto">
-          <h1 className="text-4xl font-black text-slate-900">Tarifs & accompagnement</h1>
+          <h1 className="text-3xl font-black text-slate-900 sm:text-4xl">Tarifs & accompagnement</h1>
           <p className="mt-4 text-slate-500 font-semibold">
             La tarification peut combiner abonnement mensuel, options pay-as-you-go pour factures/TTN/signature, et accompagnement d'adhesion ou de parametrage.
           </p>
@@ -45,4 +45,3 @@ const Pricing = () => {
 };
 
 export default Pricing;
-

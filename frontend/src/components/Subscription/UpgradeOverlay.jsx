@@ -27,23 +27,23 @@ const UpgradeOverlay = ({ title, description, featureType = 'ai' }) => {
   ];
 
   return (
-    <div className="relative min-h-[500px] w-full flex items-center justify-center p-8 bg-slate-50/50 rounded-3xl overflow-hidden border border-slate-200/60 shadow-sm">
+    <div className="relative flex min-h-[420px] w-full items-center justify-center overflow-hidden rounded-2xl border border-slate-200/60 bg-slate-50/50 p-3 shadow-sm sm:min-h-[500px] sm:rounded-3xl sm:p-8">
       {/* Background patterns */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-40">
         <div className="absolute -top-[10%] -right-[5%] w-[40%] h-[40%] bg-blue-100/50 blur-[120px] rounded-full" />
         <div className="absolute -bottom-[10%] -left-[5%] w-[40%] h-[40%] bg-indigo-100/50 blur-[120px] rounded-full" />
       </div>
 
-      <div className="relative z-10 max-w-2xl w-full bg-white/80 backdrop-blur-md border border-white p-10 rounded-2xl shadow-xl flex flex-col items-center text-center">
+      <div className="relative z-10 flex w-full max-w-2xl flex-col items-center rounded-2xl border border-white bg-white/80 p-5 text-center shadow-xl backdrop-blur-md sm:p-10">
         <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-blue-100/50">
           {isAI ? <Sparkles size={32} /> : <BarChart3 size={32} />}
         </div>
         
-        <h2 className="text-3xl font-extrabold text-slate-900 mb-4 tracking-tight">
+        <h2 className="mb-4 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
           {title || (isAI ? "Assistant IA Premium" : "Rapports Avancés")}
         </h2>
         
-        <p className="text-lg text-slate-600 mb-8 max-w-lg leading-relaxed">
+        <p className="mb-7 max-w-lg text-sm leading-relaxed text-slate-600 sm:mb-8 sm:text-lg">
           {description || (isAI 
             ? "L'assistant intelligent est exclusivement disponible pour nos utilisateurs Pro et Max." 
             : "Accédez à des statistiques poussées et des analyses de performance avec l'offre Pro.")}
@@ -75,7 +75,7 @@ const UpgradeOverlay = ({ title, description, featureType = 'ai' }) => {
           </button>
         </div>
         
-        <div className="mt-8 flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-widest">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider sm:text-xs sm:tracking-widest">
           <Lock size={12} />
           Accès Restreint • Forfait Démarrage
         </div>

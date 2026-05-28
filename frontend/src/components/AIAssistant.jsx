@@ -51,8 +51,13 @@ const AIAssistant = () => {
       
       setMessages(prev => [...prev, { role: 'assistant', text: data.reply }]);
     } catch (error) {
-      console.error('AI Error:', error);
-      const errorMessage = error.response?.data?.message || "Je suis désolé, j'éprouve actuellement des difficultés à me connecter à mes serveurs.";
+      const quotaExceeded = error.response?.data?.code === 'AI_MONTHLY_QUOTA_EXCEEDED';
+      if (!quotaExceeded) {
+        console.error('AI Error:', error);
+      }
+      const errorMessage = quotaExceeded
+        ? "Votre limite mensuelle d'utilisation de l'assistant IA a été atteinte."
+        : error.response?.data?.message || "Je suis désolé, j'éprouve actuellement des difficultés à me connecter à mes serveurs.";
       setMessages(prev => [...prev, { role: 'assistant', text: errorMessage }]);
     } finally {
       setIsLoading(false);
@@ -64,7 +69,7 @@ const AIAssistant = () => {
       {/* Chat Button */}
       <button
         onClick={toggleChat}
-        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 p-3.5 sm:p-4 rounded-2xl shadow-2xl transition-all duration-500 z-50 flex items-center justify-center group ${
+        className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] end-4 sm:bottom-6 sm:end-6 p-3.5 sm:p-4 rounded-2xl shadow-2xl transition-all duration-500 z-50 flex items-center justify-center group ${
           isOpen ? 'scale-90 opacity-0 pointer-events-none rotate-90' : 'bg-slate-900 text-white hover:bg-indigo-600 scale-100 opacity-100 hover:shadow-indigo-200'
         }`}
       >
@@ -73,13 +78,13 @@ const AIAssistant = () => {
 
       {/* Chat Window — full-width on mobile, fixed width on sm+ */}
       <div
-        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[380px] max-w-[420px] bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-[2.5rem] shadow-[0_30px_100px_-20px_rgba(0,0,0,0.15)] border border-white/50 flex flex-col overflow-hidden transition-all duration-500 transform origin-bottom-right z-50 ${
+        className={`fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] w-auto sm:inset-x-auto sm:bottom-6 sm:end-6 sm:w-[380px] max-w-[420px] bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-[2.5rem] shadow-[0_30px_100px_-20px_rgba(0,0,0,0.15)] border border-white/50 flex flex-col overflow-hidden transition-all duration-500 transform origin-bottom-right z-50 ${
           isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-75 opacity-0 translate-y-20 pointer-events-none'
         }`}
-        style={{ height: '520px', maxHeight: '80vh' }}
+        style={{ height: 'min(520px, calc(100dvh - 1rem))', maxHeight: 'calc(100dvh - 1rem)' }}
       >
         {/* Header */}
-        <div className="bg-slate-900 px-6 py-5 flex justify-between items-center text-white relative overflow-hidden">
+        <div className="bg-slate-900 px-4 py-4 sm:px-6 sm:py-5 flex justify-between items-center gap-3 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-indigo-500/20 to-transparent"></div>
           <div className="flex items-center space-x-3 relative z-10">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -99,10 +104,10 @@ const AIAssistant = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 scroll-smooth custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 bg-slate-50/30 scroll-smooth custom-scrollbar sm:p-6 sm:space-y-6">
           {messages.map((msg, index) => (
             <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-              <div className={`flex max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-end gap-3`}>
+              <div className={`flex max-w-[95%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'} items-end gap-2 sm:gap-3`}>
                 
                 <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border ${
                   msg.role === 'user' ? 'bg-white border-slate-100' : 'bg-indigo-50 border-indigo-100'
@@ -114,7 +119,7 @@ const AIAssistant = () => {
                   )}
                 </div>
 
-                <div className={`p-4 rounded-[1.5rem] text-sm font-medium leading-relaxed shadow-sm ring-1 ${
+                <div className={`min-w-0 break-words p-3 sm:p-4 rounded-[1.5rem] text-sm font-medium leading-relaxed shadow-sm ring-1 ${
                   msg.role === 'user' 
                     ? 'bg-slate-900 text-white rounded-br-none ring-slate-800' 
                     : 'bg-white text-slate-700 rounded-bl-none ring-slate-100'
@@ -145,7 +150,7 @@ const AIAssistant = () => {
         </div>
 
         {/* Input Form */}
-        <div className="p-5 bg-white border-t border-slate-50">
+        <div className="border-t border-slate-50 bg-white p-3 sm:p-5">
           <form onSubmit={handleSubmit} className="relative flex items-center group">
             <input
               type="text"
@@ -167,7 +172,7 @@ const AIAssistant = () => {
             <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">InvoicePro Intelligence</span>
             <div className="h-px w-8 bg-slate-100"></div>
           </div>
-          <p className="mt-2 text-center text-[10px] font-bold text-slate-400 leading-4">
+          <p className="mt-2 hidden text-center text-[10px] font-bold text-slate-400 leading-4 min-[375px]:block">
             L’assistant IA peut aider à comprendre l’étape E-Houwiya / Mobile ID, mais la création, la validité et l’usage officiel de cet identifiant doivent être vérifiés auprès des organismes concernés.
           </p>
         </div>

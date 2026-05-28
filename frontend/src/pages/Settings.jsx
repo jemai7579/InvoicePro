@@ -248,7 +248,7 @@ const Settings = () => {
   );
 
   return (
-    <div className="max-w-6xl space-y-10 pb-20 animate-in fade-in duration-700">
+    <div className="max-w-6xl space-y-6 pb-20 animate-in fade-in duration-700 sm:space-y-10">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight font-display uppercase">{t('settings.title')}</h1>
@@ -257,7 +257,7 @@ const Settings = () => {
       </header>
 
       {/* Tabs Navigation */}
-      <nav className="flex overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 gap-3 no-scrollbar scroll-smooth">
+      <nav className="touch-scroll flex overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 gap-3 no-scrollbar scroll-smooth">
         <TabButton id="profile" icon={Building2} label={t('settings.tabs.profile')} />
         <TabButton id="security" icon={Lock} label={t('settings.tabs.security')} />
         <TabButton id="compliance" icon={ShieldCheck} label={t('settings.tabs.compliance')} />
@@ -295,7 +295,7 @@ const Settings = () => {
         {activeTab === 'profile' && (
           <form onSubmit={handleSubmit} className="space-y-8">
             <Card noPadding className="overflow-hidden border-slate-100 shadow-xl shadow-slate-200/50">
-               <div className="px-10 py-12 border-b border-slate-50 bg-slate-50/30 flex flex-col md:flex-row items-center gap-10">
+               <div className="flex flex-col items-center gap-5 border-b border-slate-50 bg-slate-50/30 px-4 py-6 sm:px-8 sm:py-10 md:flex-row md:gap-10 md:px-10 md:py-12">
                   <div className="relative group">
                      <div className="w-32 h-32 rounded-[2.5rem] border-4 border-white bg-white flex items-center justify-center overflow-hidden shadow-2xl shadow-indigo-100/50 transition-all group-hover:scale-105 group-hover:rotate-1">
                         {formData.logo ? (
@@ -327,8 +327,8 @@ const Settings = () => {
                   </div>
                </div>
 
-               <div className="p-10 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-12">
-                  <div className="space-y-8">
+               <div className="grid grid-cols-1 gap-6 p-4 sm:p-8 md:grid-cols-2 md:gap-12 md:p-12">
+                  <div className="space-y-5 sm:space-y-8">
                      <div className="flex items-center gap-4 mb-2">
                         <div className="bg-indigo-50 p-2.5 rounded-2xl border border-indigo-100/50 shadow-sm"><Briefcase className="w-5 h-5 text-indigo-600" /></div>
                         <h4 className="font-black text-slate-900 uppercase tracking-widest text-[11px]">{t('settings.profile.legal_identity')}</h4>
@@ -360,7 +360,7 @@ const Settings = () => {
                      />
                   </div>
 
-                  <div className="space-y-8">
+                  <div className="space-y-5 sm:space-y-8">
                      <div className="flex items-center gap-4 mb-2">
                         <div className="bg-indigo-50 p-2.5 rounded-2xl border border-indigo-100/50 shadow-sm"><MapPin className="w-5 h-5 text-indigo-600" /></div>
                         <h4 className="font-black text-slate-900 uppercase tracking-widest text-[11px]">{t('settings.profile.contact_siege')}</h4>
@@ -373,7 +373,7 @@ const Settings = () => {
                         icon={Home}
                         placeholder="Avenue Habib Bourguiba"
                      />
-                     <div className="grid grid-cols-2 gap-6">
+                     <div className="grid grid-cols-1 gap-4 min-[375px]:grid-cols-2 sm:gap-6">
                         <Input 
                            label={t('settings.profile.city')}
                            value={formData.city}
@@ -396,7 +396,7 @@ const Settings = () => {
                      />
                   </div>
                </div>
-               <div className="px-10 py-8 bg-slate-50/50 border-t border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-6">
+               <div className="flex flex-col items-start justify-between gap-4 border-t border-slate-50 bg-slate-50/50 px-4 py-5 sm:flex-row sm:items-center sm:gap-6 sm:px-10 sm:py-8">
                   <div className="flex flex-col gap-1">
                      {saveMsg && (
                         <div className={`flex items-center gap-3 text-[11px] font-black uppercase tracking-widest ${saveMsg.type === 'success' ? 'text-emerald-600' : 'text-rose-600'} animate-in slide-in-from-left-2`}>
@@ -447,16 +447,16 @@ const Settings = () => {
 
         {activeTab === 'security' && (
           <div className="max-w-2xl bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-             <div className="p-10 md:p-12">
-               <div className="flex items-center gap-5 mb-10">
-                 <div className="bg-amber-50 p-5 rounded-[1.5rem] text-amber-500 shadow-sm border border-amber-100/50 shadow-amber-50"><Lock className="w-7 h-7" /></div>
+             <div className="p-4 sm:p-8 md:p-12">
+               <div className="mb-6 flex items-start gap-3 sm:mb-10 sm:items-center sm:gap-5">
+                 <div className="bg-amber-50 p-3 sm:p-5 rounded-[1.5rem] text-amber-500 shadow-sm border border-amber-100/50 shadow-amber-50"><Lock className="w-7 h-7" /></div>
                  <div>
                    <h3 className="text-xl font-black text-slate-900 font-display leading-tight uppercase tracking-tight">{t('settings.security.title')}</h3>
                    <p className="text-slate-500 text-sm font-medium mt-1">{t('settings.security.subtitle')}</p>
                  </div>
                </div>
                
-               <form onSubmit={handlePasswordChange} className="space-y-8">
+               <form onSubmit={handlePasswordChange} className="space-y-5 sm:space-y-8">
                   <Input 
                      type="password"
                      label={t('settings.security.current_pwd')}
@@ -465,7 +465,7 @@ const Settings = () => {
                      icon={Lock}
                      required
                   />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-8">
                      <Input 
                         type="password"
                         label={t('settings.security.new_pwd')}
@@ -486,7 +486,7 @@ const Settings = () => {
                   </div>
                   
                   {pwdMsg && (
-                    <div className={`p-6 rounded-3xl text-xs font-black uppercase tracking-wider flex items-center gap-4 animate-in slide-in-from-top-4 ${pwdMsg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
+                    <div className={`flex items-center gap-3 rounded-2xl p-4 text-xs font-black uppercase tracking-wider animate-in slide-in-from-top-4 sm:gap-4 sm:rounded-3xl sm:p-6 ${pwdMsg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-rose-50 text-rose-700 border border-rose-100'}`}>
                        {pwdMsg.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <ShieldAlert className="w-5 h-5" />}
                        {pwdMsg.text}
                     </div>
@@ -501,18 +501,18 @@ const Settings = () => {
         )}
 
         {activeTab === 'compliance' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-10">
              <Card noPadding className="shadow-xl shadow-slate-200/50 border-slate-100 overflow-hidden flex flex-col">
-                <div className="p-10 space-y-8 flex-1">
-                  <div className="flex items-center gap-5">
-                    <div className="bg-indigo-50 p-5 rounded-[1.5rem] text-indigo-600 shadow-sm border border-indigo-100/50 shadow-indigo-50"><ShieldCheck className="w-7 h-7" /></div>
+                <div className="flex-1 space-y-5 p-4 sm:space-y-8 sm:p-8 lg:p-10">
+                  <div className="flex items-start gap-3 sm:items-center sm:gap-5">
+                    <div className="bg-indigo-50 p-3 sm:p-5 rounded-[1.5rem] text-indigo-600 shadow-sm border border-indigo-100/50 shadow-indigo-50"><ShieldCheck className="w-7 h-7" /></div>
                     <div>
                       <h3 className="text-xl font-black text-slate-900 font-display leading-tight uppercase tracking-tight">{t('settings.compliance.title')}</h3>
                       <p className="text-slate-500 text-sm font-medium mt-1">{t('settings.compliance.subtitle')}</p>
                     </div>
                   </div>
 
-                  <form onSubmit={handleEHouwiyaSave} className="p-6 bg-white border border-indigo-100 rounded-[2rem] space-y-5 shadow-sm">
+                  <form onSubmit={handleEHouwiyaSave} className="space-y-5 rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-6">
                     <div className="flex items-center gap-3">
                       <BadgeCheck className="w-5 h-5 text-indigo-600" />
                       <span className="text-[11px] font-black uppercase tracking-widest text-indigo-900">E-Houwiya / Mobile ID</span>
@@ -565,7 +565,7 @@ const Settings = () => {
                     </Button>
                   </form>
 
-                  <div className="p-6 bg-slate-50 border border-slate-100 rounded-[2rem] space-y-4">
+                  <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:rounded-[2rem] sm:p-6">
                     <div className="flex items-center gap-3">
                       <Zap className="w-5 h-5 text-indigo-500 fill-indigo-500" />
                       <span className="text-[11px] font-black uppercase tracking-widest text-indigo-900">{t('settings.compliance.prerequisite')}</span>
@@ -584,7 +584,7 @@ const Settings = () => {
                         <div className="relative group">
                            <FileText className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition-colors" />
                            <input type="file" accept=".p12,.pfx" onChange={e => setCertFile(e.target.files[0])} className="w-full bg-slate-50/50 border border-slate-100 rounded-[1.5rem] pl-14 pr-4 py-4 text-xs font-bold text-slate-500 cursor-pointer file:hidden hover:bg-white hover:ring-4 hover:ring-indigo-500/5 transition-all outline-none" />
-                           <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-indigo-600 uppercase tracking-widest pointer-events-none">{certFile ? certFile.name : t('settings.compliance.choose_file')}</span>
+                           <span className="pointer-events-none mt-2 block truncate text-[10px] font-black uppercase tracking-widest text-indigo-600 sm:absolute sm:right-6 sm:top-1/2 sm:mt-0 sm:max-w-[55%] sm:-translate-y-1/2">{certFile ? certFile.name : t('settings.compliance.choose_file')}</span>
                         </div>
                      </div>
                      <Input 
@@ -604,11 +604,11 @@ const Settings = () => {
              </Card>
 
              <div className="space-y-8">
-                <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-3xl shadow-slate-900/40 relative overflow-hidden group border border-slate-800">
+                <div className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 p-4 text-white shadow-3xl shadow-slate-900/40 sm:rounded-[3rem] sm:p-8 lg:p-12">
                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-indigo-500/20 transition-all duration-1000"></div>
-                   <div className="relative z-10 space-y-10">
+                   <div className="relative z-10 space-y-6 sm:space-y-10">
                       <header className="space-y-3">
-                         <h4 className="text-2xl font-black flex items-center gap-4 font-display italic">
+                         <h4 className="flex items-center gap-3 text-xl font-black font-display italic sm:gap-4 sm:text-2xl">
                            <Cpu className="w-8 h-8 text-indigo-400 animate-pulse" /> 
                            {t('settings.compliance.system_status')}
                          </h4>
@@ -618,8 +618,8 @@ const Settings = () => {
                       </header>
 
                       <div className="space-y-4">
-                         <div className="p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-md space-y-4">
-                            <div className="flex items-center justify-between gap-4">
+                         <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md sm:rounded-[2rem] sm:p-6">
+                            <div className="flex flex-col items-start justify-between gap-3 min-[375px]:flex-row min-[375px]:items-center sm:gap-4">
                               <span className="text-xs font-black text-slate-300 uppercase tracking-widest">Configuration facture électronique</span>
                               <Badge variant={eInvoiceStatus?.mode === 'production' ? 'success' : 'warning'} className="px-4 py-1.5 font-black border-none bg-indigo-500 text-white">
                                 {eInvoiceStatus?.mode === 'mock' ? 'Simulation' : eInvoiceStatus?.mode === 'sandbox' ? 'Sandbox' : 'Production'}
@@ -656,17 +656,17 @@ const Settings = () => {
                               </div>
                             ) : null}
                          </div>
-                         <div className="flex items-center justify-between p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
+                         <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md transition-colors hover:bg-white/10 min-[375px]:flex-row min-[375px]:items-center sm:rounded-[2rem] sm:p-6">
                             <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{t('settings.compliance.ubl_gen')}</span>
                             <Badge variant="success" className="px-4 py-1.5 font-black bg-emerald-500 text-white border-none">{t('settings.compliance.operational')}</Badge>
                          </div>
-                         <div className="flex items-center justify-between p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
+                         <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md transition-colors hover:bg-white/10 min-[375px]:flex-row min-[375px]:items-center sm:rounded-[2rem] sm:p-6">
                             <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{t('settings.compliance.xades_sign')}</span>
                             <Badge variant={hasCert ? "success" : "warning"} className={`px-4 py-1.5 font-black border-none ${hasCert ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'}`}>
                                {hasCert ? t('settings.compliance.active') : t('settings.compliance.not_config')}
                             </Badge>
                          </div>
-                         <div className="flex items-center justify-between p-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-md hover:bg-white/10 transition-colors">
+                         <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md transition-colors hover:bg-white/10 min-[375px]:flex-row min-[375px]:items-center sm:rounded-[2rem] sm:p-6">
                             <span className="text-xs font-black text-slate-300 uppercase tracking-widest">{t('settings.compliance.ttn_sub')}</span>
                             <Badge variant="secondary" className={`px-4 py-1.5 font-black border-none ${hasCert ? 'bg-indigo-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
                                {hasCert ? t('settings.compliance.ready') : t('settings.compliance.req_cert')}
@@ -693,9 +693,9 @@ const Settings = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* CURRENT PLAN STATUS */}
               <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-                <div className="p-10 md:p-12 space-y-10">
-                  <header className="flex items-center gap-6">
-                    <div className="bg-blue-50 p-5 rounded-[1.5rem] text-blue-600 shadow-sm border border-blue-100/50">
+                <div className="space-y-6 p-4 sm:p-8 md:p-12 md:space-y-10">
+                  <header className="flex items-start gap-3 sm:items-center sm:gap-6">
+                    <div className="shrink-0 bg-blue-50 p-3 sm:p-5 rounded-[1.5rem] text-blue-600 shadow-sm border border-blue-100/50">
                        <Zap className="w-7 h-7" fill="currentColor" />
                     </div>
                     <div>
@@ -745,7 +745,7 @@ const Settings = () => {
               </div>
 
               {/* UPGRADE TEASER */}
-              <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl shadow-slate-900/30 flex flex-col justify-between relative overflow-hidden group">
+              <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-slate-900 p-5 text-white shadow-2xl shadow-slate-900/30 sm:rounded-[2.5rem] sm:p-10">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
                  <div>
                     <Badge variant="premium" className="mb-6 bg-indigo-500 text-white border-none px-4 py-1.5 font-black uppercase text-[10px] tracking-widest">{user?.subscription?.plan === 'STARTER' ? 'Recommandé' : 'Actuel'}</Badge>
@@ -782,8 +782,8 @@ const Settings = () => {
             </div>
 
             {/* ENTERPRISE CARD */}
-            <div className="p-10 bg-gradient-to-r from-slate-50 to-indigo-50/50 border border-indigo-100 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8 group">
-               <div className="flex items-center gap-6">
+            <div className="group flex flex-col items-start justify-between gap-5 rounded-2xl border border-indigo-100 bg-gradient-to-r from-slate-50 to-indigo-50/50 p-5 sm:rounded-[2.5rem] sm:p-10 md:flex-row md:items-center md:gap-8">
+               <div className="flex items-start gap-4 sm:items-center sm:gap-6">
                   <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-indigo-50 flex items-center justify-center text-indigo-600 transition-transform group-hover:scale-110">
                      <Building2 size={32} />
                   </div>
@@ -792,12 +792,12 @@ const Settings = () => {
                      <p className="text-sm text-slate-500 font-medium">Solutions sur-mesure pour les grandes équipes et franchises.</p>
                   </div>
                </div>
-               <div className="flex flex-col items-center md:items-end gap-2">
+               <div className="flex w-full flex-col items-start gap-2 md:w-auto md:items-end">
                   <div className="text-sm font-black text-slate-900 tracking-tight">Accompagnement avancé</div>
                   <button
                     type="button"
                     onClick={() => navigate('/signature-ttn')}
-                    className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-slate-900 active:scale-95 transition-all"
+                    className="w-full px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:bg-slate-900 active:scale-95 transition-all md:w-auto md:px-8"
                   >
                      Contacter un expert
                   </button>
@@ -836,25 +836,25 @@ const Settings = () => {
         )}
 
         {activeTab === 'team' && (
-          <Card className="text-center py-24 shadow-2xl shadow-slate-200/50 border-slate-100 overflow-hidden relative group">
+          <Card className="relative overflow-hidden py-10 text-center shadow-2xl shadow-slate-200/50 border-slate-100 group sm:py-24">
              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-transparent via-indigo-600 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
-             <div className="max-w-md mx-auto space-y-10 flex flex-col items-center">
-                <div className="bg-slate-50/50 p-10 rounded-[3.5rem] border border-slate-100 text-slate-200 relative">
+             <div className="mx-auto flex max-w-md flex-col items-center space-y-6 sm:space-y-10">
+                <div className="relative rounded-[2.5rem] border border-slate-100 bg-slate-50/50 p-6 text-slate-200 sm:rounded-[3.5rem] sm:p-10">
                    <Users2 className="w-20 h-20 group-hover:scale-110 group-hover:text-indigo-100 transition-all duration-700" />
                    <div className="absolute -top-4 -right-4 w-12 h-12 bg-indigo-600 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl shadow-indigo-200 ring-4 ring-white animate-bounce">
                       <Zap className="w-6 h-6 fill-white" />
                    </div>
                 </div>
                 <div className="space-y-4">
-                   <h3 className="text-3xl font-black text-slate-900 font-display tracking-tight uppercase italic">{t('settings.team.title')}</h3>
+                   <h3 className="text-2xl font-black text-slate-900 font-display tracking-tight uppercase italic sm:text-3xl">{t('settings.team.title')}</h3>
                    <p className="text-slate-500 text-sm font-medium leading-relaxed">
                       {t('settings.team.desc')}
                    </p>
                 </div>
-                <div className="inline-flex items-center gap-4 px-8 py-3 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-sm">
+                <div className="inline-flex items-center gap-3 rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-center text-[10px] font-black uppercase tracking-wider text-indigo-600 shadow-sm sm:gap-4 sm:px-8 sm:text-[11px] sm:tracking-[0.2em]">
                   {t('settings.team.feature_premium')}
                 </div>
-                <Button className="!rounded-2xl px-12 py-5 shadow-2xl shadow-indigo-100 text-xs font-black uppercase tracking-widest active:scale-95 transition-all">
+                <Button className="w-full !rounded-2xl px-5 py-4 shadow-2xl shadow-indigo-100 text-xs font-black uppercase tracking-widest active:scale-95 transition-all sm:w-auto sm:px-12 sm:py-5">
                    DÉCOUVRIR LES PLANS
                 </Button>
              </div>

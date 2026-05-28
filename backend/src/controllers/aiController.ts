@@ -1,5 +1,12 @@
 import { Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import {
+  addMonthlyAiUsage,
+  estimatedTokens,
+  getAiMonthlyTokenLimit,
+  getMonthlyAiUsage,
+  tokensUsedFromResponse,
+} from '../services/aiUsageService';
 
 // Initialize the Gemini API with the key from environment variables
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
@@ -7,9 +14,21 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 export const handleAiChat = async (req: Request, res: Response) => {
   try {
     const { message, contextHistory } = req.body;
+    const companyId = (req as any).company.id as string;
+    const monthlyLimit = getAiMonthlyTokenLimit();
+    const monthlyUsage = await getMonthlyAiUsage(companyId);
 
     if (!message) {
       return res.status(400).json({ message: 'Message is required' });
+    }
+
+    if (monthlyUsage.usedTokens >= monthlyLimit) {
+      return res.status(429).json({
+        message: 'Your monthly AI usage limit has been reached.',
+        code: 'AI_MONTHLY_QUOTA_EXCEEDED',
+        monthlyLimit,
+        usedTokens: monthlyUsage.usedTokens,
+      });
     }
 
     if (!process.env.GEMINI_API_KEY) {
@@ -65,9 +84,21 @@ export const handleAiChat = async (req: Request, res: Response) => {
     }
     prompt += `\nUser's Request: ${message}\nAssistant:`;
 
+    // Refuse known input cost before calling the provider when it alone would exceed quota.
+    if (monthlyUsage.usedTokens + estimatedTokens(prompt) > monthlyLimit) {
+      return res.status(429).json({
+        message: 'Your monthly AI usage limit has been reached.',
+        code: 'AI_MONTHLY_QUOTA_EXCEEDED',
+        monthlyLimit,
+        usedTokens: monthlyUsage.usedTokens,
+      });
+    }
+
     // Generate content
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
+    const usedTokens = tokensUsedFromResponse(result.response, prompt, responseText);
+    await addMonthlyAiUsage(companyId, monthlyUsage.monthStart, usedTokens);
 
     res.status(200).json({ reply: responseText });
   } catch (error: any) {

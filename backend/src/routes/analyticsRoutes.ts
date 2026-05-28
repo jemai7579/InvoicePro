@@ -9,7 +9,8 @@ const analyticsLimiter = rateLimit({
   max: 60,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many analytics events' },
+  // Drop excess telemetry quietly instead of surfacing a site-blocking error.
+  handler: (_req, res) => res.status(202).json({ success: true }),
 });
 
 router.post('/event', analyticsLimiter, postAnalyticsEvent);

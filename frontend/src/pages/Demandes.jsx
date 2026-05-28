@@ -106,12 +106,12 @@ const RequestModal = ({ clients, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden border border-white/20 animate-in fade-in zoom-in duration-300">
-        <div className="px-10 py-8 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 backdrop-blur-md sm:p-4">
+      <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/20 bg-white shadow-2xl animate-in fade-in zoom-in duration-300 sm:rounded-[2.5rem]">
+        <div className="border-b border-slate-100 bg-gradient-to-br from-slate-50 to-white px-4 py-4 sm:px-10 sm:py-8">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">{t('demandes.new')}</h2>
+              <h2 className="text-xl font-black text-slate-900 tracking-tight sm:text-2xl">{t('demandes.new')}</h2>
               <p className="text-slate-500 font-medium text-sm mt-1">{t('demandes.subtitle')}</p>
             </div>
             <button onClick={onClose} className="p-3 text-slate-400 hover:text-slate-900 hover:bg-white rounded-2xl transition-all shadow-sm">
@@ -120,8 +120,8 @@ const RequestModal = ({ clients, onClose, onSaved }) => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-10 space-y-8 max-h-[65vh] overflow-y-auto custom-scrollbar">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 custom-scrollbar sm:space-y-8 sm:p-10">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-8">
             <div className="space-y-2">
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest px-1">{t('demandes.form.client_label')}</label>
               <select
@@ -153,8 +153,8 @@ const RequestModal = ({ clients, onClose, onSaved }) => {
             </div>
             <div className="space-y-3">
               {lines.map((ln, i) => (
-                <div key={i} className="flex gap-4 items-center bg-slate-50/50 p-2 rounded-2xl ring-1 ring-slate-100 group transition-all hover:ring-indigo-100 hover:bg-white hover:shadow-xl hover:shadow-indigo-50/20">
-                  <div className="flex-1 px-4">
+                <div key={i} className="group grid grid-cols-2 gap-2 rounded-2xl bg-slate-50/50 p-3 ring-1 ring-slate-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-indigo-50/20 hover:ring-indigo-100 sm:flex sm:items-center sm:gap-4 sm:p-2">
+                  <div className="col-span-2 min-w-0 flex-1 px-2 sm:px-4">
                     <input
                       value={ln.description}
                       onChange={(e) => setLine(i, 'description', e.target.value)}
@@ -162,7 +162,7 @@ const RequestModal = ({ clients, onClose, onSaved }) => {
                       className="w-full bg-transparent border-none py-2 text-sm outline-none font-bold text-slate-700 placeholder:text-slate-300"
                     />
                   </div>
-                  <div className="w-20 px-2 border-x border-slate-100">
+                  <div className="px-2 sm:w-20 sm:border-x sm:border-slate-100">
                     <input
                       type="number"
                       value={ln.quantity}
@@ -170,7 +170,7 @@ const RequestModal = ({ clients, onClose, onSaved }) => {
                       className="w-full bg-transparent border-none py-2 text-sm outline-none text-center font-black text-indigo-600"
                     />
                   </div>
-                  <div className="w-32 px-4">
+                  <div className="px-2 sm:w-32 sm:px-4">
                     <input
                       type="number"
                       value={ln.unitPrice}
@@ -179,7 +179,7 @@ const RequestModal = ({ clients, onClose, onSaved }) => {
                     />
                   </div>
                   {lines.length > 1 && (
-                    <button type="button" onClick={() => removeLine(i)} className="p-2 text-slate-300 hover:text-rose-500 transition-colors me-2">
+                    <button type="button" onClick={() => removeLine(i)} className="col-span-2 justify-self-end p-2 text-slate-300 hover:text-rose-500 transition-colors sm:me-2">
                       <MinusCircle className="w-5 h-5" />
                     </button>
                   )}
@@ -196,11 +196,11 @@ const RequestModal = ({ clients, onClose, onSaved }) => {
           )}
         </form>
 
-        <div className="p-10 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-6">
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50/50 p-4 min-[375px]:flex-row min-[375px]:justify-end sm:gap-6 sm:p-10">
           <button type="button" onClick={onClose} className="text-sm font-black text-slate-400 hover:text-slate-600 transition-colors">
             {t('form.cancel')}
           </button>
-          <Button onClick={handleSubmit} loading={loading} variant="primary" className="px-10 py-4 shadow-xl shadow-indigo-100">
+          <Button onClick={handleSubmit} loading={loading} variant="primary" className="w-full px-6 py-4 shadow-xl shadow-indigo-100 min-[375px]:w-auto sm:px-10">
             <ClipboardList className="w-5 h-5" />
             {t('form.send')}
           </Button>

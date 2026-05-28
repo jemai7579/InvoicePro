@@ -72,7 +72,7 @@ export type PaymentEntry = {
 
 export type CompanyOpsProfile = {
   companyId: string;
-  status: 'active' | 'pending' | 'suspended' | 'blocked';
+  status: 'active' | 'pending' | 'suspended' | 'blocked' | 'deleted' | 'grace_access';
   dossierStatus:
     | 'incomplete'
     | 'pending_review'

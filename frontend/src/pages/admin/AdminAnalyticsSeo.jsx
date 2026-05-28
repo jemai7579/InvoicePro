@@ -39,11 +39,11 @@ const AdminAnalyticsSeo = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-black tracking-tight text-slate-900">Analytics & SEO</h2>
+        <h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">Analytics & SEO</h2>
         <p className="text-sm font-medium text-slate-500">Trafic interne reel, statut Google et audit SEO sans donnees inventees.</p>
       </div>
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-3 min-[375px]:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         <Metric label="Visiteurs" value={overview?.totalVisitors} />
         <Metric label="Visiteurs uniques" value={overview?.uniqueVisitors} />
         <Metric label="Pages vues" value={overview?.pageViews} />
@@ -123,8 +123,8 @@ const AdminAnalyticsSeo = () => {
       </div>
 
       <Card title="Audit SEO pages publiques" subtitle="Verifie les balises disponibles dans le build frontend">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="touch-scroll overflow-x-auto">
+          <table className="min-w-[44rem] w-full">
             <thead className="bg-slate-50">
               <tr>
                 {['Page', 'Title', 'Description', 'H1', 'Canonical', 'OpenGraph', 'Sitemap', 'Robots'].map((label) => (

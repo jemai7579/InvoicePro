@@ -252,14 +252,14 @@ const Reports = () => {
   ];
 
   return (
-    <div className="max-w-7xl space-y-8 pb-20 animate-in fade-in duration-500">
+    <div className="max-w-7xl space-y-5 pb-20 animate-in fade-in duration-500 sm:space-y-8">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight font-display">{text.title}</h1>
           <p className="text-sm text-slate-500 font-medium">{text.subtitle}</p>
         </div>
 
-        <form onSubmit={handleFilter} className="flex flex-wrap items-end gap-3 w-full lg:w-auto">
+        <form onSubmit={handleFilter} className="grid w-full grid-cols-1 items-end gap-3 min-[375px]:grid-cols-2 lg:flex lg:w-auto lg:flex-wrap">
           <div className="space-y-1.5">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{text.startDate}</label>
             <div className="relative group">
@@ -286,14 +286,14 @@ const Reports = () => {
             </div>
           </div>
 
-          <button type="submit" className="h-[42px] px-6 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-indigo-600 transition-all flex items-center gap-2 shadow-lg shadow-slate-100 active:scale-95">
+          <button type="submit" className="flex h-[42px] items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-slate-100 transition-all hover:bg-indigo-600 active:scale-95 min-[375px]:col-span-2 lg:col-span-1">
             <Filter className="w-3.5 h-3.5" />
             {text.filter}
           </button>
         </form>
       </div>
 
-      <div ref={reportRef} className="space-y-8">
+      <div ref={reportRef} className="space-y-5 sm:space-y-8">
         {fetchError ? (
           <div className="rounded-2xl border border-rose-100 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700">
             {fetchError}
@@ -301,7 +301,7 @@ const Reports = () => {
         ) : null}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
           {kpis.map((kpi) => (
-            <Card key={kpi.label} className="min-w-0 p-6">
+            <Card key={kpi.label} className="min-w-0">
               <div className="flex items-center justify-between mb-4">
                 <div className={`p-2.5 rounded-xl bg-slate-50 ${kpi.color}`}>
                   <kpi.icon className="w-5 h-5" />
@@ -417,7 +417,7 @@ const Reports = () => {
         <button
           onClick={handleExportPDF}
           disabled={isExporting}
-          className="flex items-center gap-3 px-10 py-5 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-indigo-100 hover:-translate-y-1 transition-all group disabled:opacity-50"
+          className="group flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-sm transition-all hover:-translate-y-1 hover:border-indigo-100 hover:shadow-xl disabled:opacity-50 sm:w-auto sm:rounded-[2rem] sm:px-10 sm:py-5"
         >
           <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
             {isExporting ? <Loader className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}

@@ -260,6 +260,16 @@ export const generateInvoiceTeifController = async (req: Request, res: Response)
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: 'TEIF_GENERATION_ATTEMPT',
+      objectType: 'INVOICE',
+      objectId: invoice.id,
+      message: 'Tentative de generation XML TEIF.',
+      ...getRequestAuditMeta(req),
+    });
 
     const { metadata } = await generateInvoiceTeifXml(invoice as any);
     await logActivity({
@@ -281,6 +291,20 @@ export const generateInvoiceTeifController = async (req: Request, res: Response)
     });
   } catch (error: any) {
     console.error('Error generating invoice TEIF', error);
+    const companyId = (req as any).company?.id;
+    if (companyId) {
+      await logActivity({
+        companyId,
+        actorId: companyId,
+        actorType: 'USER',
+        actionType: 'TEIF_GENERATION_FAILED',
+        objectType: 'INVOICE',
+        objectId: req.params.id as string,
+        message: 'Generation XML TEIF echouee.',
+        errorMessage: error.message,
+        ...getRequestAuditMeta(req),
+      }).catch(console.error);
+    }
     res.status(400).json({ message: error.message || 'Failed to generate TEIF XML.' });
   }
 };
@@ -292,6 +316,16 @@ export const signInvoiceTeifController = async (req: Request, res: Response) => 
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: 'SIGNATURE_ATTEMPT',
+      objectType: 'INVOICE',
+      objectId: invoice.id,
+      message: 'Tentative de signature electronique TEIF.',
+      ...getRequestAuditMeta(req),
+    });
 
     const { metadata } = await signInvoiceTeifXml(invoice as any, (req as any).company.id);
     await logActivity({
@@ -775,6 +809,16 @@ export const submitToTTNController = async (req: Request, res: Response) => {
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: 'TTN_SUBMIT_ATTEMPT',
+      objectType: 'TTN_SUBMISSION',
+      objectId: invoice.id,
+      message: 'Tentative de soumission TTN.',
+      ...getRequestAuditMeta(req),
+    });
 
     const result = await submitInvoiceToTTNWorkflow(invoice as any);
     await logActivity({
@@ -795,6 +839,20 @@ export const submitToTTNController = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error submitting to TTN:', error);
+    const companyId = (req as any).company?.id;
+    if (companyId) {
+      await logActivity({
+        companyId,
+        actorId: companyId,
+        actorType: 'USER',
+        actionType: 'TTN_SUBMIT_FAILED',
+        objectType: 'TTN_SUBMISSION',
+        objectId: req.params.id as string,
+        message: 'Soumission TTN echouee.',
+        errorMessage: error.message,
+        ...getRequestAuditMeta(req),
+      }).catch(console.error);
+    }
     res.status(400).json({ message: error.message || 'Server error during TTN submission' });
   }
 };
@@ -806,6 +864,16 @@ export const checkTTNStatusController = async (req: Request, res: Response) => {
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found' });
     }
+    await logActivity({
+      companyId: (req as any).company.id,
+      actorId: (req as any).company.id,
+      actorType: 'USER',
+      actionType: 'TTN_STATUS_CHECK_ATTEMPT',
+      objectType: 'TTN_SUBMISSION',
+      objectId: invoice.id,
+      message: 'Verification du statut TTN.',
+      ...getRequestAuditMeta(req),
+    });
 
     const { simulateDecision } = req.body || {};
     const { result } = await syncInvoiceTTNStatus(invoice as any, simulateDecision || null);
@@ -830,6 +898,20 @@ export const checkTTNStatusController = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error checking TTN status:', error);
+    const companyId = (req as any).company?.id;
+    if (companyId) {
+      await logActivity({
+        companyId,
+        actorId: companyId,
+        actorType: 'USER',
+        actionType: 'TTN_STATUS_CHECK_FAILED',
+        objectType: 'TTN_SUBMISSION',
+        objectId: req.params.id as string,
+        message: 'Verification du statut TTN echouee.',
+        errorMessage: error.message,
+        ...getRequestAuditMeta(req),
+      }).catch(console.error);
+    }
     res.status(400).json({ message: error.message || 'Unable to sync TTN status.' });
   }
 };

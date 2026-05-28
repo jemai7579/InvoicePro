@@ -196,12 +196,12 @@ const EInvoiceGuide = () => {
       </nav>
 
       <main className="mx-auto max-w-7xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
-        <header className="overflow-hidden rounded-[2rem] border border-indigo-100 bg-white p-8 shadow-xl shadow-slate-200/50 md:p-12">
+        <header className="overflow-hidden rounded-2xl border border-indigo-100 bg-white p-4 shadow-xl shadow-slate-200/50 sm:p-8 sm:rounded-[2rem] md:p-12">
           <div className="max-w-4xl">
             <Badge variant="primary" className="mb-5 px-4 py-2 font-black">
               Guide e-Facture
             </Badge>
-            <h1 className="text-4xl font-black tracking-tight text-slate-950 md:text-6xl">
+            <h1 className="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl md:text-6xl">
               Comprendre la facture électronique
             </h1>
             <p className="mt-5 text-lg font-medium leading-8 text-slate-600">

@@ -5,6 +5,8 @@ import { AuthContext } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import BrandLogo from '../components/BrandLogo';
 
+const AUTH_RATE_LIMIT_MESSAGE = 'Too many failed login attempts. Please wait a few minutes before trying again.';
+
 const testimonialByLang = {
   fr: {
     quote: 'Une plateforme claire pour preparer, envoyer et suivre nos factures electroniques en toute confiance.',
@@ -44,8 +46,11 @@ const Login = () => {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      console.error('Failed to login', err);
-      setError(err.response?.data?.message || err.userMessage || t('error.invalidCredentials'));
+      setError(
+        err.response?.data?.code === 'AUTH_TOO_MANY_FAILED_ATTEMPTS'
+          ? AUTH_RATE_LIMIT_MESSAGE
+          : err.response?.data?.message || err.userMessage || t('error.invalidCredentials')
+      );
     } finally {
       setLoading(false);
     }

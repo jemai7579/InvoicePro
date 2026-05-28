@@ -77,6 +77,9 @@ export const STATUS_LABELS: Record<'fr' | 'en' | 'ar', Record<string, string>> =
   },
 };
 
+const isLegalTtnAcceptance = (mode?: string | null, reference?: string | null) =>
+  mode === 'production' && Boolean(reference);
+
 const LEGACY_STATUS_MAP: Record<string, ComplianceWorkflowStatus> = {
   DRAFT: 'DRAFT',
   READY_FOR_TEIF: 'VALIDATED',
@@ -96,7 +99,6 @@ const LEGACY_STATUS_MAP: Record<string, ComplianceWorkflowStatus> = {
   REJECTED: 'REJECTED_TTN',
   REJECTED_TTN: 'REJECTED_TTN',
   CANCELLED: 'CANCELLED',
-  PAID: 'ACCEPTED_TTN',
 };
 
 const normalizeWorkflowStatus = (status?: string | null): ComplianceWorkflowStatus | null =>
@@ -239,11 +241,15 @@ export const validateTeifXml = async (invoice: FullInvoice) => {
   };
 };
 
-export const generateInvoiceTeifXml = async (invoice: FullInvoice) => {
+export const assertCanGenerateTEIF = async (invoice: FullInvoice) => {
   const validation = await validateTeifXml(invoice);
   if (!validation.valid) {
     throw new Error(validation.errors.join(' '));
   }
+};
+
+export const generateInvoiceTeifXml = async (invoice: FullInvoice) => {
+  await assertCanGenerateTEIF(invoice);
 
   const xml = generateTeifXml(invoice);
   const xmlHash = crypto.createHash('sha256').update(xml, 'utf8').digest('hex');
@@ -297,11 +303,23 @@ export const getDownloadableTeifXml = async (invoice: FullInvoice) => {
   return generated.xml;
 };
 
-export const signInvoiceTeifXml = async (invoice: FullInvoice, signedByUserId?: string | null) => {
+export const assertCanSignTEIF = async (invoice: FullInvoice) => {
   const dossier = getCompanyDossierStatus(invoice.company);
   if (!dossier.complete) {
     throw new Error(`Dossier entreprise incomplet: ${dossier.missingFields.join(', ')}`);
   }
+  const metadata = await readComplianceMetadata(invoice.companyId, invoice.id);
+  const xml = metadata.teifXmlPath ? await readComplianceArtifact(metadata.teifXmlPath) : null;
+  if (!metadata.teifXmlPath || !xml) {
+    throw new Error('Veuillez generer le fichier XML TEIF avant la signature.');
+  }
+  if (getEInvoiceConfig().isProductionMode && metadata.signatureIsMock) {
+    throw new Error('MOCK_SIGNATURE_NOT_ALLOWED: Signature simulee interdite en production.');
+  }
+};
+
+export const signInvoiceTeifXml = async (invoice: FullInvoice, signedByUserId?: string | null) => {
+  await assertCanSignTEIF(invoice);
 
   const metadata = await readComplianceMetadata(invoice.companyId, invoice.id);
   const xml = metadata.teifXmlPath
@@ -314,6 +332,7 @@ export const signInvoiceTeifXml = async (invoice: FullInvoice, signedByUserId?: 
 
   const provider = getSignatureProvider();
   const result = await provider.signTeifXml(xml, invoice.company);
+  const signatureHash = crypto.createHash('sha256').update(result.signedXml, 'utf8').digest('hex');
   if (!result.verified) {
     await appendComplianceStatus(
       invoice.companyId,
@@ -341,11 +360,14 @@ export const signInvoiceTeifXml = async (invoice: FullInvoice, signedByUserId?: 
       lastSignatureTestDate: result.signedAt,
       signatureStatus: result.mode === 'mock' ? 'mock_signed' : 'signed',
       signatureTimestamp: result.signedAt,
+      signatureHash,
+      signatureIsMock: result.mode === 'mock',
+      signatureValidationStatus: result.verified ? 'verified' : 'failed',
       signedByUserId: signedByUserId || null,
       certificateIdentifier: result.certificateIdentifier || null,
       complianceMode: result.mode === 'mock' ? 'mock' : getEInvoiceConfig().mode === 'sandbox' ? 'test' : 'production',
     },
-    'Electronic signature completed'
+    result.mode === 'mock' ? 'Signature simulee - non legale' : 'Electronic signature completed'
   );
 
   await prisma.invoice.update({
@@ -353,7 +375,7 @@ export const signInvoiceTeifXml = async (invoice: FullInvoice, signedByUserId?: 
     data: {
       status: 'SIGNED' as any,
       ttnStatus: 'SIGNED',
-      legalStatus: 'signed',
+      legalStatus: result.mode === 'mock' ? 'signature_simulation_non_legal' : 'signed',
       signedXmlPath,
       signatureStatus: result.mode === 'mock' ? 'mock_signed' : 'signed',
       signatureTimestamp: new Date(result.signedAt),
@@ -365,21 +387,33 @@ export const signInvoiceTeifXml = async (invoice: FullInvoice, signedByUserId?: 
   return { signedXml: result.signedXml, metadata: nextMetadata };
 };
 
-export const submitInvoiceToTTNWorkflow = async (invoice: FullInvoice) => {
+export const assertCanSubmitToTTN = async (invoice: FullInvoice) => {
   const dossier = getCompanyDossierStatus(invoice.company);
   if (!dossier.complete) {
     throw new Error(`Dossier entreprise incomplet: ${dossier.missingFields.join(', ')}`);
   }
+  const metadata = await readComplianceMetadata(invoice.companyId, invoice.id);
+  const signedXml = metadata.signedXmlPath
+    ? (await readComplianceArtifact(metadata.signedXmlPath))?.toString('utf-8')
+    : null;
+  if (!metadata.teifXmlPath) {
+    throw new Error("Veuillez generer le fichier XML TEIF avant l'envoi a TTN.");
+  }
+  if (!signedXml) {
+    throw new Error("Signature electronique requise avant l'envoi a TTN.");
+  }
+  if (getEInvoiceConfig().isProductionMode && metadata.signatureIsMock) {
+    throw new Error('MOCK_SIGNATURE_NOT_ALLOWED: Signature simulee interdite pour une soumission TTN production.');
+  }
+};
+
+export const submitInvoiceToTTNWorkflow = async (invoice: FullInvoice) => {
+  await assertCanSubmitToTTN(invoice);
 
   const metadata = await readComplianceMetadata(invoice.companyId, invoice.id);
   const signedXml = metadata.signedXmlPath
     ? (await readComplianceArtifact(metadata.signedXmlPath))?.toString('utf-8')
     : null;
-
-  if (!metadata.teifXmlPath) {
-    throw new Error("Veuillez generer le fichier XML TEIF avant l'envoi a TTN.");
-  }
-
   if (!signedXml) {
     throw new Error("Signature electronique requise avant l'envoi a TTN.");
   }
@@ -496,15 +530,17 @@ export const syncInvoiceTTNStatus = async (
     ? await saveComplianceArtifact(invoice.companyId, invoice.id, 'teif.approved.xml', result.approvedXmlContent)
     : metadata.signedXmlPath;
 
+  const legalAcceptance = isLegalTtnAcceptance(result.mode, result.ttnReference || metadata.ttnReference || null);
   const nextMetadata = await appendComplianceStatus(
     invoice.companyId,
     invoice.id,
     'ACCEPTED_TTN',
     {
       signedXmlPath: approvedXmlPath,
-      ttnReference: result.ttnReference || metadata.ttnReference || null,
-      ttnQrCode: result.qrCodeData || metadata.ttnQrCode || null,
-      ttnAcceptedAt: new Date().toISOString(),
+      complianceMode: result.mode === 'mock' ? 'mock' : result.mode === 'sandbox' ? 'test' : 'production',
+      ttnReference: legalAcceptance ? result.ttnReference || metadata.ttnReference || null : null,
+      ttnQrCode: legalAcceptance ? result.qrCodeData || metadata.ttnQrCode || null : null,
+      ttnAcceptedAt: legalAcceptance ? new Date().toISOString() : null,
       lastTtnSyncAt: new Date().toISOString(),
       mockDecision: simulationDecision || metadata.mockDecision || null,
     },
@@ -516,9 +552,9 @@ export const syncInvoiceTTNStatus = async (
     data: {
       status: 'ACCEPTED_TTN' as any,
       ttnStatus: 'ACCEPTED_TTN',
-      ttnId: result.ttnReference || metadata.ttnSubmissionId || metadata.ttnReference || null,
-      ttnReference: result.ttnReference || metadata.ttnReference || null,
-      legalStatus: 'accepted_by_ttn',
+      ttnId: legalAcceptance ? result.ttnReference || metadata.ttnReference || null : metadata.ttnSubmissionId || null,
+      ttnReference: legalAcceptance ? result.ttnReference || metadata.ttnReference || null : null,
+      legalStatus: legalAcceptance ? 'accepted_by_ttn' : 'ttn_simulation_accepted_non_legal',
     },
   });
 
@@ -529,8 +565,8 @@ export const finalizeInvoicePdf = async (invoice: FullInvoice) => {
   const metadata = await readComplianceMetadata(invoice.companyId, invoice.id);
   const currentStatus = getInvoiceComplianceStatus(invoice, metadata);
 
-  if (currentStatus !== 'ACCEPTED_TTN') {
-    throw new Error('La facture finale est disponible uniquement apres acceptation TTN.');
+  if (currentStatus !== 'ACCEPTED_TTN' || !isLegalTtnAcceptance(metadata.complianceMode, metadata.ttnReference)) {
+    throw new Error('La facture finale legale est disponible uniquement apres acceptation TTN officielle en production.');
   }
 
   const pdfBuffer = await generatePdf(invoice, 'FACTURE', metadata);
@@ -587,12 +623,21 @@ export const enrichInvoiceWithCompliance = async <T extends Invoice & { companyI
     amountInWords: numberToWordsTND(Number((invoice as any).netToPay || 0)),
     paymentMethod: 'Espèce',
     complianceStatus,
-    legalStatus: (invoice as any).legalStatus || legalStatusMap[complianceStatus] || 'draft',
+    legalStatus:
+      complianceStatus === 'ACCEPTED_TTN' && !isLegalTtnAcceptance(metadata.complianceMode, metadata.ttnReference)
+        ? 'ttn_simulation_accepted_non_legal'
+        : (invoice as any).legalStatus || legalStatusMap[complianceStatus] || 'draft',
     teifStatus: metadata.teifXmlPath ? 'generated' : complianceStatus === 'REJECTED_TTN' ? 'validation_failed' : 'not_generated',
     signatureStatus: metadata.signatureStatus || (invoice as any).signatureStatus || 'not_signed',
     ttnStatus: metadata.ttnReference ? 'accepted_by_ttn' : (invoice as any).ttnStatus || complianceStatus,
-    complianceLabelFr: getComplianceLabel(complianceStatus, 'fr'),
-    complianceLabelEn: getComplianceLabel(complianceStatus, 'en'),
+    complianceLabelFr:
+      complianceStatus === 'ACCEPTED_TTN' && !isLegalTtnAcceptance(metadata.complianceMode, metadata.ttnReference)
+        ? 'Simulation TTN acceptee - non legal'
+        : getComplianceLabel(complianceStatus, 'fr'),
+    complianceLabelEn:
+      complianceStatus === 'ACCEPTED_TTN' && !isLegalTtnAcceptance(metadata.complianceMode, metadata.ttnReference)
+        ? 'TTN simulation accepted - not legal'
+        : getComplianceLabel(complianceStatus, 'en'),
     complianceLabelAr: getComplianceLabel(complianceStatus, 'ar'),
     complianceTimeline: metadata.statusHistory || [],
     teifXmlPath: metadata.teifXmlPath || null,
@@ -602,7 +647,7 @@ export const enrichInvoiceWithCompliance = async <T extends Invoice & { companyI
     signedXmlPath: metadata.signedXmlPath || null,
     finalizedPdfPath: metadata.finalizedPdfPath || null,
     ttnSubmissionId: metadata.ttnSubmissionId || null,
-    ttnReference: metadata.ttnReference || invoice.ttnId || null,
+    ttnReference: metadata.ttnReference || null,
     ttnRejectionReason: metadata.ttnRejectionReason || null,
     rejectedReason: metadata.ttnRejectionReason || null,
     ttnQrCode: metadata.ttnQrCode || null,

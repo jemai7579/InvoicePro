@@ -122,11 +122,20 @@ export const getEInvoiceReadiness = (company?: CompanyDossierInput | null) => {
   const ttnConfigured = getTTNConfigured();
   const dossier = getCompanyDossierStatus(company);
   const missingRequirements: string[] = [];
+  const warnings: string[] = [];
+  const nextActions: string[] = [];
 
   if (!teifConfigured) missingRequirements.push('Official TTN TEIF XSD not configured');
   if (!signatureConfigured) missingRequirements.push('Signature provider not configured');
   if (!ttnConfigured) missingRequirements.push('TTN API credentials missing');
   if (!dossier.complete) missingRequirements.push(`Company dossier incomplete: ${dossier.missingFields.join(', ')}`);
+  if (config.isMockMode) warnings.push('Mode simulation actif - non legal.');
+  if (config.isSandboxMode) warnings.push('Mode sandbox/test - non legal.');
+  if (!dossier.complete) nextActions.push('Completer le dossier entreprise.');
+  if (!teifConfigured) nextActions.push('Configurer le XSD TEIF officiel.');
+  if (!signatureConfigured) nextActions.push('Configurer une signature electronique reelle.');
+  if (!ttnConfigured) nextActions.push('Configurer les endpoints et secrets TTN officiels.');
+  const productionReady = config.isProductionMode && teifConfigured && signatureConfigured && ttnConfigured && dossier.complete;
 
   return {
     mode: config.mode,
@@ -137,8 +146,18 @@ export const getEInvoiceReadiness = (company?: CompanyDossierInput | null) => {
     companyDossierStatus: dossier.status,
     companyDossierComplete: dossier.complete,
     companyDossierMissingFields: dossier.missingFields,
-    canIssueLegalInvoices: config.isProductionMode && teifConfigured && signatureConfigured && ttnConfigured && dossier.complete,
+    canIssueLegalInvoices: productionReady,
     missingRequirements,
+    companyFileComplete: dossier.complete,
+    teifGenerationReady: dossier.complete,
+    officialXsdConfigured: teifConfigured,
+    signatureProviderConfigured: signatureConfigured,
+    realSignatureReady: config.isProductionMode && signatureConfigured,
+    sandboxReady: config.isSandboxMode && teifConfigured && signatureConfigured && ttnConfigured && dossier.complete,
+    productionReady,
+    blockingReasons: missingRequirements,
+    warnings,
+    nextActions,
   };
 };
 
@@ -161,3 +180,7 @@ export const assertProductionTTNConfigured = () => {
     throw new Error('TTN_API_NOT_CONFIGURED: Please configure official TTN API credentials and endpoints before production use.');
   }
 };
+
+export const assertNoMockProviderInProduction = assertNoMockInProduction;
+
+export const assertProductionSignatureProviderConfigured = assertProductionSignatureConfigured;

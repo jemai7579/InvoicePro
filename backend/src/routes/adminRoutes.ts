@@ -18,6 +18,10 @@ import {
   exportAdminLogsCsv,
   sendGlobalNotification,
   deleteCompany,
+  approveCompany,
+  blockCompany,
+  unblockCompany,
+  addCompanyAccessDays,
   updateCompanyPlan,
   getCompanyById,
   getPlatformUsers,
@@ -65,6 +69,10 @@ router.get('/overview', getGlobalStats);
 // Companies
 router.get('/companies', getCompanies);
 router.get('/companies/:id', getCompanyById);
+router.patch('/companies/:id/approve', approveCompany);
+router.patch('/companies/:id/block', blockCompany);
+router.patch('/companies/:id/unblock', unblockCompany);
+router.post('/companies/:id/add-access-days', addCompanyAccessDays);
 router.put('/companies/:id/status', updateCompanyStatus);
 router.put('/companies/:id/dossier-status', updateCompanyDossierStatus);
 router.put('/companies/:id/plan', updateCompanyPlan);
@@ -94,8 +102,10 @@ router.put('/payments/:id', upsertPayment);
 
 // Support
 router.get('/support', getSupportOverview);
+router.get('/support-requests', getSupportOverview);
 router.post('/support', createSupportTicket);
 router.put('/support/:id', updateSupportTicket);
+router.patch('/support-requests/:id/status', updateSupportTicket);
 router.post('/support/:id/reply', replySupportTicket);
 
 // System errors
@@ -111,7 +121,9 @@ router.get('/tva-rates', getTvaRates);
 router.post('/tva-rates', upsertTvaRate);
 router.put('/tva-rates/:id', upsertTvaRate);
 router.get('/integrations/status', getIntegrationsStatus);
+router.get('/integrations', getIntegrationsStatus);
 router.put('/integrations/:id', updateIntegration);
+router.patch('/integrations/:id', updateIntegration);
 router.post('/integrations/:id/test', testIntegration);
 
 // Analytics & SEO

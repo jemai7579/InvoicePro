@@ -33,6 +33,7 @@ const NAV_ITEMS = [
   { id: 'compliance', path: '/admin/compliance', label: 'Conformite TEIF / Signature', icon: FileCode2 },
   { id: 'payments', path: '/admin/payments', label: 'Paiements', icon: Wallet },
   { id: 'support', path: '/admin/support', label: 'Support & tickets', icon: HelpCircle },
+  { id: 'integrations', path: '/admin/integrations', label: 'Integrations', icon: Settings },
   { id: 'activity', path: '/admin/activity-logs', label: "Logs d'activite", icon: Activity, aliases: ['/admin/activity'] },
   { id: 'errors', path: '/admin/system-errors', label: 'Erreurs systeme', icon: AlertTriangle },
   { id: 'settings', path: '/admin/settings', label: 'Parametres plateforme', icon: Settings },
@@ -49,6 +50,7 @@ const SUBTITLES = {
   compliance: 'Visualisez TEIF, signature et readiness de production.',
   payments: 'Suivez paiements plateforme et factures client.',
   support: 'Gerez les tickets entre clients et admin.',
+  integrations: 'Configurez TTN, AI, SMTP et autres connexions securisees.',
   activity: 'Recherchez les actions sensibles et exportez la piste audit.',
   errors: 'Suivez les erreurs operationnelles et leur resolution.',
   settings: 'Configurez parametres, integrations et notifications globales.',
@@ -84,7 +86,7 @@ const AdminLayout = () => {
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 start-0 z-50 flex w-72 flex-col bg-slate-900 text-white transition-transform duration-300 ${
+        className={`fixed inset-y-0 start-0 z-50 flex w-[min(18rem,calc(100vw-2rem))] flex-col bg-slate-900 text-white transition-transform duration-300 md:w-72 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } md:static md:translate-x-0`}
       >
@@ -142,19 +144,19 @@ const AdminLayout = () => {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-16 min-w-0 items-center justify-between gap-2 border-b border-slate-100 bg-white px-3 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <button type="button" onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100">
               <Menu className="w-6 h-6" />
             </button>
-            <div>
-              <h1 className="text-lg font-black text-slate-900 tracking-tight">{currentItem.label}</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{SUBTITLES[currentItem.id]}</p>
+            <div className="min-w-0">
+              <h1 className="truncate text-base font-black text-slate-900 tracking-tight sm:text-lg">{currentItem.label}</h1>
+              <p className="hidden truncate text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 sm:block">{SUBTITLES[currentItem.id]}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Plateforme active
@@ -165,7 +167,7 @@ const AdminLayout = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-8">
+        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 lg:p-8">
           <Outlet />
         </main>
       </div>

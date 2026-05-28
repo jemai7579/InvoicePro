@@ -222,6 +222,8 @@ const Dashboard = () => {
     totalInvoices: 0,
     paidInvoices: 0,
     totalRevenue: 0,
+    totalUnpaid: 0,
+    overdueInvoices: 0,
     recentInvoices: [],
     recentClients: [],
     globalProgress: 0,
@@ -237,30 +239,17 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [clientsRes, invoicesRes, settingsRes, projectsRes, quotesRes] = await Promise.all([
-          api.get('/clients'),
-          api.get('/invoices'),
-          api.get('/settings'),
-          api.get('/projects').catch(() => ({ data: [] })),
-          api.get('/devis').catch(() => ({ data: [] })),
-        ]);
+        const { data } = await api.get('/dashboard/summary');
+        const totals = data.totals || {};
+        const readiness = data.companyReadiness || {};
+        const progress = data.progress || {};
+        const recentClients = data.recentClients || [];
+        const recentInvoices = data.recentInvoices || [];
 
-        const clients = clientsRes.data || [];
-        const invoices = invoicesRes.data || [];
-        const settings = settingsRes.data || {};
-        const projects = projectsRes.data || [];
-        const quotes = quotesRes.data || [];
-
-        const paidInvoices = invoices.filter((invoice) => ['ACCEPTED_TTN', 'VALIDATED'].includes(invoice.complianceStatus || invoice.status));
-        const pendingTtn = invoices.filter((invoice) => ['SENT_TO_TTN', 'PENDING_TTN'].includes(invoice.complianceStatus || invoice.ttnStatus || invoice.status));
-        const totalRevenue = paidInvoices.reduce((sum, invoice) => sum + Number(invoice.netToPay || 0), 0);
-        const acceptedProjects = projects.filter((project) => project.status === 'ACCEPTED').length;
-        const acceptedQuotes = quotes.filter((quote) => quote.status === 'ACCEPTED' || quote.status === 'CONVERTED_TO_INVOICE').length;
-
-        const profileComplete = !!(settings.name && settings.matriculeFiscal && settings.address);
-        const hasClients = clients.length > 0;
-        const hasCertificate = settings?.compliance?.signatureStatus === 'configured';
-        const hasEHouwiyaCheckpoint = ['HAS_IDENTIFIER', 'NEED_HELP', 'NOT_SURE'].includes(settings?.eHouwiyaStatus);
+        const profileComplete = Boolean(readiness.profileComplete);
+        const hasClients = totals.clients > 0;
+        const hasCertificate = Boolean(readiness.signatureConfigured);
+        const hasEHouwiyaCheckpoint = hasCertificate;
         let currentStep = 0;
         let completed = 0;
         if (profileComplete) {
@@ -276,12 +265,7 @@ const Dashboard = () => {
           currentStep = 3;
         }
 
-        const progressValues = [
-          clients.length > 0 ? 100 : 0,
-          projects.length > 0 ? (acceptedProjects / Math.max(projects.length, 1)) * 100 : 0,
-          quotes.length > 0 ? (acceptedQuotes / Math.max(quotes.length, 1)) * 100 : 0,
-          invoices.length > 0 ? (paidInvoices.length / Math.max(invoices.length, 1)) * 100 : 0,
-        ];
+        const progressValues = [progress.clients || 0, progress.projects || 0, progress.quotes || 0, progress.invoices || 0];
 
         setOnboarding({
           percent: Math.round((completed / 3) * 100),
@@ -289,20 +273,22 @@ const Dashboard = () => {
         });
 
         setStats({
-          totalClients: clients.length,
-          totalProjects: projects.length,
-          totalQuotes: quotes.length,
-          totalInvoices: invoices.length,
-          paidInvoices: paidInvoices.length,
-          totalRevenue,
-          recentInvoices: invoices.slice(0, 5),
-          recentClients: clients.slice(0, 5),
+          totalClients: totals.clients || 0,
+          totalProjects: totals.projects || 0,
+          totalQuotes: totals.quotes || 0,
+          totalInvoices: totals.invoices || 0,
+          paidInvoices: totals.paidInvoices || 0,
+          totalRevenue: totals.totalRevenue || 0,
+          totalUnpaid: totals.totalUnpaid || 0,
+          overdueInvoices: totals.overdueInvoices || 0,
+          recentInvoices,
+          recentClients,
           globalProgress: Math.round(progressValues.reduce((sum, value) => sum + value, 0) / progressValues.length),
           compliance: {
-            signatureConfigured: hasCertificate || settings?.eHouwiyaStatus === 'HAS_IDENTIFIER',
-            ttnMode: settings?.compliance?.ttnMode || 'mock',
-            pendingTtn: pendingTtn.length,
-            lastSubmission: settings?.compliance?.lastSubmission || null,
+            signatureConfigured: hasCertificate,
+            ttnMode: readiness.ttnMode || 'mock',
+            pendingTtn: readiness.pendingTtn || 0,
+            lastSubmission: null,
           },
         });
       } catch (error) {
@@ -338,21 +324,21 @@ const Dashboard = () => {
     <>
       <WorkflowModal open={showWorkflow} onClose={() => setShowWorkflow(false)} text={text} />
 
-      <div className="space-y-8 pb-20">
+      <div className="space-y-5 pb-20 sm:space-y-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-slate-500">{text.hello} {companyName}</p>
             <h1 className="text-2xl font-black text-slate-900 font-display tracking-tight">{text.title}</h1>
             <p className="text-sm text-slate-500 font-medium">{text.subtitle}</p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Button variant="secondary" onClick={() => setShowWorkflow(true)} icon={Lightbulb} size="sm">
+          <div className="grid w-full grid-cols-1 gap-2 min-[375px]:grid-cols-2 sm:flex sm:w-auto sm:flex-wrap sm:gap-3">
+            <Button variant="secondary" onClick={() => setShowWorkflow(true)} icon={Lightbulb} size="sm" className="w-full sm:w-auto">
               {text.workflowButton}
             </Button>
-            <Button onClick={() => navigate('/invoices')} icon={Plus} size="sm">
+            <Button onClick={() => navigate('/invoices')} icon={Plus} size="sm" className="w-full sm:w-auto">
               {text.newInvoice}
             </Button>
-            <Button variant="secondary" onClick={() => navigate('/projects')} icon={FolderKanban} size="sm">
+            <Button variant="secondary" onClick={() => navigate('/projects')} icon={FolderKanban} size="sm" className="w-full min-[375px]:col-span-2 sm:w-auto">
               {text.newProject}
             </Button>
           </div>
@@ -371,9 +357,9 @@ const Dashboard = () => {
         </Card>
 
         {onboarding.percent < 100 ? (
-          <div className="bg-white border border-slate-100 rounded-[2rem] p-8 shadow-sm relative overflow-hidden">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-8">
             <div className="max-w-2xl mx-auto">
-              <div className="text-center mb-8">
+              <div className="mb-5 text-center sm:mb-8">
                 <h2 className="text-lg font-black mb-1 text-slate-900 font-display">{text.setupTitle}</h2>
                 <p className="text-slate-500 text-xs font-medium">{text.setupSubtitle}</p>
               </div>
@@ -384,7 +370,7 @@ const Dashboard = () => {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 gap-3 min-[375px]:grid-cols-2 md:grid-cols-2 md:gap-6 xl:grid-cols-5">
           <Card variant="premium" className="pt-6 pb-2">
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -491,7 +477,7 @@ const Dashboard = () => {
             noPadding
             action={<Link to="/invoices" className="text-xs text-premium-600 hover:text-premium-800 font-bold uppercase tracking-wider transition-colors">Voir tout</Link>}
           >
-            <div className="overflow-x-auto">
+            <div className="touch-scroll overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-100">
                 <thead className="bg-slate-50/50">
                   <tr>
@@ -525,7 +511,7 @@ const Dashboard = () => {
             noPadding
             action={<Link to="/clients" className="text-xs text-premium-600 hover:text-premium-800 font-bold uppercase tracking-wider transition-colors">Voir tout</Link>}
           >
-            <div className="overflow-x-auto">
+            <div className="touch-scroll overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-100">
                 <thead className="bg-slate-50/50">
                   <tr>

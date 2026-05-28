@@ -172,7 +172,7 @@ const Payments = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-5 pb-20 sm:space-y-6">
       <div>
         <h1 className="text-2xl font-black text-slate-900 font-display">Règlements</h1>
         <p className="text-sm text-slate-500 font-medium">Un règlement intervient après la facture. Il sert à suivre si le client a payé, combien il a payé, et combien reste à payer.</p>
@@ -264,9 +264,9 @@ const Payments = () => {
               ) : null}
             </div>
           ) : null}
-          <div className="md:col-span-3 flex flex-wrap gap-3">
-            <Button type="submit" loading={submitting} disabled={submitting || amountIsInvalid}>{editingId ? 'Enregistrer les modifications' : 'Enregistrer le règlement'}</Button>
-            {editingId ? <Button type="button" variant="secondary" onClick={resetForm}>Annuler</Button> : null}
+          <div className="flex flex-col gap-3 min-[375px]:flex-row md:col-span-3">
+            <Button type="submit" className="w-full min-[375px]:w-auto" loading={submitting} disabled={submitting || amountIsInvalid}>{editingId ? 'Enregistrer les modifications' : 'Enregistrer le règlement'}</Button>
+            {editingId ? <Button type="button" className="w-full min-[375px]:w-auto" variant="secondary" onClick={resetForm}>Annuler</Button> : null}
           </div>
         </form>
       </Card>
@@ -279,7 +279,7 @@ const Payments = () => {
         ) : (
           <div className="divide-y divide-slate-100">
             {invoiceSummaries.slice(0, 6).map(({ invoice, totalPaid, invoiceTotal, remaining, paymentStatus }) => (
-              <div key={invoice.id} className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div key={invoice.id} className="flex flex-col justify-between gap-3 p-4 sm:p-5 lg:flex-row lg:items-center">
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="text-xs font-black text-slate-400">{invoice.invoiceNumber || invoice.number || invoice.id.slice(0, 8)}</span>
@@ -290,7 +290,7 @@ const Payments = () => {
                     Total facture: {formatMoney(invoiceTotal)} TND · Déjà payé: {formatMoney(totalPaid)} TND · Reste à payer: {formatMoney(remaining)} TND
                   </p>
                 </div>
-                <Button size="sm" variant="secondary" onClick={() => setForm({ ...emptyForm, invoiceId: invoice.id, amount: remaining > 0 ? formatMoney(remaining) : '' })}>
+                <Button className="w-full lg:w-auto" size="sm" variant="secondary" onClick={() => setForm({ ...emptyForm, invoiceId: invoice.id, amount: remaining > 0 ? formatMoney(remaining) : '' })}>
                   {paymentStatus === 'PAID' ? 'Voir règlements' : 'Ajouter un règlement'}
                 </Button>
               </div>
@@ -307,7 +307,7 @@ const Payments = () => {
         ) : (
           <div className="divide-y divide-slate-100">
             {payments.map((payment) => (
-              <div key={payment.id} className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div key={payment.id} className="flex flex-col justify-between gap-3 p-4 sm:p-5 lg:flex-row lg:items-center">
                 <div>
                   <div className="flex flex-wrap items-center gap-2 mb-2">
                     <Badge variant={statusVariant(payment.status)}>{statusLabels[payment.status] || payment.status}</Badge>
@@ -316,12 +316,12 @@ const Payments = () => {
                   <p className="text-sm font-black text-slate-900">{Number(payment.amount || 0).toFixed(3)} TND</p>
                   <p className="text-xs text-slate-500">{payment.invoice?.number || payment.invoiceId} · {payment.invoice?.client?.name || 'Client'} · {new Date(payment.paymentDate).toLocaleDateString('fr-TN')}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="secondary" icon={Edit3} onClick={() => editPayment(payment)}>Modifier</Button>
-                  <Button size="sm" icon={CheckCircle2} loading={busyId === payment.id} onClick={() => mutatePayment(payment, { status: 'PAID' }, 'Règlement marqué comme payé.')}>Marquer payé</Button>
-                  <Button size="sm" variant="secondary" loading={busyId === payment.id} onClick={() => mutatePayment(payment, { status: 'PARTIALLY_PAID' }, 'Règlement marqué comme partiel.')}>Partiel</Button>
-                  <Button size="sm" variant="secondary" icon={XCircle} loading={busyId === payment.id} onClick={() => mutatePayment(payment, { status: 'CANCELLED' }, 'Règlement annulé.')}>Annuler</Button>
-                  <Button size="sm" variant="ghost" icon={Trash2} loading={busyId === payment.id} onClick={() => deletePayment(payment)}>Supprimer</Button>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  <Button className="w-full sm:w-auto" size="sm" variant="secondary" icon={Edit3} onClick={() => editPayment(payment)}>Modifier</Button>
+                  <Button className="w-full sm:w-auto" size="sm" icon={CheckCircle2} loading={busyId === payment.id} onClick={() => mutatePayment(payment, { status: 'PAID' }, 'Règlement marqué comme payé.')}>Marquer payé</Button>
+                  <Button className="w-full sm:w-auto" size="sm" variant="secondary" loading={busyId === payment.id} onClick={() => mutatePayment(payment, { status: 'PARTIALLY_PAID' }, 'Règlement marqué comme partiel.')}>Partiel</Button>
+                  <Button className="w-full sm:w-auto" size="sm" variant="secondary" icon={XCircle} loading={busyId === payment.id} onClick={() => mutatePayment(payment, { status: 'CANCELLED' }, 'Règlement annulé.')}>Annuler</Button>
+                  <Button className="col-span-2 w-full sm:w-auto" size="sm" variant="ghost" icon={Trash2} loading={busyId === payment.id} onClick={() => deletePayment(payment)}>Supprimer</Button>
                 </div>
               </div>
             ))}

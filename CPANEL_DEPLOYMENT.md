@@ -75,6 +75,8 @@ Never use `prisma migrate dev` or `prisma db push` on the production database. P
 npx prisma migrate deploy
 ```
 
+The `20260526_auth_ai_usage_protection` migration is required before deploying this release. It adds persistence for hashed failed-login windows and monthly per-company AI token usage.
+
 ## Required Production Variables
 
 General production configuration:
@@ -86,11 +88,20 @@ PORT=5005
 DATABASE_URL="postgresql://DB_USER:STRONG_DB_PASSWORD@DB_HOST:5432/DB_NAME?schema=public"
 JWT_SECRET="GENERATE_A_UNIQUE_RANDOM_SECRET_AT_LEAST_48_CHARACTERS_LONG"
 JWT_EXPIRES_IN="12h"
-FRONTEND_URL="https://app.example.com"
+FRONTEND_URL="https://invoicepro.tn"
 E_INVOICE_MODE=sandbox
+AUTH_FAILED_LOGIN_MAX=10
+AUTH_FAILED_LOGIN_WINDOW_MINUTES=15
+REGISTER_RATE_LIMIT_MAX=20
+REGISTER_RATE_LIMIT_WINDOW_MINUTES=60
+AI_MONTHLY_TOKEN_LIMIT=250000
+GENERAL_RATE_LIMIT_MAX=5000
+GENERAL_RATE_LIMIT_WINDOW_MS=900000
 ```
 
 Use `E_INVOICE_MODE=sandbox` only for non-legal testing with official sandbox configuration. Production startup refuses `mock`. The legal production workflow is blocked until the official TTN implementation is completed.
+
+The backend trusts one cPanel/Passenger reverse-proxy hop. Normal API routes are not throttled by shared proxy IP. Failed login protection uses a database-backed hashed email/IP key, account registration has a soft anti-spam limit, and AI usage is enforced as a monthly per-company token quota. `GENERAL_RATE_LIMIT_*` is a documented emergency ceiling for a future deliberately enabled infrastructure guard; it is not mounted over normal application routes by default.
 
 Optional features:
 
@@ -106,7 +117,7 @@ GEMINI_API_KEY=""
 Frontend build-time production variable:
 
 ```env
-VITE_API_URL=https://api.example.com/api
+VITE_API_URL=https://api.invoicepro.tn/api
 VITE_BASE_PATH=/
 ```
 

@@ -105,16 +105,17 @@ const Landing = () => {
 
       {/* ── Navigation ── */}
       <nav className="fixed top-0 w-full z-[100] transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-3 sm:mt-4">
+        <div className="mx-auto mt-2 max-w-7xl px-2 sm:mt-4 sm:px-6 lg:px-8">
           {/* Main bar */}
-          <div className="bg-white/80 backdrop-blur-xl border border-white/50 shadow-lg shadow-slate-200/50 rounded-2xl sm:rounded-[2rem] h-14 sm:h-20 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="relative flex h-14 min-w-0 items-center justify-between gap-1.5 overflow-hidden rounded-2xl border border-white/50 bg-white/80 px-2.5 shadow-lg shadow-slate-200/50 backdrop-blur-xl sm:h-20 sm:gap-4 sm:overflow-visible sm:rounded-[2rem] sm:px-6 lg:px-8">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
-              <BrandLogo className="h-9 w-auto max-w-[180px] sm:h-11 sm:max-w-[220px]" />
+            <Link to="/" className="group flex min-w-0 shrink items-center">
+              <BrandLogo variant="icon" className="h-9 w-9 shrink-0 sm:hidden" />
+              <BrandLogo className="hidden h-11 w-auto max-w-[190px] sm:block lg:max-w-[220px]" />
             </Link>
 
             {/* Desktop nav links */}
-            <div className="hidden lg:flex items-center gap-6 xl:gap-8">
+            <div className="hidden items-center gap-8 xl:flex">
               <a
                 href="#features"
                 className="text-xs font-black uppercase tracking-[0.2em] text-slate-500 hover:text-indigo-600 transition-colors whitespace-nowrap"
@@ -138,9 +139,9 @@ const Landing = () => {
             </div>
 
             {/* Right side actions */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex min-w-0 shrink-0 items-center gap-1 sm:gap-3">
               {/* Language switcher visible on mobile/tablet */}
-              <div className="lg:hidden">
+              <div className="hidden sm:block xl:hidden">
                 <LangSwitcher />
               </div>
 
@@ -162,17 +163,17 @@ const Landing = () => {
                   </Link>
                   <Link
                     to="/register"
-                    className="bg-slate-900 text-white px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95 whitespace-nowrap"
+                    className="hidden bg-slate-900 text-white px-3 sm:inline-flex sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95 whitespace-nowrap"
                   >
                     {t('landing.nav.register')}
                   </Link>
                 </>
               )}
 
-              {/* Hamburger — visible below lg */}
+              {/* Hamburger — visible below xl */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors shrink-0"
+                className="shrink-0 rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 xl:hidden"
                 aria-label="Toggle menu"
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -182,8 +183,12 @@ const Landing = () => {
 
           {/* Mobile dropdown */}
           {mobileMenuOpen && (
-            <div className="lg:hidden mt-2 bg-white/95 backdrop-blur-xl border border-slate-200/50 shadow-xl rounded-2xl overflow-hidden animate-in slide-in-from-top-2 duration-200">
+            <div className="mt-2 overflow-hidden rounded-2xl border border-slate-200/50 bg-white/95 shadow-xl backdrop-blur-xl animate-in slide-in-from-top-2 duration-200 xl:hidden">
               <div className="p-3 space-y-1">
+                <div className="mb-2 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-2 sm:hidden">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Langue</span>
+                  <LangSwitcher />
+                </div>
                 {[
                   { href: '#features', label: t('landing.nav.features') },
                   { href: '#compliance', label: t('landing.nav.compliance') },
@@ -210,12 +215,20 @@ const Landing = () => {
                   )
                 ))}
                 {!isAuthenticated && (
-                  <Link
-                    to="/login"
-                    className="block px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-colors"
-                  >
-                    {t('landing.nav.login')}
-                  </Link>
+                  <>
+                    <Link
+                      to="/login"
+                      className="block px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-xl transition-colors"
+                    >
+                      {t('landing.nav.login')}
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="mt-2 flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white sm:hidden"
+                    >
+                      {t('landing.nav.register')}
+                    </Link>
+                  </>
                 )}
               </div>
             </div>
@@ -224,24 +237,24 @@ const Landing = () => {
       </nav>
 
       {/* ── Hero ── */}
-      <section className="relative pt-28 sm:pt-36 md:pt-44 lg:pt-52 pb-12 sm:pb-16 md:pb-24 px-4 sm:px-6 overflow-hidden z-10">
+      <section className="relative z-10 overflow-hidden px-4 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-36 md:pb-24 md:pt-44 lg:pt-52">
         <div className="max-w-7xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full bg-indigo-50 text-indigo-700 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] mb-6 sm:mb-10 border border-indigo-100/50 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="inline-flex max-w-full items-center justify-center gap-2 rounded-full border border-indigo-100/50 bg-indigo-50 px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-indigo-700 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-700 sm:gap-3 sm:px-5 sm:py-2.5 sm:text-[11px] sm:tracking-[0.2em] mb-6 sm:mb-10">
             <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-            <span>{t('landing.hero.badge')}</span>
+            <span className="min-w-0 break-words">{t('landing.hero.badge')}</span>
           </div>
 
           {/* Headline */}
-          <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-[5.5rem] xl:text-8xl font-black text-slate-900 tracking-tight leading-[1] sm:leading-[0.95] mb-6 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+          <h1 className="text-[1.8rem] min-[375px]:text-3xl sm:text-5xl md:text-6xl lg:text-[5.5rem] xl:text-8xl font-black text-slate-900 tracking-tight leading-[1.12] sm:leading-[0.95] mb-6 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             {t('landing.hero.title')
               .split('Facturation Électronique')
               .map((part, i, arr) => (
                 <React.Fragment key={i}>
                   {part}
                   {i < arr.length - 1 && (
-                    <span className="relative inline-block mt-1 sm:mt-2">
-                      <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600">
+                    <span className="relative mt-1 inline break-words sm:mt-2 sm:inline-block">
+                      <span className="relative z-10 break-words text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600">
                         {lang === 'ar' ? 'الفاتورة الإلكترونية' : 'Facturation Électronique'}
                       </span>
                       <span className="absolute bottom-1 sm:bottom-3 left-0 w-full h-2 sm:h-4 bg-indigo-100/50 -rotate-1 z-0" />
@@ -290,10 +303,10 @@ const Landing = () => {
 
           {/* Trusted by */}
           <div className="mb-12 sm:mb-16 md:mb-24 animate-in fade-in duration-1000">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] sm:tracking-[0.4em] mb-5 sm:mb-8">
+            <p className="mb-5 break-words text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 sm:mb-8 sm:tracking-[0.4em]">
               {t('landing.hero.optimized') || 'CONFÉRÉ PAR LES LEADERS'}
             </p>
-            <div className="flex flex-wrap justify-center gap-5 sm:gap-10 md:gap-16 xl:gap-20 opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700">
+            <div className="grid grid-cols-2 justify-center gap-4 opacity-30 grayscale transition-all duration-700 hover:opacity-100 hover:grayscale-0 sm:flex sm:flex-wrap sm:gap-10 md:gap-16 xl:gap-20">
               <div className="flex items-center gap-2 font-black text-base sm:text-2xl tracking-tighter italic">TUNTRUST</div>
               <div className="flex items-center gap-2 font-black text-base sm:text-2xl tracking-tighter">TRADENET</div>
               <div className="flex items-center gap-2 font-black text-base sm:text-2xl tracking-tighter">FINTECH.TN</div>

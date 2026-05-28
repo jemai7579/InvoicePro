@@ -52,11 +52,16 @@ import supportRoutes from './routes/supportRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import tvaRateRoutes from './routes/tvaRateRoutes';
 import opportunityRoutes from './routes/opportunityRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
 
 import { errorHandler } from './middleware/errorMiddleware';
 
 const app = express();
 const PORT = process.env.PORT || 5005;
+
+// cPanel/Passenger terminates the public connection before forwarding it here.
+// Trust its single proxy hop so rate limiting uses the visitor IP from X-Forwarded-For.
+app.set('trust proxy', 1);
 
 // Security 1: Helmet
 app.use(helmet({ 
@@ -87,29 +92,32 @@ app.use(cors({
 }));
 
 // Security 3: Rate Limiting
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const positiveIntegerFromEnv = (name: string, fallback: number) => {
+  const parsed = Number.parseInt(process.env[name] || '', 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
 
-// General limiter for all API routes
-const limiter = rateLimit({
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  max: isProdEnv ? 100 : 10000,
-  message: { success: false, message: 'Too many requests from this IP, please try again after 15 minutes.' },
+// Do not throttle normal API traffic by shared proxy IP. Login failure protection is
+// persisted by the auth controllers, and AI use is limited by monthly company quota.
+// Only account creation keeps a soft IP-based anti-spam guard.
+const registerLimiter = rateLimit({
+  windowMs: positiveIntegerFromEnv('REGISTER_RATE_LIMIT_WINDOW_MINUTES', 60) * 60 * 1000,
+  max: positiveIntegerFromEnv('REGISTER_RATE_LIMIT_MAX', 20),
+  handler: (req, res, _next, options) => {
+    const resetTime = (req as any).rateLimit?.resetTime?.getTime();
+    const retryAfter = resetTime
+      ? Math.max(1, Math.ceil((resetTime - Date.now()) / 1000))
+      : Math.max(1, Math.ceil(options.windowMs / 1000));
+    res.status(options.statusCode).json({
+      message: 'Too many registration attempts. Please wait a few minutes and try again.',
+      code: 'REGISTER_RATE_LIMITED',
+      retryAfter,
+    });
+  },
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use('/api', limiter);
-
-// Stricter limiter for login endpoints — brute-force protection
-const authLimiter = rateLimit({
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  max: isProdEnv ? 10 : 10000,
-  message: { success: false, message: 'Too many login attempts from this IP. Please try again in 15 minutes.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true,
-});
-app.use('/api/auth/login', authLimiter);
-app.use('/api/admin/login', authLimiter);
+app.post('/api/auth/register', registerLimiter);
 
 app.use(express.json());
 // Only logos are public assets. Compliance artifacts such as TEIF XML, signed XML,
@@ -139,6 +147,7 @@ app.use('/api/support', supportRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/tva-rates', tvaRateRoutes);
 app.use('/api/opportunities', opportunityRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.get('/', (req, res) => {
   res.status(200).json({ success: true, message: 'InvoicePro API is running' });

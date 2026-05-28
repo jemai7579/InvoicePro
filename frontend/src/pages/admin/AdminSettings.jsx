@@ -59,6 +59,8 @@ const AdminSettings = () => {
   const [integrations, setIntegrations] = useState(null);
   const [integrationDrafts, setIntegrationDrafts] = useState({});
   const [savingIntegration, setSavingIntegration] = useState('');
+  const [testingIntegration, setTestingIntegration] = useState('');
+  const [integrationTestResult, setIntegrationTestResult] = useState({});
   const [tvaRates, setTvaRates] = useState([]);
   const [tvaDraft, setTvaDraft] = useState({ rate: '', label: '', active: true, sortOrder: 0 });
   const [savingTva, setSavingTva] = useState('');
@@ -135,6 +137,18 @@ const AdminSettings = () => {
       console.error('Unable to save integration', error);
     } finally {
       setSavingIntegration('');
+    }
+  };
+
+  const testIntegration = async (key) => {
+    setTestingIntegration(key);
+    try {
+      const res = await api.post(`/admin/integrations/${key}/test`);
+      setIntegrationTestResult((current) => ({ ...current, [key]: res.data?.message || 'Configuration presente.' }));
+    } catch (error) {
+      setIntegrationTestResult((current) => ({ ...current, [key]: error.response?.data?.message || 'Test indisponible.' }));
+    } finally {
+      setTestingIntegration('');
     }
   };
 
@@ -249,9 +263,15 @@ const AdminSettings = () => {
                         );
                       })}
                     </div>
-                    <Button className="mt-4" size="sm" icon={KeyRound} isLoading={savingIntegration === key} onClick={() => saveIntegration(key)}>
-                      Enregistrer
-                    </Button>
+                    {integrationTestResult[key] ? <div className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600">{integrationTestResult[key]}</div> : null}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button size="sm" icon={KeyRound} isLoading={savingIntegration === key} onClick={() => saveIntegration(key)}>
+                        Enregistrer
+                      </Button>
+                      <Button size="sm" variant="secondary" isLoading={testingIntegration === key} onClick={() => testIntegration(key)}>
+                        Test connection
+                      </Button>
+                    </div>
                   </div>
                 );
               })}

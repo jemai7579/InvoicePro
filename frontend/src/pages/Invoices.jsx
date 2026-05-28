@@ -692,11 +692,11 @@ const Invoices = () => {
               </table>
             </div>
 
-            <div className="lg:hidden p-4 space-y-4">
+            <div className="space-y-3 p-3 lg:hidden sm:space-y-4 sm:p-4">
               {invoices.map((invoice) => {
                 const isBusy = busyInvoiceId === invoice.id;
                 return (
-                  <div key={invoice.id} className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm space-y-4">
+                  <div key={invoice.id} className="space-y-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:rounded-[2rem] sm:p-5">
                     <div className="flex justify-between gap-4">
                       <div>
                         <div className="font-black text-slate-900">{getInvoiceNumber(invoice)}</div>
@@ -716,7 +716,7 @@ const Invoices = () => {
                     <Button className="w-full" onClick={() => handlePrimaryAction(invoice)} loading={isBusy}>
                       {getActionLabel(invoice)}
                     </Button>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 min-[375px]:grid-cols-2">
                       {['DRAFT', 'REJECTED_TTN'].includes(invoice.complianceStatus) ? (
                         <Button variant="secondary" size="sm" onClick={() => openEditModal(invoice)}>{text.correctInvoice}</Button>
                       ) : null}
@@ -734,9 +734,9 @@ const Invoices = () => {
       </Card>
 
       {isModalOpen ? (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 backdrop-blur-sm sm:p-4">
           <Card
-            className="w-full max-w-5xl max-h-[90vh] overflow-hidden"
+            className="max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-hidden sm:max-h-[90vh]"
             noPadding
             title={text.createTitle}
             subtitle={text.createSubtitle}
@@ -746,9 +746,9 @@ const Invoices = () => {
               </button>
             }
           >
-            <div className="p-8 overflow-y-auto max-h-[78vh]">
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-8">
+            <div className="max-h-[calc(100dvh-5.5rem)] overflow-y-auto p-4 sm:p-8">
+              <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-8">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.3fr_0.7fr] lg:gap-8">
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Select
@@ -785,7 +785,7 @@ const Invoices = () => {
                       </div>
 
                       {lines.map((line, index) => (
-                        <div key={line.id} className="rounded-[2rem] border border-slate-200/70 bg-gradient-to-br from-white via-slate-50/80 to-indigo-50/40 p-5 shadow-sm shadow-slate-200/40 space-y-4">
+                        <div key={line.id} className="space-y-4 rounded-2xl border border-slate-200/70 bg-gradient-to-br from-white via-slate-50/80 to-indigo-50/40 p-3 shadow-sm shadow-slate-200/40 sm:rounded-[2rem] sm:p-5">
                           <div className="flex items-center justify-between gap-4">
                             <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 shadow-sm ring-1 ring-slate-200/70">
                               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-700">{index + 1}</span>
@@ -903,7 +903,7 @@ const Invoices = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3">
+                <div className="flex flex-col-reverse gap-3 min-[375px]:flex-row min-[375px]:justify-end">
                   <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)}>
                     {text.cancel}
                   </Button>

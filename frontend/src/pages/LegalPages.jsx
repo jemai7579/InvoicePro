@@ -9,7 +9,7 @@ const LegalLayout = ({ title, children }) => (
         <ChevronLeft className="w-4 h-4 me-1" />
         Retour à l'accueil
       </Link>
-      <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden p-8 md:p-12 font-sans">
+      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 font-sans shadow-xl shadow-slate-200/50 sm:p-8 sm:rounded-[2rem] md:p-12">
         <div className="flex items-center gap-2 mb-8">
           <div className="bg-blue-600 p-2 rounded-xl">
             <ShieldCheck className="w-6 h-6 text-white" />

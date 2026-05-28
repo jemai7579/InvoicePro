@@ -1,5 +1,4 @@
 import PDFDocument from 'pdfkit';
-import QRCode from 'qrcode';
 import { numberToWordsTND } from './numberToWords';
 import {
   getDevisVisibleNumber,
@@ -33,14 +32,14 @@ const FOOTER_Y = 841.89 - FOOTER_H;
 const BODY_MAX = FOOTER_Y - 14;
 
 const C = {
-  primary: '#003F88',
-  accent: '#0057B8',
-  text: '#1A1A2E',
-  muted: '#6B7280',
-  border: '#BED0EC',
-  light: '#E8F0FC',
+  primary: '#111111',
+  accent: '#111111',
+  text: '#111111',
+  muted: '#555555',
+  border: '#D4D4D4',
+  light: '#F5F5F5',
   white: '#FFFFFF',
-  rowAlt: '#F5F8FF',
+  rowAlt: '#FAFAFA',
 };
 
 function statusLabel(status: string): string {
@@ -105,32 +104,24 @@ export const generatePdf = async (
   const dueDate = new Date(createdAt.getTime() + 30 * 86400000).toLocaleDateString('fr-TN');
   const complianceStatus = compliance?.complianceStatus || docData.ttnStatus || docData.status || 'DRAFT';
   const complianceLabel = compliance?.complianceLabelFr || statusLabel(complianceStatus);
-  const isFinalInvoice = type === 'FACTURE' && complianceStatus === 'ACCEPTED_TTN';
   const isMockMode = compliance?.complianceMode === 'mock' || compliance?.complianceMode === 'test';
+  const hasOfficialTtnAcceptance =
+    type === 'FACTURE' &&
+    complianceStatus === 'ACCEPTED_TTN' &&
+    compliance?.complianceMode === 'production' &&
+    Boolean(compliance?.ttnReference);
+  const isFinalInvoice = hasOfficialTtnAcceptance;
   const headerTitle =
     type === 'DEVIS'
       ? 'DEVIS'
       : isFinalInvoice
         ? 'FACTURE FISCALE ELECTRONIQUE'
         : 'FACTURE EN PREPARATION';
-  const qrPayload = JSON.stringify({
-    reference: ref,
-    fiscalId: company.matriculeFiscal ?? '',
-    totalTTC: Math.round(Number(docData.netToPay || 0) * 1000) / 1000,
-    date: createdAt.toISOString().split('T')[0],
-    status: complianceStatus,
-    ttnReference: compliance?.ttnReference ?? null,
-    mode: compliance?.complianceMode ?? 'draft',
-  });
-  const qrPng =
-    isFinalInvoice && compliance?.ttnQrCode
-      ? await QRCode.toBuffer(compliance.ttnQrCode, {
-          type: 'png',
-          width: 88,
-          margin: 1,
-          errorCorrectionLevel: 'M',
-        })
-      : null;
+  const paymentStatus = String(docData.paymentStatus || '').toLowerCase();
+  const totalPaid = (docData.payments || [])
+    .filter((payment: any) => ['PAID', 'PARTIALLY_PAID'].includes(payment.status))
+    .reduce((sum: number, payment: any) => sum + Number(payment.amount || 0), 0);
+  const remainingAmount = Math.max(0, Number(docData.netToPay || 0) - totalPaid);
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
@@ -148,14 +139,14 @@ export const generatePdf = async (
     let y = HEADER_H + 12;
 
     const addHeader = () => {
-      doc.rect(0, 0, PAGE_W, HEADER_H).fill(C.primary);
-      doc.rect(0, HEADER_H - 3, PAGE_W, 3).fill(C.accent);
+      doc.rect(0, 0, PAGE_W, HEADER_H).fill(C.white);
+      doc.rect(MARGIN, HEADER_H - 12, CONTENT_W, 1).fill(C.primary);
 
-      doc.fillColor(C.white).font('Helvetica-Bold').fontSize(19).text(headerTitle, MARGIN, 16);
+      doc.fillColor(C.text).font('Helvetica-Bold').fontSize(19).text(headerTitle, MARGIN, 16);
       doc
         .font('Helvetica')
         .fontSize(7.5)
-        .fillColor('#A8C4F0')
+        .fillColor(C.muted)
         .text(
           type === 'FACTURE'
             ? isFinalInvoice
@@ -167,44 +158,36 @@ export const generatePdf = async (
         );
 
       doc
-        .fillColor(C.white)
+        .fillColor(C.text)
         .fontSize(8.5)
         .text(`Reference : ${ref}`, MARGIN, 53)
         .text(`No interne : ${docData.id.slice(0, 8).toUpperCase()}`, MARGIN, 65)
         .text(`Statut : ${complianceLabel}`, MARGIN, 77);
 
       const dateX = MARGIN + 230;
-      doc.fillColor('#A8C4F0').font('Helvetica-Bold').fontSize(8).text("Date d'emission", dateX, 53);
-      doc.fillColor(C.white).font('Helvetica').fontSize(9).text(issueDate, dateX, 64);
-      doc.fillColor('#A8C4F0').font('Helvetica-Bold').fontSize(8).text("Date d'echeance", dateX, 80);
-      doc.fillColor(C.white).font('Helvetica').fontSize(9).text(dueDate, dateX, 91);
+      doc.fillColor(C.muted).font('Helvetica-Bold').fontSize(8).text("Date d'emission", dateX, 53);
+      doc.fillColor(C.text).font('Helvetica').fontSize(9).text(issueDate, dateX, 64);
+      doc.fillColor(C.muted).font('Helvetica-Bold').fontSize(8).text("Date d'echeance", dateX, 80);
+      doc.fillColor(C.text).font('Helvetica').fontSize(9).text(dueDate, dateX, 91);
 
-      const qrX = PAGE_W - MARGIN - 88;
-      if (qrPng) {
-        doc.image(qrPng, qrX, 9, { width: 88, height: 88 });
-        doc
-          .fontSize(6)
-          .fillColor('#A8C4F0')
-          .text(isMockMode ? 'QR fiscal mock' : 'QR fiscal TTN', qrX, 99, {
-            width: 88,
-            align: 'center',
-          });
-      } else {
-        doc.roundedRect(qrX, 9, 88, 88, 8).stroke('#7EA7DE');
-        doc
-          .fontSize(7)
-          .fillColor('#A8C4F0')
-          .text('QR TTN disponible apres acceptation', qrX + 8, 40, {
-            width: 72,
-            align: 'center',
-          });
-      }
+      doc
+        .roundedRect(PAGE_W - MARGIN - 112, 16, 112, 58, 4)
+        .stroke(C.border);
+      doc.fillColor(C.muted).font('Helvetica-Bold').fontSize(7).text('STATUT TTN', PAGE_W - MARGIN - 102, 27);
+      doc
+        .fillColor(C.text)
+        .font('Helvetica-Bold')
+        .fontSize(8)
+        .text(hasOfficialTtnAcceptance ? 'REFERENCE OFFICIELLE' : isMockMode ? 'SIMULATION / NON LEGAL' : 'NON SOUMISE A TTN', PAGE_W - MARGIN - 102, 41, {
+          width: 92,
+        });
     };
 
     const addFooter = (page: number, total: number) => {
-      doc.rect(0, FOOTER_Y, PAGE_W, FOOTER_H).fill(C.primary);
+      doc.rect(0, FOOTER_Y, PAGE_W, FOOTER_H).fill(C.white);
+      doc.rect(MARGIN, FOOTER_Y, CONTENT_W, 1).fill(C.border);
       doc
-        .fillColor(C.white)
+        .fillColor(C.muted)
         .font('Helvetica')
         .fontSize(7)
         .text(
@@ -257,8 +240,8 @@ export const generatePdf = async (
       ];
 
       doc.roundedRect(boxX, y, boxW, boxH, 4).fill(C.white).stroke(C.border);
-      doc.rect(boxX, y, boxW, 15).fill(C.primary);
-      doc.fillColor(C.white).font('Helvetica-Bold').fontSize(7.5).text(title, x, y + 4, { width: textW });
+      doc.rect(boxX, y, boxW, 15).fill(C.light);
+      doc.fillColor(C.text).font('Helvetica-Bold').fontSize(7.5).text(title, x, y + 4, { width: textW });
       doc.fillColor(C.text).font('Helvetica-Bold').fontSize(9.5).text(name || '-', x, y + 19, {
         width: textW,
         lineBreak: false,
@@ -312,29 +295,31 @@ export const generatePdf = async (
     if (type === 'FACTURE') {
       ensureSpace(52);
       doc
-        .rect(MARGIN, y, CONTENT_W, 40)
-        .fill(isFinalInvoice ? '#ECFDF5' : '#FFF7ED')
-        .stroke(isFinalInvoice ? '#A7F3D0' : '#FED7AA');
+        .rect(MARGIN, y, CONTENT_W, 48)
+        .fill(C.white)
+        .stroke(C.border);
       doc
-        .fillColor(isFinalInvoice ? '#065F46' : '#9A3412')
+        .fillColor(C.text)
         .font('Helvetica-Bold')
         .fontSize(9)
         .text(isFinalInvoice ? 'VALIDITE FISCALE' : 'STATUT FISCAL', MARGIN + 10, y + 8);
 
       const finalText = isFinalInvoice
-        ? `${compliance?.ttnReference ? `Reference TTN : ${compliance.ttnReference}` : 'TTN acceptee'}${
+        ? `${compliance?.ttnReference ? `Reference TTN officielle : ${compliance.ttnReference}` : 'TTN acceptee'}${
             compliance?.ttnAcceptedAt
               ? ` · Date d'acceptation : ${new Date(compliance.ttnAcceptedAt).toLocaleDateString('fr-TN')}`
               : ''
-          }${isMockMode ? ' · Mode test' : ''}`
-        : 'Votre facture est encore en preparation. Elle ne devient fiscalement valide qu apres signature electronique et acceptation TTN.';
+          }`
+        : isMockMode
+          ? 'Simulation / non legal. Non soumise officiellement a TTN. Aucune reference TTN officielle n est disponible.'
+          : 'Non soumise a TTN ou configuration TTN requise. La facture ne devient fiscalement valide qu apres signature legale et acceptation TTN officielle.';
 
       doc
-        .fillColor(isFinalInvoice ? '#065F46' : '#7C2D12')
+        .fillColor(C.muted)
         .font('Helvetica')
         .fontSize(8.5)
         .text(finalText, MARGIN + 10, y + 20, { width: CONTENT_W - 20 });
-      y += 48;
+      y += 56;
     }
 
     sectionLabel(type === 'DEVIS' ? 'LIGNES DU DEVIS' : 'LIGNES DE FACTURE');
@@ -438,6 +423,10 @@ export const generatePdf = async (
       drawTotal('Retenue a la source', `- ${fmt(Number(docData.withholdingTax || 0))} TND`);
     }
     drawTotal('NET A PAYER (TTC)', `${fmt(Number(docData.netToPay || 0))} TND`, true, true);
+    if (type === 'FACTURE') {
+      drawTotal('Montant paye', `${fmt(totalPaid)} TND`);
+      drawTotal('Solde restant', `${fmt(remainingAmount)} TND`, true);
+    }
     y = Math.max(y, totalY) + 14;
 
     ensureSpace(32);
@@ -454,7 +443,20 @@ export const generatePdf = async (
     y += 34;
 
     ensureSpace(16);
-    doc.fillColor(C.muted).font('Helvetica').fontSize(8.5).text('Mode de paiement : Espèce', MARGIN, y);
+    doc
+      .fillColor(C.muted)
+      .font('Helvetica')
+      .fontSize(8.5)
+      .text(
+        `Mode de paiement : Espece · Statut paiement : ${paymentStatus || 'unpaid'} · TEIF : ${
+          complianceStatus === 'TEIF_GENERATED' || complianceStatus === 'SIGNED' || complianceStatus === 'SENT_TO_TTN' || complianceStatus === 'PENDING_TTN' || complianceStatus === 'ACCEPTED_TTN'
+            ? 'genere'
+            : 'non genere'
+        } · Signature : ${docData.signatureStatus || 'non signee'} · TTN : ${hasOfficialTtnAcceptance ? 'acceptee officiellement' : isMockMode ? 'simulation / non legal' : 'non soumise'}`,
+        MARGIN,
+        y,
+        { width: CONTENT_W }
+      );
     y += 14;
 
     const range = doc.bufferedPageRange();

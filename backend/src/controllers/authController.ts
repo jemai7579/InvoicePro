@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '../prisma';
 import { getJwtExpiresIn, getJwtSecret } from '../utils/jwtSecret';
 import { getRequestAuditMeta, logActivity } from '../services/auditTrailService';
+import { clearFailedLogins, getFailedLoginBlock, recordFailedLogin } from '../services/loginProtectionService';
 
 const generateToken = (id: string) => {
   // TODO: migrate browser authentication to secure httpOnly cookies with CSRF protection.
@@ -12,6 +13,24 @@ const generateToken = (id: string) => {
 
 const ALLOWED_REGISTRATION_PLANS = ['STARTER', 'PROFESSIONAL', 'ENTERPRISE'];
 const isDevelopment = process.env.NODE_ENV !== 'production';
+
+const resolveAccessDenial = (company: any) => {
+  const profileStatus = String(company.adminProfile?.status || '').toLowerCase();
+  const subscriptionStatus = String(company.subscription?.status || '').toUpperCase();
+  if (profileStatus === 'deleted' || subscriptionStatus === 'SOFT_DELETED' || subscriptionStatus === 'DELETED') {
+    return 'Ce compte a ete supprime. Contactez le support.';
+  }
+  if (profileStatus === 'blocked' || profileStatus === 'suspended' || ['BLOCKED', 'SUSPENDED', 'CANCELLED'].includes(subscriptionStatus)) {
+    return 'Votre compte est bloque. Contactez l’administration.';
+  }
+  if (profileStatus === 'pending' || ['PENDING_APPROVAL', 'PENDING_PAYMENT', 'PENDING'].includes(subscriptionStatus)) {
+    return "Votre compte est en attente de validation par l'administration.";
+  }
+  if (company.subscription?.endDate && new Date(company.subscription.endDate) < new Date()) {
+    return 'Votre acces a expire. Contactez l’administration pour renouveler votre abonnement.';
+  }
+  return null;
+};
 
 const normalizeRegistrationPlan = (plan?: string) => {
   const value = String(plan || '').trim().toUpperCase();
@@ -75,9 +94,15 @@ export const register = async (req: Request, res: Response) => {
         subscription: {
           create: {
             plan: selectedPlan,
-            status: 'ACTIVE'
+            status: 'PENDING_APPROVAL'
           }
-        }
+        },
+        adminProfile: {
+          create: {
+            status: 'pending',
+            dossierStatus: 'pending_review',
+          },
+        },
       },
     });
 
@@ -93,6 +118,8 @@ export const register = async (req: Request, res: Response) => {
       name: company.name,
       email: company.email,
       subscription: companyWithSub?.subscription,
+      accountStatus: 'PENDING_APPROVAL',
+      message: "Votre compte est en attente de validation par l'administration.",
       token: generateToken(company.id),
     });
     } else {
@@ -125,12 +152,29 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    const sourceIp = req.ip || req.socket.remoteAddress || 'unknown';
+    const retryAfter = await getFailedLoginBlock('company', String(email || ''), sourceIp);
+
+    if (retryAfter) {
+      return res.status(429).json({
+        message: 'Too many failed login attempts. Please wait a few minutes before trying again.',
+        code: 'AUTH_TOO_MANY_FAILED_ATTEMPTS',
+        retryAfter,
+      });
+    }
 
     const company = await prisma.company.findUnique({
       where: { email },
+      include: { subscription: true, adminProfile: true },
     });
 
     if (company && (await bcrypt.compare(password, company.password))) {
+      const denial = resolveAccessDenial(company);
+      if (denial) {
+        await recordFailedLogin('company', String(email || ''), sourceIp);
+        return res.status(403).json({ message: denial, code: 'ACCOUNT_ACCESS_DENIED' });
+      }
+      await clearFailedLogins('company', String(email || ''), sourceIp);
       logActivity({
         companyId: company.id,
         actorId: company.id,
@@ -150,6 +194,14 @@ export const login = async (req: Request, res: Response) => {
         token: generateToken(company.id),
       });
     } else {
+      const failedRetryAfter = await recordFailedLogin('company', String(email || ''), sourceIp);
+      if (failedRetryAfter) {
+        return res.status(429).json({
+          message: 'Too many failed login attempts. Please wait a few minutes before trying again.',
+          code: 'AUTH_TOO_MANY_FAILED_ATTEMPTS',
+          retryAfter: failedRetryAfter,
+        });
+      }
       res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error) {
@@ -165,6 +217,7 @@ export const getMe = async (req: Request, res: Response) => {
       where: { id: companyId },
       include: {
         subscription: true,
+        adminProfile: true,
       }
     });
 
@@ -210,6 +263,10 @@ export const getMe = async (req: Request, res: Response) => {
     res.status(200).json({
       ...company,
       password: undefined, // ensure password is not sent
+      accountStatus: company.adminProfile?.status || subscription.status,
+      accessMessage: subscription.status === 'GRACE_ACCESS' && subscription.endDate
+        ? `Votre acces temporaire expire le ${new Date(subscription.endDate).toLocaleDateString('fr-FR')}.`
+        : null,
       subscription: {
         plan: subscription.plan,
         status: subscription.status,

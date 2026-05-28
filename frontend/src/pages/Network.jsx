@@ -69,7 +69,7 @@ const Network = () => {
   return (
     <div className="pb-20 animate-in fade-in duration-500 space-y-6">
       {toast && (
-        <div className={`fixed top-20 right-6 z-[100] px-5 py-4 rounded-2xl shadow-2xl border text-sm font-semibold ${
+        <div className={`fixed left-3 right-3 top-16 z-[100] rounded-2xl border px-4 py-3 text-sm font-semibold shadow-2xl sm:left-auto sm:right-6 sm:top-20 sm:max-w-sm sm:px-5 sm:py-4 ${
           toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
         }`}>
           {toast.text}

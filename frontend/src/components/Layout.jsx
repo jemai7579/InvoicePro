@@ -97,7 +97,7 @@ const LangSwitcher = () => {
   const { lang, setLang } = useLanguage();
 
   return (
-    <div className="flex items-center rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+    <div className="flex items-center rounded-xl border border-slate-200 bg-white p-0.5 shadow-sm sm:rounded-2xl sm:p-1">
       {LANG_OPTIONS.map((option) => (
         <button
           key={option.code}
@@ -105,7 +105,7 @@ const LangSwitcher = () => {
           title={option.label}
           aria-pressed={lang === option.code}
           onClick={() => setLang(option.code)}
-          className={`min-w-[40px] rounded-xl px-3 py-1.5 text-xs font-black tracking-wide transition-all ${
+          className={`min-w-[30px] rounded-lg px-1.5 py-1.5 text-[10px] font-black tracking-wide transition-all min-[375px]:min-w-[34px] sm:min-w-[40px] sm:rounded-xl sm:px-3 sm:text-xs ${
             lang === option.code
               ? 'bg-premium-600 text-white shadow-sm'
               : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
@@ -128,15 +128,17 @@ const timeAgo = (dateStr, copy) => {
 
 const NotifDropdown = ({ lang, onClose }) => {
   const copy = SEARCH_COPY[lang] || SEARCH_COPY.fr;
+  const navigate = useNavigate();
   const [notifs, setNotifs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const fetchNotifs = async () => {
     try {
       const res = await api.get('/notifications');
       setNotifs(res.data);
     } catch {
-      // ignore
+      setError('Impossible de charger les notifications.');
     } finally {
       setLoading(false);
     }
@@ -148,12 +150,16 @@ const NotifDropdown = ({ lang, onClose }) => {
 
   const markAll = async () => {
     await api.patch('/notifications/read-all').catch(() => {});
-    setNotifs((items) => items.map((item) => ({ ...item, read: true })));
+    setNotifs((items) => items.map((item) => ({ ...item, read: true, isRead: true })));
   };
 
-  const markOne = async (id) => {
-    await api.patch(`/notifications/${id}/read`).catch(() => {});
-    setNotifs((items) => items.map((item) => (item.id === id ? { ...item, read: true } : item)));
+  const markOne = async (notif) => {
+    await api.patch(`/notifications/${notif.id}/read`).catch(() => {});
+    setNotifs((items) => items.map((item) => (item.id === notif.id ? { ...item, read: true, isRead: true } : item)));
+    if (notif.actionUrl) {
+      navigate(notif.actionUrl);
+    }
+    onClose();
   };
 
   const unread = notifs.filter((item) => !item.read).length;
@@ -194,6 +200,8 @@ const NotifDropdown = ({ lang, onClose }) => {
       <div className="max-h-[min(24rem,calc(100dvh-9rem))] divide-y divide-gray-50 overflow-y-auto overscroll-contain">
         {loading ? (
           <div className="py-8 text-center text-sm text-gray-400">{copy.loading}</div>
+        ) : error ? (
+          <div className="py-8 text-center text-sm font-bold text-red-500">{error}</div>
         ) : notifs.length === 0 ? (
           <div className="py-10 text-center">
             <Bell className="mx-auto mb-2 h-8 w-8 text-gray-200" />
@@ -208,7 +216,7 @@ const NotifDropdown = ({ lang, onClose }) => {
               <button
                 key={notif.id}
                 type="button"
-                onClick={() => markOne(notif.id)}
+                onClick={() => markOne(notif)}
                 className={`flex w-full items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-gray-50 ${
                   !notif.read ? 'bg-blue-50/40' : ''
                 }`}
@@ -390,9 +398,9 @@ const Layout = () => {
         </div>
       </aside>
 
-      <div className="flex h-screen flex-1 flex-col overflow-hidden">
-        <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-slate-100 bg-white/80 px-3 backdrop-blur-md transition-all duration-300 sm:px-5 lg:px-8 md:ms-72">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="fixed inset-x-0 top-0 z-40 flex h-14 min-w-0 items-center justify-between gap-1.5 border-b border-slate-100 bg-white/80 px-2 backdrop-blur-md transition-all duration-300 sm:gap-3 sm:px-5 md:ms-72 lg:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
@@ -400,10 +408,10 @@ const Layout = () => {
             >
               <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
-            <div className="truncate text-base sm:text-lg font-black tracking-tight text-slate-900">{t(`nav.${currentNavItem.id}`)}</div>
+            <div className="min-w-0 truncate text-sm font-black tracking-tight text-slate-900 min-[375px]:text-base sm:text-lg">{t(`nav.${currentNavItem.id}`)}</div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
             <div className="group relative hidden sm:block" ref={searchRef}>
               <span className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-4">
                 <Search className="h-4 w-4 text-slate-400 transition-colors group-focus-within:text-premium-600" />
@@ -462,7 +470,7 @@ const Layout = () => {
                     fetchUnread();
                   }
                 }}
-                className="relative rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                className="relative rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 sm:p-2"
               >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 ? (
@@ -476,7 +484,7 @@ const Layout = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-gray-50 px-3 sm:px-5 lg:px-8 pb-6 pt-16">
+        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-gray-50 px-3 pb-6 pt-16 sm:px-5 lg:px-8">
           <Outlet />
         </main>
       </div>

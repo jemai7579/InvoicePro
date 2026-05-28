@@ -1,6 +1,30 @@
 import { Request, Response } from 'express';
 import prisma from '../prisma';
 
+const actionUrlForNotification = (notification: any) => {
+  if (notification.actionUrl) return notification.actionUrl;
+  const type = String(notification.type || '').toUpperCase();
+  const message = `${notification.title || ''} ${notification.message || ''}`;
+  const idMatch = message.match(/[0-9a-f]{8}-[0-9a-f-]{27,}/i);
+  const entityId = notification.entityId || idMatch?.[0] || null;
+  if (type.includes('PAYMENT')) return entityId ? `/invoices/${entityId}` : '/payments';
+  if (type.includes('INVOICE') || type.includes('TTN') || type.includes('XML')) return entityId ? `/invoices/${entityId}` : '/invoices';
+  if (type.includes('DEVIS') || type.includes('QUOTE')) return entityId ? `/devis/${entityId}` : '/devis';
+  if (type.includes('PRODUCT')) return '/products';
+  if (type.includes('CLIENT')) return '/clients';
+  if (type.includes('SUPPORT')) return '/support';
+  if (type.includes('COMPANY') || type.includes('SETTING') || type.includes('SUBSCRIPTION')) return '/settings';
+  return null;
+};
+
+const serializeNotification = (notification: any) => ({
+  ...notification,
+  isRead: notification.read,
+  actionUrl: actionUrlForNotification(notification),
+  entityType: notification.entityType || null,
+  entityId: notification.entityId || null,
+});
+
 /** GET /notifications — returns latest 50, newest first */
 export const getNotifications = async (req: Request, res: Response) => {
   try {
@@ -10,7 +34,7 @@ export const getNotifications = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
-    res.json(notifications);
+    res.json(notifications.map(serializeNotification));
   } catch {
     res.status(500).json({ message: 'Server error' });
   }

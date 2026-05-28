@@ -41,6 +41,9 @@ export interface InvoiceComplianceMetadata {
   teifVersion?: string | null;
   signatureStatus?: string | null;
   signatureTimestamp?: string | null;
+  signatureHash?: string | null;
+  signatureIsMock?: boolean | null;
+  signatureValidationStatus?: string | null;
   signedByUserId?: string | null;
   certificateIdentifier?: string | null;
   ttnProofPath?: string | null;

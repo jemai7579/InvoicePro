@@ -29,7 +29,7 @@ const Contact = () => {
       <div className="pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">Contactez-nous</h1>
+            <h1 className="mb-4 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl md:text-5xl">Contactez-nous</h1>
             <p className="text-lg text-slate-500 max-w-2xl mx-auto font-medium">
               Une question sur la conformité TEIF ou sur nos tarifs ? Notre équipe est là pour vous accompagner.
             </p>
@@ -38,7 +38,7 @@ const Contact = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Contact Info */}
             <div className="space-y-12">
-              <div className="bg-blue-50 rounded-[2.5rem] p-10 border border-blue-100">
+              <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5 sm:rounded-[2.5rem] sm:p-10">
                 <h2 className="text-2xl font-black text-slate-900 mb-8">Informations de contact</h2>
                 <div className="space-y-8">
                   <div className="flex items-start gap-4">
@@ -89,7 +89,7 @@ const Contact = () => {
             </div>
 
             {/* Form */}
-            <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12">
+            <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-2xl shadow-slate-200/50 sm:rounded-[2.5rem] sm:p-8 md:p-12">
               {submitted ? (
                 <div className="text-center py-20 animate-fade-in">
                   <div className="bg-emerald-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-8">

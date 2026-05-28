@@ -1,291 +1,462 @@
-# InvoicePro  — Tunisian Electronic Invoicing SaaS
+# InvoicePro  — Tunisian Electronic Invoicing SaaS Platform
 
-InvoicePro / El Fatoora is a full-stack SaaS platform for managing Tunisian commercial invoicing workflows: customers, catalog items, quotes, invoices, payments, reporting, document exports, and compliance preparation.
+## Executive Summary
 
-The platform prepares a company for Tunisian electronic invoicing workflows through TEIF/XML generation, signature workflow support, and TTN / El Fatoora workflow screens. Real legal TTN integration is not active until official TTN API contracts and sandbox credentials, the official TEIF XSD, and a real electronic signature provider have been obtained, configured, implemented, and validated.
+InvoicePro is a SaaS platform for Tunisian companies that need a structured way to manage commercial invoicing and prepare for electronic invoicing workflows.
 
-> **Compliance warning:** A deployed application is not, by itself, a legally operational TTN e-invoicing integration. `E_INVOICE_MODE=sandbox` is appropriate for a production-hosted test/preparation deployment; it does not issue legally accepted TTN invoices.
+The platform includes tools for:
 
-## Main Features
+- Clients
+- Products and services
+- Invoices
+- Quotes / devis
+- Payments tracking
+- Reports
+- Company settings and legal profile
+- Electronic invoice preparation
+- TEIF/XML generation
+- Electronic signature workflow
+- TTN / El Fatoora workflow preparation
+- Admin supervision
+- Audit trail
+- Support/help requests
+- AI assistant when the required API key is configured
 
-The following modules are present in the application:
+The commercial management part can be used normally after deployment, once the database, backend, frontend, SMTP, and access configuration are correctly set.
 
-| Module | Capability |
+The legal electronic invoicing workflow is production-safe, but it must remain blocked until the project owner provides official TTN access, official TEIF/XSD validation resources, and a real electronic signature provider/certificate. The platform must not be presented as legally TTN-compliant until real TTN responses and a real legal signature workflow are configured and tested.
+
+## Current Production Status
+
+Commercial modules are ready for server deployment. Legal e-invoicing activation must remain blocked until official TTN configuration, official TEIF/XSD validation, and a real electronic signature provider are configured and tested.
+
+Current status:
+
+| Area | Status | Important note |
+|---|---|---|
+| Commercial invoicing SaaS | Ready for deployment | Requires normal production setup: database, secrets, SMTP if email is used, server storage, HTTPS, and migrations. |
+| TTN legal submission | Not fully active | Real legal TTN submission requires official TTN API documentation, credentials, endpoints, and sandbox/production access. |
+| Electronic signature | Partial / configurable | Mock signature is demo-only. Legal signature requires a real certificate/provider/HSM and official signing rules. |
+| TEIF/XML generation | Implemented as backend workflow | Official XSD validation requires the official TEIF XSD file and official validation rules. |
+| AI assistant | Conditional | Uses Google Gemini in the current backend and requires `GEMINI_API_KEY`. |
+| Online subscription payment | Not complete as an automatic gateway | The code tracks billing/integration status, but a real payment provider must be chosen and integrated for automated online subscription payment. |
+| Invoice payment tracking | Implemented | This is business payment tracking for invoices, separate from SaaS subscription payment. |
+
+The app is ready to be deployed as a commercial invoice management SaaS. Real TTN legal production must remain disabled until the missing official external dependencies are provided.
+
+## Features Overview
+
+| Module | Description | Status | Notes / Missing dependency |
+|---|---|---|---|
+| Public landing page | Public marketing and navigation entry page. | Implemented | Route: `/`. |
+| E-invoice guide page | Explains the electronic invoicing preparation workflow. | Implemented | Must avoid claiming legal TTN acceptance without real TTN response. |
+| Authentication | Company registration, login, JWT authentication, bcrypt password hashing. | Implemented | Production requires strong `JWT_SECRET`. |
+| User dashboard / client dashboard | Business summary, invoice/payment overview, readiness and subscription status. | Implemented | Uses backend data through `/api/dashboard/summary`. |
+| Admin dashboard | Platform owner area for companies, users, support, payments, settings, compliance, and activity. | Implemented / evolving | Admin access must stay separated from normal user access. |
+| Clients management | Create, list, update, and manage client records. | Implemented | Company isolation is required on all API access. |
+| Products/services management | Manage products/services used in invoices and quotes. | Implemented | Includes TVA and pricing fields. |
+| Invoice management | Create, list, track, and manage invoices. | Implemented | Legal/e-invoice status is separate from payment status. |
+| Invoice PDF generation | Generates invoice PDFs with business and compliance information. | Implemented | Uses backend PDFKit. Must not show fake legal TTN references. |
+| XML/TEIF generation | Generates TEIF-oriented XML artifacts from invoice data. | Implemented | Official validation requires official XSD. |
+| Electronic signature workflow | Supports signature workflow and mock/real provider separation. | Partial / safe-blocked | Legal use requires real provider/certificate/HSM. |
+| TTN submission workflow | Backend workflow and UI preparation for TTN submission/status. | Partial / safe-blocked | Official TTN API contract is still required. |
+| Payments tracking | Tracks invoice payments, paid amount, partial payment, and balance. | Implemented | Not the same as online SaaS subscription payment. |
+| Quotes/devis | Quote management and conversion workflow. | Implemented | Email delivery depends on SMTP configuration. |
+| Reports | Financial and operational reports. | Implemented | Export behavior depends on current page implementation. |
+| Settings/company file | Company legal profile, logo, readiness, signature/TTN settings surfaces. | Implemented | Production readiness depends on official external config. |
+| Notifications | Notification list, unread count, read actions, and navigation. | Implemented | Notifications must remain scoped to the authenticated company/user. |
+| Audit trail | Activity and history logging. | Implemented | Sensitive actions should always be audited. |
+| AI assistant | Business assistant backed by Gemini. | Conditional | Requires `GEMINI_API_KEY`; usage may create API cost. |
+| Subscription/access control | Account/subscription status checks and access guards. | Implemented | Admin approval or extension may be manual. |
+| Support/help requests | User support page and admin support management. | Implemented | Reply/email behavior depends on SMTP and implemented workflow. |
+| Network/messages/offers/projects | Collaboration/business networking modules. | Implemented in UI/API | Confirm exact business scope with the owner before production messaging. |
+| Analytics/SEO admin | Admin monitoring for analytics/search integrations. | Implemented as integration/status surfaces | Requires GA/GTM/Search Console configuration if used. |
+
+## Pages and Modules Explanation
+
+### Public Pages
+
+| Page | Purpose | What users can do | Data used | Current status | Missing dependency |
+|---|---|---|---|---|---|
+| Landing page `/` | Public introduction to InvoicePro. | Learn about the product and navigate to registration/login. | Static frontend content and analytics events. | Implemented | None. |
+| Login `/login` | Company user login. | Authenticate and access the protected app. | Backend auth API. | Implemented | Backend API and JWT secret. |
+| Register `/register` | Company/user registration. | Create an account and select initial access/plan details where supported. | Backend auth/register API. | Implemented | Admin approval/payment flow may be manual depending on setup. |
+| Pricing `/pricing` and `/tarifs` | Public offer/pricing display. | Review available offers. | Frontend and offer data where configured. | Implemented | Real subscription payment gateway if automated purchase is required. |
+| E-invoice guide `/e-invoice-guide` | Owner/user education for TEIF/signature/TTN preparation. | Understand e-invoice readiness steps. | Static/controlled UI content. | Implemented | Must be kept legally cautious. |
+| Signature/TTN guide `/signature-ttn` | Explains signature and TTN workflow. | Review workflow and limitations. | Frontend content and backend status where connected. | Implemented | Official TTN/signature details. |
+| Public offer `/public/offers/:token` | Public offer/devis sharing. | View a shared offer by token. | Public offer API. | Implemented | Email/share flow depends on configured usage. |
+| Contact, privacy, terms, legal pages | Public legal/contact information. | Read legal pages or contact information. | Static frontend pages. | Implemented | Owner should review legal text before launch. |
+
+### User / Client Pages
+
+| Page | Purpose | What the user can do | Data used | Current status | Missing dependency |
+|---|---|---|---|---|---|
+| Dashboard `/dashboard` | Main business overview. | View invoice/payment summaries, recent activity, readiness and access status. | `/api/dashboard/summary` and related APIs. | Implemented | Accurate production data requires seeded/migrated database. |
+| Clients `/clients` | Manage customer records. | Create, update, delete/list clients. | Clients API and company database records. | Implemented | None beyond database. |
+| Products `/products` | Manage catalog items. | Create, update, delete/list products and services. | Products API. | Implemented | TVA/product rules should be reviewed by owner/accountant. |
+| Invoices `/invoices` | Manage invoices. | Create, update/list invoices, generate documents, use workflow actions. | Invoice, client, product, payment, TEIF/signature/TTN data. | Implemented | Legal workflow depends on TTN/signature config. |
+| Invoice tracking `/invoice-tracking` | Track invoice lifecycle. | Review invoice status and workflow progress. | Invoice API/status fields. | Implemented | TTN status is legal only after real TTN response. |
+| Payments `/payments` and `/reglements` | Track payments received for invoices. | Add/list payments and monitor paid/unpaid balances. | Payments and invoices APIs. | Implemented | Does not process online subscription payments. |
+| Devis/quotes `/devis`, `/quotes`, `/mes-devis` | Manage quotes. | Create, list, update, send, and convert quotes where supported. | Devis API, clients, line items. | Implemented | Email sending depends on SMTP. |
+| Reports `/reports` | Business reporting. | View financial and invoice/payment reports. | Reports API and company records. | Implemented | Export capability depends on current report implementation. |
+| Settings `/settings` | Company profile and configuration. | Update company legal info, logo, readiness-related settings, password/configuration areas. | Settings API, company record, readiness services. | Implemented | TTN, signature, SMTP, AI credentials if used. |
+| TEIF/compliance center `/teif` and `/compliance-center` | TEIF and e-invoice workflow area. | Generate/review TEIF-related status and actions. | Invoice compliance workflow services. | Implemented | Official TEIF XSD required for official validation. |
+| Audit trail `/audit-trail` and `/historique` | User/company activity history. | Review actions and history. | Audit trail API. | Implemented | None. |
+| AI assistant `/ai` | AI business assistant. | Ask assistant questions. | Gemini API through backend. | Conditional | Requires `GEMINI_API_KEY`. |
+| Notifications | Top bar/dropdown notifications. | Read, click, navigate, mark as read. | Notifications API. | Implemented | None beyond backend. |
+| Help/support `/help` and `/support` | User support request area. | Send help/support requests. | Support API. | Implemented | Email notification/reply requires SMTP if used. |
+| Network/messages/offers/projects/opportunities | Collaboration/business workflow pages. | Manage professional network, messages, offers, projects, and opportunities. | Related APIs. | Implemented | Business rules should be confirmed before production launch. |
+
+### Admin Pages
+
+| Page | Purpose | What admin can do | Data used | Current status | Missing dependency |
+|---|---|---|---|---|---|
+| Admin login `/admin/login` | Admin-only authentication. | Login to the admin area. | Admin auth API. | Implemented | Strong production admin credentials. |
+| Admin dashboard `/admin` and `/admin/dashboard` | Platform overview. | View SaaS-wide KPIs and operational status. | Admin API. | Implemented | None beyond migrated database. |
+| Companies `/admin/companies` | Company/account management. | View companies, statuses, subscriptions, payment/access state, and take account actions where enabled. | Admin companies API. | Implemented | Manual business process for payment/access approval may be required. |
+| Users `/admin/users` | User/account supervision. | Review account/user information. | Admin users API. | Implemented | None. |
+| Subscriptions `/admin/subscriptions` | Access/subscription supervision. | Monitor plans, access status, subscription state. | Admin subscription data. | Implemented | Real online billing provider if automation is required. |
+| Admin payments `/admin/payments` | Platform payment/subscription payment monitoring. | Review recorded admin/platform payments. | Admin payment APIs/models. | Implemented | Real gateway integration if automatic payment is required. |
+| Admin invoices `/admin/invoices` | Platform invoice monitoring. | Review invoice activity and status. | Admin invoice APIs. | Implemented | None. |
+| TTN `/admin/ttn` | TTN monitoring/configuration surface. | Review TTN state and workflow readiness. | Admin TTN/compliance APIs. | Implemented as preparation/status surface | Official TTN API details required. |
+| Compliance `/admin/compliance` | E-invoice readiness overview. | Review companies/invoices compliance state. | Compliance and readiness APIs. | Implemented | Official XSD, real signature, TTN config. |
+| Support `/admin/support` | Support ticket management. | Read and update support requests. | Admin support APIs. | Implemented | SMTP if replies/emails are sent. |
+| Activity logs `/admin/activity` | Audit and admin activity. | Review platform/admin actions. | Admin activity/audit API. | Implemented | None. |
+| System errors `/admin/system-errors` | Operational monitoring. | Review system-level errors. | Admin system error data. | Implemented | Production logging policy. |
+| Settings/integrations `/admin/settings` and `/admin/integrations` | Global integration status/configuration. | Configure or inspect TTN, AI, SMTP, billing, analytics, and signature settings where implemented. | Integration settings service and env variables. | Implemented | Secrets must be configured securely. |
+| Analytics/SEO `/admin/analytics-seo` | Marketing/analytics status. | Review analytics/search configuration. | GA/GTM/Search Console integration status. | Implemented | Third-party analytics credentials if used. |
+
+## TTN / El Fatoora Integration Status
+
+The platform prepares the TTN / El Fatoora workflow, but real TTN production integration requires official elements from TTN.
+
+Missing TTN requirements:
+
+| Requirement | Why it is needed |
 |---|---|
-| Authentication | Company registration, login, authenticated application access |
-| Dashboard | Business overview and workflow navigation |
-| Clients | Client record management and commercial-document support |
-| Products / services | Catalog management used by invoices and quotes |
-| Invoices | Invoice creation, tracking, document delivery, and compliance workflow entry points |
-| Payments | Payment records and payment status tracking |
-| Devis / quotes | Quote management and conversion workflows |
-| PDF export | Generated invoice and report documents |
-| XML / TEIF generation | TEIF-oriented XML generation and protected downloads |
-| Signature workflow | Certificate/settings flow and signature processing paths |
-| TTN workflow preparation | Submission/status workflow screens and backend workflow controls |
-| Reports and analytics | Reporting and analytics endpoints and pages |
-| Settings | Company profile, logo, compliance, and configuration management |
-| Admin panel | Administrative authentication and operational management screens |
-| Audit trail | Activity logging and history |
-| AI assistant | Gemini-backed assistant when `GEMINI_API_KEY` is configured |
-| Network / collaboration | Network connections, messages, offers, and project-sharing functionality |
+| Official TTN API documentation | Required to implement authentication, submission, status checks, and error handling correctly. |
+| TTN API base URL | Required for sandbox and production HTTP calls. |
+| TTN API key or credentials | Required to authenticate requests. |
+| Authentication method | Required to know whether TTN uses API key, OAuth, client credentials, username/password, certificates, or another method. |
+| Sandbox access | Required for non-legal integration testing. |
+| Production access | Required for real legal submission. |
+| Official TEIF version | Required to generate the correct XML structure. |
+| Official TEIF XSD file | Required for official XML validation. |
+| Official XML signature rules | Required for legal electronic signature before submission. |
+| Official submit endpoint | Required to send signed XML to TTN. |
+| Official status endpoint | Required to check accepted/rejected/pending states. |
+| Official proof/download endpoint | Required if TTN returns proof documents. |
+| Official rejection/error codes | Required to display precise business/legal errors. |
+| QR code/reference rules | Required before showing any official QR code or TTN reference. |
 
-## Admin Dashboard
+Current behavior:
 
-The platform includes a protected admin dashboard for the platform owner or operational team to supervise SaaS-wide activity. It is not intended for normal company users. The admin area manages and monitors platform companies, user accounts, subscriptions, compliance workflows, payments, support activity, audit logs, and global configuration where those capabilities are available in the current implementation.
+- Mock/simulation can be used for internal demonstration only.
+- Mock TTN must not be considered legal.
+- Production must not generate fake TTN accepted status.
+- Production must not generate fake TTN reference.
+- Production must not generate fake QR code.
+- An invoice can only be officially accepted after a real TTN response.
+- The current real TTN provider is a safe placeholder until official TTN details are available.
 
-### Admin Access
+Warning: TTN legal activation is blocked by design until official TTN configuration is provided.
 
-| Area | Route |
+## Electronic Signature Status
+
+The platform has an electronic signature workflow, but legal signature depends on real external configuration.
+
+Current status:
+
+| Area | Status |
 |---|---|
-| Admin login | `/admin/login` |
-| Protected admin dashboard and modules | `/admin/*` |
-| Admin backend API group | `/api/admin/*` |
+| Signature workflow | Implemented. |
+| Mock signature provider | Present for demo/development only. |
+| Real signature provider | Partially implemented around certificate-based signing configuration. |
+| Legal signature readiness | Not guaranteed until official provider/certificate/HSM and TTN-required signature format are confirmed. |
+| Production mock safety | Mock signature must remain blocked in production/legal mode. |
 
-Admin authentication uses its own frontend auth context, admin login endpoint, admin record lookup, and `adminProtect` backend middleware. Company/user authentication must remain separate from administrator authorization: normal users must never be able to access admin pages or admin APIs. The admin API exposes only its login endpoint publicly; the remaining `/api/admin/*` routes require an authenticated admin bearer token.
+Important rules:
 
-### Demo Admin Credentials
+- A visual signature or stamp on a PDF is not a legal XML signature.
+- Mock signature is for demo only.
+- The platform must not display mock signature as legal signature.
+- Signed XML must be generated by a real signature provider before real TTN submission.
+- Production use requires official signature rules and a validated provider/certificate workflow.
 
-The Prisma development/demo seed creates the following admin account:
+Missing/required configuration:
 
-| Field | Demo Value |
+| Requirement | Purpose |
 |---|---|
-| Email address | `admin@invoicepro.tn` |
-| Password | `adminpassword123` |
+| Real signature provider | Required to perform legal XML signing. |
+| Certificate or HSM access | Required for legal signing material. |
+| Certificate storage strategy | Required to keep private keys/certificates outside public folders. |
+| Signature mode | Required to distinguish mock, sandbox, certificate, HSM, or remote provider mode. |
+| Signing endpoint/provider credentials | Required if using a remote signature provider. |
+| Official signature format required by TTN | Required to make signed TEIF/XML acceptable to TTN. |
 
-> **Development/demo only:** These credentials are seeded for local testing only. Never use them on the production deployment at `https://invoicepro.tn`, and never seed demo credentials into the production database.
+## Payment and Subscription Status
 
-### Admin Modules
+There are two different payment concepts in this project:
 
-The current application includes admin screens and protected backend endpoints for the following operational areas:
+1. Invoice payment tracking
+2. SaaS subscription/access payment
 
-| Module | Purpose |
-|---|---|
-| Admin Overview | Displays global SaaS statistics including companies, invoices, subscriptions, and recent operational activity. |
-| Companies Management | Views registered companies and company detail; monitors profiles, readiness/dossier status, plan/status, quota, notes, and activity history. |
-| Users / Accounts Supervision | Views platform administrator and company accounts, with account-status monitoring and admin notes to investigate inactive or problematic accounts. |
-| Subscriptions Management | Reviews plans and active/inactive subscription state, and supports monitoring plan assignment and usage/quota information exposed by the current implementation. |
-| Invoices & Compliance Monitoring | Monitors platform invoice activity, TEIF/signature compliance status, TTN workflow status, and failed or blocked workflow conditions exposed by the compliance and TTN views. |
-| Payments Monitoring | Tracks platform or subscription payment status through the admin payments module, depending on the payment data recorded in the current implementation. |
-| Support / Requests | Manages support tickets and replies; signature onboarding or TTN/signature setup requests can be followed when recorded through the implemented support/onboarding workflows. |
-| Audit Logs / Activity Logs | Reviews and exports admin activity logs, including login and administrative actions, for debugging, traceability, and security review. Invoice, TEIF, signature, TTN, and settings events appear only where the current implementation records them. |
-| Global Settings | Manages platform settings, TVA rates, notifications, and integration/provider status and configuration options implemented by the backend. Signature provider options are available only where implemented and configured. |
+Invoice payment tracking is implemented. Users can track payments against invoices, including paid amount, remaining balance, unpaid, partial, and paid states. This is business accounting/payment tracking and does not automatically mean that an invoice is legally accepted by TTN.
 
-Additional implemented admin views include system error/health monitoring and analytics/SEO monitoring.
+SaaS subscription/access payment appears to be handled through admin supervision and integration configuration. The code contains billing integration settings such as `BILLING_PROVIDER`, `BILLING_API_KEY`, and `BILLING_WEBHOOK_SECRET`, but no confirmed automatic payment gateway flow should be presented as complete unless the owner configures and tests a real provider.
 
-### Admin API
+If no real payment gateway is configured:
 
-Admin backend operations are grouped under:
+- The owner/admin must approve or manage access manually.
+- Online subscription payment is not automatic.
+- Real payment gateway integration is required for automated online subscription payments.
 
-```text
-/api/admin/*
-```
+Possible future providers may include Stripe, Paymee, Konnect, Flouci, or another provider chosen by the owner. This README does not claim any of them are already implemented as a complete production payment flow.
 
-These APIs include protected endpoints for overview statistics, companies, users, invoices, subscriptions, TTN/compliance monitoring, payments, support, system errors, settings/integrations, analytics/SEO, activity logs, and notifications. They are administrative APIs and must never be exposed to, or callable as, normal company users.
+Payment status and legal/e-invoice status must stay separate:
 
-### Admin Security Notes
+- A paid invoice is not automatically accepted by TTN.
+- A TTN-accepted invoice is not automatically paid.
 
-- Admin credentials must never be hardcoded or reused as production credentials.
-- Demo admin seed credentials are development/demo data only and must not be used in production.
-- The Prisma seed is guarded to refuse execution when `NODE_ENV=production` or `APP_ENV=production`; retain this protection.
-- Admin JWT signing and authorization logic must be protected with a strong secret and careful middleware enforcement.
-- Admin pages should be excluded from search engine indexing in production.
-- The admin dashboard and `/api/admin/*` authorization boundaries must be tested separately from the normal user dashboard and APIs.
+## AI Assistant Status
 
-### Useful Admin URLs
+The current backend uses Google Gemini through the `@google/generative-ai` package.
 
-| Environment | Admin Login URL |
-|---|---|
-| Local development | `http://localhost:5173/admin/login` |
-| Production | `https://invoicepro.tn/admin/login` |
+Required key:
+
+| Variable | Provider | Status |
+|---|---|---|
+| `GEMINI_API_KEY` | Google Gemini | Required for the current AI assistant to work. |
+
+Additional generic integration variables exist (`AI_PROVIDER`, `AI_API_KEY`) for integration status/configuration surfaces, but the implemented AI controller currently checks and uses `GEMINI_API_KEY`.
+
+Important notes:
+
+- AI works only when the required API key is configured.
+- Without `GEMINI_API_KEY`, the AI endpoint should return a clear unavailable/configuration message.
+- No AI key should be committed to GitHub.
+- API usage may create cost for the owner.
+- The owner must provide the key before production activation of the AI assistant.
 
 ## Tech Stack
 
 | Area | Technology |
 |---|---|
+| Frontend | React 19, Vite, Tailwind CSS, React Router |
 | Backend | Node.js 20+, Express 5, TypeScript |
-| Frontend | React 19, Vite, Tailwind CSS 3 |
 | Database | PostgreSQL |
-| ORM | Prisma ORM |
+| ORM | Prisma |
 | Authentication | JWT, bcryptjs |
-| AI | Google Gemini API when `GEMINI_API_KEY` is configured |
-| Primary deployment | cPanel / Passenger Node.js App backend and static React frontend |
-| Optional VPS deployment | Docker Compose files retained for a Docker-capable VPS |
+| PDF generation | Backend PDFKit; frontend also includes jsPDF/html2canvas for frontend exports where used |
+| XML/TEIF | Backend TEIF/XML generator using XML utilities |
+| Electronic signature | Backend signature provider abstraction, mock provider, certificate-based signing utilities |
+| TTN workflow | Backend TTN provider abstraction with mock and safe placeholder provider |
+| AI provider | Google Gemini via `@google/generative-ai` |
+| Email | Nodemailer / SMTP |
+| Security middleware | Helmet, CORS, selected rate limiting |
+| File uploads | Multer and backend storage paths |
+| Deployment | cPanel/Passenger supported; Docker/Docker Compose files are present for local/VPS use |
+| Admin | Separate admin frontend context and backend middleware |
+
+## Architecture Overview
+
+Simple architecture:
+
+```text
+Browser frontend -> Backend API -> Services -> Prisma -> PostgreSQL
+```
+
+Responsibilities:
+
+- The frontend handles UI, routing, forms, dashboards, admin pages, and user interaction.
+- The backend handles authentication, authorization, company isolation, business logic, PDF/XML generation, signature/TTN workflow control, notifications, support, reporting, and audit logs.
+- Prisma handles database access and schema migrations.
+- Service modules handle invoice logic, TEIF, signature, TTN, PDF, mail, audit, AI usage, login protection, integration settings, analytics, and admin operations.
+- External systems include TTN, electronic signature provider/certificate/HSM, Gemini AI, SMTP, analytics services, and any future payment provider.
+
+## Environment Variables
+
+Never commit real `.env` files. Keep only `.env.example` in GitHub.
+
+### Backend Variables
+
+| Variable | Required | Development example | Production note |
+|---|---:|---|---|
+| `NODE_ENV` | Yes | `development` | Use `production` on server. |
+| `APP_ENV` | Recommended | `development` | Use `production` on server. |
+| `E_INVOICE_MODE` | Yes | `mock` | Use safe non-mock mode for hosted/legal preparation; never treat mock as legal. |
+| `PORT` | Yes | `5005` | Match reverse proxy/cPanel configuration. |
+| `DATABASE_URL` | Yes | `postgresql://user:pass@localhost:5440/db?schema=public` | Use private production DB credentials only on server. |
+| `JWT_SECRET` | Yes | Placeholder long random string | Must be strong, unique, and private. |
+| `JWT_EXPIRES_IN` | Optional | `12h` | Adjust according to owner security policy. |
+| `FRONTEND_URL` | Yes | `http://localhost:5173` | Use exact production frontend origin for CORS. |
+| `AUTH_FAILED_LOGIN_MAX` | Optional | `10` | Login protection threshold. |
+| `AUTH_FAILED_LOGIN_WINDOW_MINUTES` | Optional | `15` | Login protection window. |
+| `REGISTER_RATE_LIMIT_MAX` | Optional | `20` | Registration anti-spam limit. |
+| `REGISTER_RATE_LIMIT_WINDOW_MINUTES` | Optional | `60` | Registration anti-spam window. |
+| `AI_MONTHLY_TOKEN_LIMIT` | Optional | `250000` | Monthly AI usage limit per company where enforced. |
+| `GENERAL_RATE_LIMIT_MAX` | Optional | `5000` | Reserved/general guard setting. |
+| `GENERAL_RATE_LIMIT_WINDOW_MS` | Optional | `900000` | Reserved/general guard window. |
+| `GEMINI_API_KEY` | Required for AI | Empty in local example | Required before enabling AI assistant. |
+| `AI_PROVIDER` | Optional | Empty | Integration status/configuration field. |
+| `AI_API_KEY` | Optional | Empty | Generic integration field; current AI uses `GEMINI_API_KEY`. |
+| `TTN_API_URL` | Required for TTN | Empty | Official TTN value required. |
+| `TTN_BASE_URL` | Required for TTN | Empty | Official TTN value required. |
+| `TTN_AUTH_MODE` | Required for TTN | Empty | Must match official TTN auth method. |
+| `TTN_AUTH_ENDPOINT` | Required for TTN | Empty | Official endpoint required. |
+| `TTN_SUBMIT_INVOICE_ENDPOINT` | Required for TTN | Empty | Official endpoint required. |
+| `TTN_STATUS_ENDPOINT` | Required for TTN | Empty | Official endpoint required. |
+| `TTN_PROOF_ENDPOINT` | Optional | Empty | Required only if TTN provides proof downloads. |
+| `TTN_API_KEY` | Required for TTN | Empty | Secret; do not commit. |
+| `TTN_CLIENT_ID` | Conditional | Empty | If TTN auth requires client credentials. |
+| `TTN_CLIENT_SECRET` | Conditional | Empty | Secret; if TTN auth requires it. |
+| `TTN_USERNAME` | Conditional | Empty | If TTN auth requires username/password. |
+| `TTN_PASSWORD` | Conditional | Empty | Secret; if TTN auth requires it. |
+| `TEIF_XSD_PATH` | Required for official validation | Empty | Path to official XSD outside public web root. |
+| `TEIF_SCHEMA_VERSION` | Recommended | Empty | Use official TEIF version. |
+| `STORAGE_PATH` | Recommended | `uploads` | Store sensitive artifacts outside public folders where possible. |
+| `SIGNATURE_PROVIDER` | Required for legal signature | Empty or `mock` locally | Must be real provider/certificate mode for legal use. |
+| `SIGNATURE_MODE` | Required for legal signature | Empty | Defines mock/certificate/HSM/remote strategy. |
+| `SIGNATURE_PROVIDER_NAME` | Optional | Empty | Display/configuration label. |
+| `SIGNATURE_API_KEY` | Conditional | Empty | Secret for remote provider if used. |
+| `SIGNATURE_CERT_PATH` | Conditional | Empty | Certificate path; keep outside public folders. |
+| `SIGNATURE_CERT_PASSWORD` | Conditional | Empty | Secret; do not commit. |
+| `SIGNATURE_CERT_ALIAS` | Optional | Empty | Certificate identifier/alias. |
+| `SIGNATURE_KEY_PATH` | Conditional | Empty | Private key path if used; never public. |
+| `SIGNATURE_HSM_URL` | Conditional | Empty | HSM endpoint if used. |
+| `SIGNATURE_HSM_TOKEN` | Conditional | Empty | Secret HSM token if used. |
+| `SMTP_HOST` | Required for email | Empty | Required for real email sending. |
+| `SMTP_PORT` | Required for email | `587` | Match SMTP provider. |
+| `SMTP_USER` | Required for email | Empty | SMTP account. |
+| `SMTP_PASS` | Required for email | Empty | SMTP password/secret. |
+| `ENCRYPTION_KEY` | Recommended | Empty | Required if encrypted integration secrets are stored. |
+| `BILLING_PROVIDER` | Conditional | Empty | Required if online billing is implemented/enabled. |
+| `BILLING_API_KEY` | Conditional | Empty | Secret billing key. |
+| `BILLING_WEBHOOK_SECRET` | Conditional | Empty | Secret webhook verification value. |
+| `BILLING_SUCCESS_URL` | Conditional | Empty | Used if billing checkout is implemented. |
+| `BILLING_CANCEL_URL` | Conditional | Empty | Used if billing checkout is implemented. |
+| `BILLING_SUBSCRIPTION_INVOICES_ENABLED` | Optional | Empty | Admin/status setting for subscription invoice behavior. |
+| `GA4_MEASUREMENT_ID` | Optional | Empty | Google Analytics integration. |
+| `GTM_CONTAINER_ID` | Optional | Empty | Google Tag Manager integration. |
+| `GOOGLE_SEARCH_CONSOLE_SITE_URL` | Optional | Empty | Search Console status/config. |
+| `GOOGLE_SERVICE_ACCOUNT_JSON_PATH` | Optional | Empty | Keep service account JSON private. |
+| `META_PIXEL_ID` | Optional | Empty | Meta Pixel integration. |
+
+### Frontend Variables
+
+| Variable | Required | Development example | Production note |
+|---|---:|---|---|
+| `VITE_API_URL` | Yes | `http://localhost:5005/api` | Use production API URL, for example `https://api.example.com/api`. |
+| `VITE_BASE_PATH` | Optional | `/` | Use only if app is deployed under a sub-path. |
+| `VITE_APP_VERSION` | Optional | `1.2.0` | Display/version metadata if used. |
 
 ## Local Development Setup
 
 ### Prerequisites
 
 - Node.js 20 or newer
-- PostgreSQL installed locally, or Docker for the included local PostgreSQL service
-- A backend environment file at `backend/.env`
-- A frontend environment file at `frontend/.env`
+- npm
+- Docker Desktop if using the included PostgreSQL service
+- PostgreSQL if not using Docker
+- Git
 
-### 1. Start PostgreSQL
-
-To use the included local Docker database, which publishes PostgreSQL on port `5440`:
+### 1. Clone the repository
 
 ```bash
-cd backend
-docker compose up -d
+git clone <repository-url>
+cd el-fatoora
 ```
 
-Alternatively, provide an equivalent local PostgreSQL database and update `DATABASE_URL`.
-
-### 2. Configure and Start the Backend
-
-Create `backend/.env` for local development:
-
-```env
-PORT=5005
-NODE_ENV=development
-APP_ENV=development
-E_INVOICE_MODE=mock
-DATABASE_URL="postgresql://elfatoora:secretpassword@localhost:5440/elfatooradb"
-JWT_SECRET="local_development_jwt_secret_change_me_please_32_chars"
-FRONTEND_URL="http://localhost:5173"
-```
-
-> `E_INVOICE_MODE=mock` is for development simulation only. It must never be used in production.
-
-Install dependencies and prepare Prisma:
+### 2. Install backend dependencies
 
 ```bash
 cd backend
 npm install
-npx prisma generate
-npx prisma migrate deploy
-npm run dev
 ```
 
-For local-only prototyping against a disposable database, `npx prisma db push` may be used instead of migrations when appropriate. Do not use `prisma db push` against production.
+### 3. Install frontend dependencies
 
-The local backend health endpoint is:
-
-```text
-http://localhost:5005/health
+```bash
+cd ../frontend
+npm install
 ```
 
-### 3. Configure and Start the Frontend
+### 4. Configure backend environment
 
-Create `frontend/.env`:
+Create `backend/.env` from `backend/.env.example`.
+
+Minimum local example:
+
+```env
+NODE_ENV=development
+APP_ENV=development
+E_INVOICE_MODE=mock
+PORT=5005
+DATABASE_URL="postgresql://elfatoora:secretpassword@localhost:5440/elfatooradb?schema=public"
+JWT_SECRET="development_only_replace_with_a_random_secret_of_at_least_48_chars"
+JWT_EXPIRES_IN="12h"
+FRONTEND_URL="http://localhost:5173"
+GEMINI_API_KEY=""
+```
+
+### 5. Configure frontend environment
+
+Create `frontend/.env` from `frontend/.env.example`.
 
 ```env
 VITE_API_URL=http://localhost:5005/api
 VITE_BASE_PATH=/
+VITE_APP_VERSION=1.2.0
 ```
 
-Then run:
+If the backend is on port `5005`, the frontend must point to `http://localhost:5005/api`.
+
+### 6. Start PostgreSQL with Docker
+
+From the repository root:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+docker compose -f backend/docker-compose.yml up -d
 ```
 
-The Vite development application is served at:
+The included local PostgreSQL service publishes port `5440`.
 
-```text
-http://localhost:5173
-```
-
-## Production cPanel Deployment
-
-The main deployment target is:
-
-| Component | Production Value |
-|---|---|
-| Frontend website | `https://invoicepro.tn` |
-| Backend API | `https://api.invoicepro.tn` |
-| cPanel home directory | `/home/invoice` |
-| Backend application root | `/home/invoice/backend` |
-| Backend startup file | `dist/index.js` |
-| Node.js version | `20.x` |
-| Application mode | `Production` |
-
-### Backend Deployment with cPanel Passenger
-
-1. Upload the backend project directory to `/home/invoice/backend`, outside the public frontend document root.
-2. In cPanel, open **Setup Node.js App** or **Application Manager** and create the API application with these settings:
-
-| cPanel Setting | Value |
-|---|---|
-| Node.js version | `20.x` |
-| Application mode | `Production` |
-| Application root | `backend` |
-| Application URL | `api.invoicepro.tn` |
-| Application startup file | `dist/index.js` |
-
-3. Configure the backend environment variables in the cPanel Node.js application:
-
-```env
-NODE_ENV=production
-APP_ENV=production
-E_INVOICE_MODE=sandbox
-DATABASE_URL="postgresql://invoice_invoice:YOUR_POSTGRES_PASSWORD@localhost:5432/invoice_elfatoora?schema=public"
-JWT_SECRET="CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_MINIMUM_48_CHARACTERS"
-JWT_EXPIRES_IN="12h"
-FRONTEND_URL="https://invoicepro.tn"
-GEMINI_API_KEY=""
-TTN_API_URL=""
-TTN_API_KEY=""
-SMTP_HOST=""
-SMTP_PORT=587
-SMTP_USER=""
-SMTP_PASS=""
-```
-
-> **Secrets:** Replace placeholder values in cPanel only. Do not add database passwords, JWT secrets, API keys, certificate passwords, or `.env` files to source control.
-
-> **TTN status:** The current backend deliberately does not simulate legal TTN submission outside mock development mode. In `sandbox` mode, TTN workflow actions require official TTN configuration and the provider transport must be completed against the official contract before submission can operate.
-
-When official TTN and signing integration is available, the backend configuration also uses the following code-supported variables:
-
-```env
-TEIF_XSD_PATH="/home/invoice/private/teif/official-schema.xsd"
-TEIF_SCHEMA_VERSION="OFFICIAL_SCHEMA_VERSION"
-SIGNATURE_PROVIDER="certificate"
-SIGNATURE_CERT_PATH="/home/invoice/private/certificates/company.p12"
-SIGNATURE_CERT_PASSWORD="YOUR_CERTIFICATE_PASSWORD"
-TTN_BASE_URL="OFFICIAL_TTN_BASE_URL"
-TTN_AUTH_ENDPOINT="OFFICIAL_TTN_AUTH_ENDPOINT"
-TTN_SUBMIT_INVOICE_ENDPOINT="OFFICIAL_TTN_SUBMIT_ENDPOINT"
-TTN_STATUS_ENDPOINT="OFFICIAL_TTN_STATUS_ENDPOINT"
-TTN_API_KEY="OFFICIAL_TTN_API_KEY"
-```
-
-Keep XSD files, certificates, compliance artifacts, and their credentials outside `public_html`.
-
-### Backend Build and Migration Commands
-
-Run these commands inside **cPanel Terminal** or over SSH, not from the local Windows PowerShell terminal:
+### 7. Generate Prisma client and run migrations
 
 ```bash
-source /home/invoice/nodevenv/backend/20/bin/activate && cd /home/invoice/backend
-rm -rf dist
-npm install
-npm run build
+cd backend
 npx prisma generate
-npx prisma validate
 npx prisma migrate deploy
 ```
 
-After these commands complete, restart the Node.js app from cPanel.
+For disposable local development only, `npx prisma db push` may be used when appropriate. Do not use `db push` on production.
 
-Do not:
+### 8. Seed development data
 
-- Use `E_INVOICE_MODE=mock` in production.
-- Commit or upload `.env` files to a publicly accessible location.
-- Reuse local development secrets in production.
-- Run demo seed data in production.
-- Use `prisma db push` or `prisma migrate dev` against the production database.
+```bash
+npm run seed
+```
 
-### Health Check
+Development seed credentials:
 
-After restarting the application, verify:
+| Account | Email | Password |
+|---|---|---|
+| Admin | `admin@invoicepro.tn` | `adminpassword123` |
+| Demo company user | `demo@invoicepro.tn` | `password123` |
+
+These are for local/demo use only. Never use them in production.
+
+### 9. Start backend
+
+```bash
+cd backend
+npm run dev
+```
+
+Health check:
 
 ```text
-https://api.invoicepro.tn/health
+http://localhost:5005/health
 ```
 
 Expected response:
@@ -294,117 +465,189 @@ Expected response:
 {"success":true,"status":"OK"}
 ```
 
-## Frontend Production Deployment
-
-Create or update `frontend/.env.production` before building:
-
-```env
-VITE_API_URL=https://api.invoicepro.tn/api
-VITE_BASE_PATH=/
-```
-
-Build the static frontend:
+### 10. Start frontend
 
 ```bash
 cd frontend
-npm install
-npm run build
+npm run dev
 ```
 
-Upload only the contents of `frontend/dist/` to `public_html/`. The repository already provides `frontend/public/.htaccess`, which Vite copies into the production output. Confirm that the deployed `public_html/.htaccess` supports React Router SPA fallback:
+Open:
 
-```apacheconf
-<IfModule mod_rewrite.c>
-RewriteEngine On
-RewriteBase /
-RewriteRule ^index\.html$ - [L]
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.html [L]
-</IfModule>
+```text
+http://localhost:5173
 ```
 
-With the fallback deployed, direct browser visits to frontend routes such as `/login` or `/invoices` should load the React application instead of producing an Apache 404 response.
+Admin login:
 
-## Database Setup on cPanel
-
-Create and assign the production PostgreSQL database in cPanel:
-
-| Setting | Value |
-|---|---|
-| Database | `invoice_elfatoora` |
-| User | `invoice_invoice` |
-| Host | `localhost` |
-| Port | `5432` |
-| Password | Keep private; never put the real password in this README |
-
-Use the database password only in the private backend runtime environment:
-
-```env
-DATABASE_URL="postgresql://invoice_invoice:YOUR_POSTGRES_PASSWORD@localhost:5432/invoice_elfatoora?schema=public"
+```text
+http://localhost:5173/admin/login
 ```
 
-Upload the Prisma migration directory with the backend application, and apply schema migrations from `/home/invoice/backend` with:
+## Production Deployment Notes
 
-```bash
-npx prisma migrate deploy
-```
+Before production deployment:
 
-## Production Safety Notes
+- Use strong secrets.
+- Configure a production PostgreSQL database.
+- Configure `DATABASE_URL`.
+- Configure `JWT_SECRET`.
+- Configure `FRONTEND_URL`.
+- Configure frontend `VITE_API_URL`.
+- Configure CORS through `FRONTEND_URL`.
+- Configure HTTPS.
+- Configure Nginx/Apache SPA fallback for the frontend.
+- Run Prisma migrations.
+- Configure private storage folders for sensitive PDF/XML/TEIF/signature artifacts.
+- Configure SMTP if email sending is required.
+- Configure `GEMINI_API_KEY` only if the AI assistant should work.
+- Configure TTN only when official credentials and documentation are available.
+- Configure a real signature provider before enabling legal e-invoice workflow.
+- Configure a real payment provider before enabling automatic subscription payment.
+- Do not enable fake legal statuses in production.
 
-- Real TTN production is not active until official TTN API details, sandbox/production credentials, the official XSD TEIF schema, and a real signature provider are configured and the official transport is implemented and validated.
-- `E_INVOICE_MODE=sandbox` is the production-hosted preparation/testing mode. It has no legal invoice acceptance value.
-- Mock legal signatures and simulated TTN acceptance are blocked by application startup and workflow guards in production.
-- Workflow-controlled invoice statuses, including signed and TTN states, must not be manually editable by users.
-- PDF, XML, TEIF, signed files, certificates, and TTN proof files must be served only through protected backend routes or stored outside public web roots. The backend exposes only logo uploads as static public assets.
-
-## Security Checklist
-
-- Do not upload `.git` to the hosting account document root.
-- Do not upload `node_modules` manually; install server dependencies from the application root.
-- Do not expose `.env` files or secret configuration through `public_html`.
-- Do not expose `uploads/compliance`, certificates, signed documents, PDFs, or XML/TEIF artifacts publicly.
-- Use a unique, random `JWT_SECRET` of at least 48 characters.
-- Require HTTPS for `https://invoicepro.tn` and `https://api.invoicepro.tn`.
-- Keep `FRONTEND_URL="https://invoicepro.tn"` strict so API CORS accepts only the deployed frontend origin.
-- Run `npm audit` and evaluate any findings before production deployment.
-- Do not run demo or development seed data in production.
-
-## Useful Commands
-
-### Backend
+### Backend build
 
 ```bash
 cd backend
 npm install
 npm run build
-npm run typecheck
 npx prisma generate
-npx prisma validate
 npx prisma migrate deploy
+npm start
 ```
 
-### Frontend
+### Frontend build
 
 ```bash
 cd frontend
 npm install
+npm run build
+```
+
+Deploy only the generated `frontend/dist` static files to the frontend web root.
+
+### cPanel / Passenger note
+
+The backend can be deployed as a Node.js Passenger application:
+
+| Setting | Value |
+|---|---|
+| Node.js version | 20.x |
+| Application mode | Production |
+| Startup file | `dist/index.js` |
+| Backend health URL | `/health` |
+
+The frontend should be deployed as a static Vite build. Configure Apache/Nginx fallback so React routes such as `/login`, `/dashboard`, and `/admin/login` load `index.html`.
+
+## Security Notes
+
+- Do not commit `.env` files.
+- Do not commit API keys.
+- Do not commit production database credentials.
+- Do not commit certificates or private keys.
+- Do not store certificates/private keys in `public`, `public_html`, or any static frontend folder.
+- Protect PDF/XML/TEIF/signed XML downloads through authenticated backend routes.
+- Keep company data isolated by authenticated company/user ID.
+- Keep admin and user access separated.
+- Use HTTPS in production.
+- Use a strong JWT secret.
+- Restrict CORS to the production frontend domain.
+- Do not run demo seed data in production.
+- Do not expose logs/uploads if they contain personal or commercial data.
+- Do not show TTN accepted, legal signature completed, official reference, or official QR code unless produced by real external systems.
+
+## Known Missing Dependencies
+
+| Dependency | Why it is needed | Current status | Who must provide it |
+|---|---|---|---|
+| TTN API credentials | Required for real TTN authentication and submission. | Missing/not configured. | Project owner / TTN. |
+| TTN official documentation | Required to implement correct API contract. | Missing. | Project owner / TTN. |
+| TTN sandbox access | Required for integration testing. | Missing/not configured. | Project owner / TTN. |
+| TTN production access | Required for legal production submission. | Missing/not configured. | Project owner / TTN. |
+| Official TEIF XSD | Required for official XML validation. | Missing/not configured. | Project owner / TTN / official source. |
+| Official XML signature rules | Required for legal signed XML. | Missing/not confirmed. | Project owner / TTN / signature authority. |
+| Real signature provider/certificate | Required for legal electronic signature. | Missing/not configured. | Project owner / certificate provider. |
+| Certificate/HSM storage strategy | Required to protect signing keys. | Must be finalized before legal use. | Project owner + developer/admin. |
+| AI API key | Required for AI assistant. | `GEMINI_API_KEY` missing unless owner provides it. | Project owner. |
+| Payment gateway solution | Required for automated online subscription payment. | Not confirmed as fully integrated. | Project owner. |
+| SMTP credentials | Required for real email sending. | Optional/missing unless configured. | Project owner. |
+| Production domain and SSL | Required for public production use. | Must be configured on hosting. | Project owner/hosting admin. |
+| Server database credentials | Required for production database. | Must be configured privately. | Project owner/hosting admin. |
+| Analytics credentials | Required only for analytics integrations. | Optional. | Project owner. |
+
+## Owner Checklist Before Production
+
+- [ ] Provide production domain.
+- [ ] Provide server/hosting access.
+- [ ] Provide production database credentials.
+- [ ] Provide SMTP credentials if email sending is required.
+- [ ] Provide `GEMINI_API_KEY` if AI assistant should work.
+- [ ] Choose payment provider for online subscription payment.
+- [ ] Provide payment provider API keys if automated billing is required.
+- [ ] Obtain TTN official documentation.
+- [ ] Obtain TTN sandbox credentials.
+- [ ] Obtain TTN production credentials.
+- [ ] Provide official TEIF XSD.
+- [ ] Confirm official XML signature rules required by TTN.
+- [ ] Choose/provide real electronic signature provider, certificate, or HSM.
+- [ ] Test user registration and login.
+- [ ] Test admin login and company approval/access flow.
+- [ ] Test invoice creation.
+- [ ] Test PDF generation.
+- [ ] Test payment tracking.
+- [ ] Test quotes/devis creation and conversion.
+- [ ] Test settings/company file readiness.
+- [ ] Test notifications.
+- [ ] Test support requests.
+- [ ] Test TEIF generation.
+- [ ] Test real signature in sandbox once provider is available.
+- [ ] Test TTN sandbox submission once TTN access is available.
+- [ ] Test backup and restore strategy.
+
+## Developer Checklist Before Pushing to GitHub
+
+- [ ] Remove real `.env` files from Git tracking.
+- [ ] Keep only `.env.example` files.
+- [ ] Remove private certificates and keys.
+- [ ] Remove sensitive logs.
+- [ ] Remove sensitive uploads or generated documents.
+- [ ] Run backend build/typecheck.
+- [ ] Run frontend lint.
+- [ ] Run frontend build.
+- [ ] Run Prisma generate.
+- [ ] Run e-invoice verification script.
+- [ ] Verify README accuracy against current code.
+- [ ] Verify no secrets are committed.
+
+Useful commands:
+
+```bash
+cd backend
+npm run build
+npm run lint
+npm run verify:einvoice
+npx prisma generate
+```
+
+```bash
+cd frontend
 npm run lint
 npm run build
 ```
 
-## Troubleshooting
+## Current Limitations
 
-| Problem | Check |
-|---|---|
-| cPanel app does not launch | The startup file must be `dist/index.js`, not `dist/server.js`. |
-| API fails after restart | Review Passenger/application logs, commonly `passenger.log`, and confirm the production environment values are present. |
-| Prisma connection or migration fails | Verify `DATABASE_URL`, database permissions, host `localhost`, port `5432`, and that migrations were uploaded. |
-| Frontend cannot register or login | Confirm `VITE_API_URL=https://api.invoicepro.tn/api` was used at build time and `FRONTEND_URL="https://invoicepro.tn"` is set on the API. |
-| Frontend route returns 404 after browser refresh | Confirm `.htaccess` was uploaded to `public_html` and Apache rewrite rules are enabled. |
-| TTN or signing action is unavailable in hosted sandbox | This is expected until official credentials, endpoints, schema, signature configuration, and TTN transport implementation are completed. |
-| `source /home/invoice/nodevenv/...` fails locally | This is a Linux cPanel/SSH command. Run it in cPanel Terminal or SSH, not local Windows PowerShell. |
+- TTN legal production depends on official TTN configuration, official documentation, official endpoints, and sandbox/production credentials.
+- Electronic signature legal production depends on a real provider/certificate/HSM and official TTN signature rules.
+- Official TEIF validation depends on the official TEIF XSD.
+- Automatic SaaS subscription payment requires a real payment gateway integration if the owner wants online payment.
+- AI assistant requires `GEMINI_API_KEY`.
+- SMTP email sending requires real SMTP credentials.
+- Some admin/integration surfaces expose configuration/status management, but external systems still need real credentials and final provider-specific testing.
+- Mock/demo e-invoice workflows are not legal and must never be presented as production acceptance.
 
-## Optional VPS Deployment with Docker
+## Final Owner Summary
 
-Docker is not the primary deployment method for this project. If deploying to a VPS where Docker is available, the retained `docker-compose.prod.yml` can be used as a starting point for a containerized PostgreSQL, backend, and frontend deployment. Configure strong production secrets, TLS/reverse proxy routing, protected uploads, and Prisma migrations separately for that environment.
+The platform is a strong base for commercial invoicing and preparation for Tunisian e-invoicing. The owner can deploy and test the commercial modules, while TTN legal submission, real electronic signature, AI assistant, and automated online payment require the missing external credentials/providers listed above.
+

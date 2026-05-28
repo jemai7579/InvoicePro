@@ -11,6 +11,7 @@
     "test": "node -e \"console.log('No backend test runner configured. Run npm run build, then follow PLATFORM_FUNCTIONALITY_AUDIT.md API smoke checks.')\"",
     "seed": "node prisma/seed.cjs",
     "smoke": "node scripts/admin-smoke-test.js",
+    "verify:einvoice": "node scripts/verify-einvoice.js",
     "admin:import-ops": "node scripts/import-admin-ops-json.js",
     "start": "node dist/index.js",
     "postinstall": "prisma generate"

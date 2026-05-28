@@ -117,6 +117,7 @@ function App() {
               <Route path="/admin/activity-logs" element={<AdminActivity />} />
               <Route path="/admin/system-errors" element={<AdminSystemErrors />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/integrations" element={<AdminSettings />} />
               <Route path="/admin/analytics-seo" element={<AdminAnalyticsSeo />} />
             </Route>
           </Route>

@@ -36,6 +36,37 @@ const getAdminName = (req: Request) => (req as any).admin?.name || 'Platform adm
 const appEnv = () => process.env.APP_ENV || process.env.NODE_ENV || 'development';
 const eInvoiceMode = () => process.env.E_INVOICE_MODE || process.env.TTN_MODE || 'mock';
 const isConfigured = (value?: string) => Boolean(value && value.trim() && !value.toLowerCase().includes('changeme'));
+const ACCESS_STATUSES = ['active', 'pending', 'suspended', 'blocked', 'deleted', 'grace_access'];
+
+const daysBetweenNow = (date?: Date | string | null) => {
+  if (!date) return null;
+  return Math.ceil((new Date(date).getTime() - Date.now()) / 86400000);
+};
+
+const normalizeAccountStatus = (company: any, profile?: any) => {
+  const profileStatus = String(profile?.status || '').toLowerCase();
+  if (profileStatus === 'deleted') return 'SOFT_DELETED';
+  if (profileStatus === 'blocked') return 'BLOCKED';
+  if (profileStatus === 'suspended') return 'BLOCKED';
+  if (profileStatus === 'pending') return 'PENDING_APPROVAL';
+  if (profileStatus === 'grace_access') return 'GRACE_ACCESS';
+  const subscriptionStatus = String(company.subscription?.status || '').toUpperCase();
+  if (['PENDING_APPROVAL', 'PENDING', 'PENDING_PAYMENT'].includes(subscriptionStatus)) return 'PENDING_APPROVAL';
+  if (['BLOCKED', 'SUSPENDED', 'CANCELLED'].includes(subscriptionStatus)) return 'BLOCKED';
+  if (['DELETED', 'SOFT_DELETED'].includes(subscriptionStatus)) return 'SOFT_DELETED';
+  if (company.subscription?.endDate && new Date(company.subscription.endDate) < new Date()) return 'EXPIRED';
+  if (subscriptionStatus === 'GRACE_ACCESS') return 'GRACE_ACCESS';
+  return 'ACTIVE';
+};
+
+const normalizePaymentStatus = (company: any, payments: any[] = []) => {
+  const lastPayment = payments.find((payment) => payment.companyId === company.id);
+  if (lastPayment?.status) return lastPayment.status;
+  if (PLAN_PRICING[company.subscription?.plan || 'STARTER'] > 0) return 'pending';
+  return 'not_required';
+};
+
+const addDays = (date: Date, days: number) => new Date(date.getTime() + days * 86400000);
 
 const defaultDossierStatus = (company: any) => {
   if (!company.matriculeFiscal || !company.address || !company.registreCommerce) return 'missing_documents';
@@ -321,9 +352,10 @@ export const getGlobalStats = async (req: Request, res: Response) => {
 
     const totalCompanies = companies.length;
     const profileFor = (companyId: string) => companyProfiles.find((profile) => profile.companyId === companyId);
-    const activeCompanies = companies.filter((company) => (profileFor(company.id)?.status || 'active') === 'active').length;
-    const pendingCompanies = companies.filter((company) => profileFor(company.id)?.status === 'pending').length;
-    const suspendedCompanies = companies.filter((company) => ['suspended', 'blocked'].includes(profileFor(company.id)?.status || '') || company.subscription?.status === 'CANCELLED').length;
+    const accountStatusFor = (company: any) => normalizeAccountStatus(company, profileFor(company.id));
+    const activeCompanies = companies.filter((company) => ['ACTIVE', 'GRACE_ACCESS'].includes(accountStatusFor(company))).length;
+    const pendingCompanies = companies.filter((company) => accountStatusFor(company) === 'PENDING_APPROVAL').length;
+    const suspendedCompanies = companies.filter((company) => ['BLOCKED', 'SOFT_DELETED'].includes(accountStatusFor(company))).length;
     const cancelledCompanies = suspendedCompanies;
     const trialCompanies = companies.filter((company) => !company.subscription || company.subscription.plan === 'STARTER').length;
     const paidCompanies = companies.filter((company) => ['PROFESSIONAL', 'ENTERPRISE'].includes(company.subscription?.plan || '')).length;
@@ -445,6 +477,11 @@ export const getGlobalStats = async (req: Request, res: Response) => {
       data: {
         kpis: {
           totalCompanies,
+          pendingAccounts: pendingCompanies,
+          activeAccounts: activeCompanies,
+          blockedAccounts: companies.filter((company) => accountStatusFor(company) === 'BLOCKED').length,
+          expiredAccounts: companies.filter((company) => accountStatusFor(company) === 'EXPIRED').length,
+          pendingPaymentAccounts: companies.filter((company) => normalizePaymentStatus(company, manualPayments) === 'pending').length,
           activeCompanies,
           pendingCompanies,
           suspendedCompanies,
@@ -531,7 +568,16 @@ export const getGlobalStats = async (req: Request, res: Response) => {
 
 export const getCompanies = async (req: Request, res: Response) => {
   try {
-    const [companies, invoices, profiles] = await Promise.all([getCompaniesBase(), getInvoicesEnriched(), getCompanyOpsProfiles()]);
+    const [companies, invoices, profiles, platformPayments, histories] = await Promise.all([
+      getCompaniesBase(),
+      getInvoicesEnriched(),
+      getCompanyOpsProfiles(),
+      getPaymentsStore(),
+      ((prisma as any).adminCompanyStatusHistory?.findMany?.({
+        orderBy: { createdAt: 'desc' },
+        take: 500,
+      }) || Promise.resolve([])).catch(() => []),
+    ]);
     const invoiceMap = invoices.reduce<Record<string, any[]>>((acc, invoice) => {
       acc[invoice.companyId] = [...(acc[invoice.companyId] || []), invoice];
       return acc;
@@ -543,15 +589,24 @@ export const getCompanies = async (req: Request, res: Response) => {
         const notes = await getAdminNotes('company', company.id);
         const profile = profiles.find((item) => item.companyId === company.id);
         const missingRequirements = productionMissingRequirements(company);
+        const accountStatus = normalizeAccountStatus(company, profile);
+        const remainingAccessDays = daysBetweenNow(company.subscription?.endDate);
         return {
           ...company,
+          password: undefined,
+          certificatePassword: undefined,
           phone: company.phone || null,
           rne: company.registreCommerce || null,
+          accountStatus,
           operationalStatus: profile?.status || (company.subscription?.status === 'CANCELLED' ? 'suspended' : 'active'),
           dossierStatus: profile?.dossierStatus || defaultDossierStatus(company),
           productionReady: missingRequirements.length === 0,
           missingRequirements,
           subscriptionStatus: company.subscription?.status || 'TRIAL',
+          paymentStatus: normalizePaymentStatus(company, platformPayments),
+          accessExpiresAt: company.subscription?.endDate || null,
+          remainingAccessDays,
+          lastLogin: (histories as any[]).find((entry) => entry.companyId === company.id && entry.actionType === 'login')?.createdAt || null,
           invoicesUsedThisMonth: companyInvoices.filter((invoice) => {
             const created = new Date(invoice.createdAt);
             const now = new Date();
@@ -634,6 +689,10 @@ export const getCompanyById = async (req: Request, res: Response) => {
       success: true,
       data: {
         ...safeCompany,
+        accountStatus: normalizeAccountStatus(company, profile),
+        paymentStatus: normalizePaymentStatus(company, companyPlatformPayments),
+        accessExpiresAt: company.subscription?.endDate || null,
+        remainingAccessDays: daysBetweenNow(company.subscription?.endDate),
         operationalStatus: profile?.status || (company.subscription?.status === 'CANCELLED' ? 'suspended' : 'active'),
         dossierStatus: profile?.dossierStatus || defaultDossierStatus(company),
         missingRequirements: productionMissingRequirements(company),
@@ -1345,12 +1404,13 @@ export const deleteCompany = async (req: Request, res: Response) => {
   const id = getRouteId(req) as string;
   try {
     if (req.body?.confirmPermanentDelete !== true) {
-      const profile = await upsertCompanyOpsProfile(id, { status: 'suspended', dossierStatus: 'suspended' }, { adminId: getAdminId(req), note: 'Suspension automatique au lieu de suppression permanente' });
-      await logAdminAction(req, 'SUSPEND_COMPANY_INSTEAD_OF_DELETE', `Company ${id} suspended instead of permanent delete`);
+      const profile = await upsertCompanyOpsProfile(id, { status: 'deleted' as any, dossierStatus: 'suspended' }, { adminId: getAdminId(req), note: 'Suppression soft-delete admin' });
+      await prisma.subscription.updateMany({ where: { companyId: id }, data: { status: 'SOFT_DELETED' } });
+      await logAdminAction(req, 'SOFT_DELETE_COMPANY', `Company ${id} soft deleted`);
       return res.json({
         success: true,
         data: profile,
-        message: 'Suppression permanente non executee. Entreprise suspendue pour conserver les donnees et la tracabilite.',
+        message: 'Entreprise desactivee en soft-delete pour conserver les donnees et la tracabilite.',
       });
     }
 
@@ -1380,10 +1440,158 @@ export const deleteCompany = async (req: Request, res: Response) => {
   }
 };
 
+export const approveCompany = async (req: Request, res: Response) => {
+  try {
+    const companyId = getRouteId(req) as string;
+    const note = String(req.body?.note || 'Validation admin').trim();
+    const company = await prisma.company.findUnique({ where: { id: companyId }, include: { subscription: true } });
+    if (!company) return res.status(404).json({ success: false, message: 'Entreprise introuvable' });
+
+    const profile = await upsertCompanyOpsProfile(companyId, { status: 'active' as any }, { adminId: getAdminId(req), note });
+    const subscription = await prisma.subscription.upsert({
+      where: { companyId },
+      update: { status: 'ACTIVE' },
+      create: { companyId, plan: company.subscription?.plan || 'STARTER', status: 'ACTIVE' },
+    });
+    await logAdminAction(req, 'APPROVE_ACCOUNT', `Company ${companyId} approved`);
+    await logActivity({
+      companyId,
+      actorId: getAdminId(req),
+      actorType: 'admin',
+      actionType: 'ACCOUNT_APPROVED',
+      objectType: 'company',
+      objectId: companyId,
+      message: 'Compte valide par administration.',
+      newValue: { status: 'ACTIVE', note },
+      ...getRequestAuditMeta(req),
+    });
+    res.json({ success: true, data: { profile, subscription, accountStatus: 'ACTIVE' } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Impossible d'approuver le compte" });
+  }
+};
+
+export const blockCompany = async (req: Request, res: Response) => {
+  try {
+    const companyId = getRouteId(req) as string;
+    const reason = String(req.body?.reason || req.body?.note || 'Blocage manuel admin').trim();
+    const profile = await upsertCompanyOpsProfile(companyId, { status: 'blocked' as any }, { adminId: getAdminId(req), note: reason });
+    const subscription = await prisma.subscription.upsert({
+      where: { companyId },
+      update: { status: 'BLOCKED' },
+      create: { companyId, status: 'BLOCKED' },
+    });
+    await logAdminAction(req, 'BLOCK_ACCOUNT', `Company ${companyId} blocked: ${reason}`);
+    await logActivity({
+      companyId,
+      actorId: getAdminId(req),
+      actorType: 'admin',
+      actionType: 'ACCOUNT_BLOCKED',
+      objectType: 'company',
+      objectId: companyId,
+      message: 'Compte bloque par administration.',
+      newValue: { status: 'BLOCKED', reason },
+      ...getRequestAuditMeta(req),
+    });
+    res.json({ success: true, data: { profile, subscription, accountStatus: 'BLOCKED' } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Impossible de bloquer le compte' });
+  }
+};
+
+export const unblockCompany = async (req: Request, res: Response) => {
+  try {
+    const companyId = getRouteId(req) as string;
+    const note = String(req.body?.note || 'Deblocage manuel admin').trim();
+    const profile = await upsertCompanyOpsProfile(companyId, { status: 'active' as any }, { adminId: getAdminId(req), note });
+    const subscription = await prisma.subscription.upsert({
+      where: { companyId },
+      update: { status: 'ACTIVE' },
+      create: { companyId, status: 'ACTIVE' },
+    });
+    await logAdminAction(req, 'UNBLOCK_ACCOUNT', `Company ${companyId} unblocked`);
+    await logActivity({
+      companyId,
+      actorId: getAdminId(req),
+      actorType: 'admin',
+      actionType: 'ACCOUNT_UNBLOCKED',
+      objectType: 'company',
+      objectId: companyId,
+      message: 'Compte debloque par administration.',
+      newValue: { status: 'ACTIVE', note },
+      ...getRequestAuditMeta(req),
+    });
+    res.json({ success: true, data: { profile, subscription, accountStatus: 'ACTIVE' } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Impossible de debloquer le compte' });
+  }
+};
+
+export const addCompanyAccessDays = async (req: Request, res: Response) => {
+  try {
+    const companyId = getRouteId(req) as string;
+    const days = Number(req.body?.days);
+    const reason = String(req.body?.reason || '').trim();
+    const adminComment = String(req.body?.adminComment || '').trim();
+    if (!Number.isInteger(days) || days < 1 || days > 365) {
+      return res.status(400).json({ success: false, message: "Le nombre de jours doit etre entre 1 et 365." });
+    }
+    if (!reason) {
+      return res.status(400).json({ success: false, message: "La raison est obligatoire." });
+    }
+
+    const company = await prisma.company.findUnique({ where: { id: companyId }, include: { subscription: true } });
+    if (!company) return res.status(404).json({ success: false, message: 'Entreprise introuvable' });
+    const base = company.subscription?.endDate && new Date(company.subscription.endDate) > new Date()
+      ? new Date(company.subscription.endDate)
+      : new Date();
+    const newExpirationDate = addDays(base, days);
+    const subscription = await prisma.subscription.upsert({
+      where: { companyId },
+      update: { status: 'GRACE_ACCESS', endDate: newExpirationDate },
+      create: { companyId, plan: company.subscription?.plan || 'STARTER', status: 'GRACE_ACCESS', endDate: newExpirationDate },
+    });
+    const profile = await upsertCompanyOpsProfile(companyId, { status: 'grace_access' as any }, { adminId: getAdminId(req), note: `${reason}${adminComment ? ` - ${adminComment}` : ''}` });
+    await recordAdminCompanyStatusHistory({
+      companyId,
+      adminId: getAdminId(req),
+      actionType: 'manual_access_extension',
+      oldValue: company.subscription?.endDate ? new Date(company.subscription.endDate).toISOString() : null,
+      newValue: newExpirationDate.toISOString(),
+      note: `${days} day(s): ${reason}${adminComment ? ` | ${adminComment}` : ''}`,
+    });
+    await logAdminAction(req, 'MANUAL_ACCESS_EXTENSION', `Company ${companyId} granted ${days} days until ${newExpirationDate.toISOString()}`);
+    await logActivity({
+      companyId,
+      actorId: getAdminId(req),
+      actorType: 'admin',
+      actionType: 'MANUAL_ACCESS_EXTENSION',
+      objectType: 'subscription',
+      objectId: subscription.id,
+      message: `Acces temporaire ajoute: ${days} jour(s).`,
+      oldValue: { endDate: company.subscription?.endDate || null },
+      newValue: { endDate: newExpirationDate, reason, adminComment },
+      ...getRequestAuditMeta(req),
+    });
+    res.json({
+      success: true,
+      data: {
+        profile,
+        subscription,
+        accountStatus: 'GRACE_ACCESS',
+        newExpirationDate,
+        remainingDays: daysBetweenNow(newExpirationDate),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Impossible d'ajouter des jours d'acces" });
+  }
+};
+
 export const updateCompanyStatus = async (req: Request, res: Response) => {
   try {
     const requestedStatus = String(req.body.status || '').toLowerCase();
-    const allowedStatuses = ['active', 'pending', 'suspended', 'blocked'];
+    const allowedStatuses = ACCESS_STATUSES;
     if (allowedStatuses.includes(requestedStatus)) {
       const profile = await upsertCompanyOpsProfile(
         getRouteId(req) as string,

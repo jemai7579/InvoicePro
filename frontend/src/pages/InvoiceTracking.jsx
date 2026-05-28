@@ -220,7 +220,7 @@ const InvoiceTracking = () => {
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-500">
       {toast && (
-        <div className="fixed top-20 right-4 sm:right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border max-w-sm bg-rose-50 border-rose-200 text-rose-800 animate-in slide-in-from-top-2 duration-300">
+        <div className="fixed left-3 right-3 top-16 z-[100] flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800 shadow-2xl animate-in slide-in-from-top-2 duration-300 sm:left-auto sm:right-6 sm:top-20 sm:max-w-sm sm:px-5 sm:py-4">
           <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
           <p className="text-sm font-semibold flex-1">{toast}</p>
           <button onClick={() => setToast(null)} className="text-rose-400 hover:text-rose-600">

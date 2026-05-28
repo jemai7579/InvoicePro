@@ -236,7 +236,7 @@ const Clients = () => {
   return (
     <div className="pb-20 animate-in fade-in duration-500 space-y-6">
       {toast && (
-        <div className={`fixed top-20 right-6 z-[100] flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border max-w-sm ${
+        <div className={`fixed left-3 right-3 top-16 z-[100] flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-2xl sm:left-auto sm:right-6 sm:top-20 sm:max-w-sm sm:px-5 sm:py-4 ${
           toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
         }`}>
           {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
@@ -326,7 +326,7 @@ const Clients = () => {
         </div>
         <div className="md:hidden p-4 space-y-4">
           {!loading && filteredClients.map((client) => (
-            <div key={client.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
+            <div key={client.id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm min-[375px]:p-5">
               <h4 className="text-base font-black text-slate-900">{client.name}</h4>
               <p className="text-xs text-slate-500">{client.email || '--'}</p>
               <div className="mt-4 flex gap-2">
@@ -351,9 +351,9 @@ const Clients = () => {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl" noPadding title={editingId ? 'Modifier le client' : 'Nouveau client'} action={<button onClick={() => setShowModal(false)}><X className="w-5 h-5" /></button>}>
-            <form onSubmit={saveClient} className="p-8 space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 backdrop-blur-sm sm:p-4">
+          <Card className="flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden" noPadding title={editingId ? 'Modifier le client' : 'Nouveau client'} action={<button onClick={() => setShowModal(false)}><X className="w-5 h-5" /></button>}>
+            <form onSubmit={saveClient} className="min-h-0 space-y-4 overflow-y-auto p-4 sm:space-y-5 sm:p-8">
               <Input label="Nom de l'entreprise/du client" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} error={errors.name} icon={User} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <Input type="email" label="Email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} error={errors.email} icon={Mail} />
@@ -368,7 +368,7 @@ const Clients = () => {
                 <Input label="Ville" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} />
               </div>
               <textarea rows="3" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} placeholder="Notes" className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-premium-500 focus:bg-white" />
-              <div className="flex gap-4 pt-4">
+              <div className="flex flex-col-reverse gap-3 pt-3 min-[375px]:flex-row sm:gap-4 sm:pt-4">
                 <Button type="button" variant="ghost" onClick={() => setShowModal(false)} className="flex-1">Annuler</Button>
                 <Button type="submit" loading={isSubmitting} className="flex-1">Enregistrer</Button>
               </div>
@@ -378,7 +378,7 @@ const Clients = () => {
       )}
 
       {showImport && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-2 backdrop-blur-sm sm:p-4">
           <Card className="w-full max-w-5xl max-h-[90vh] overflow-y-auto" title="Importer des clients depuis Excel" action={<button onClick={() => setShowImport(false)}><X className="w-5 h-5" /></button>}>
             <div className="space-y-5">
               <p className="text-sm text-slate-600">Colonnes attendues: {columns.join(', ')}. Les cellules texte vides seront remplacées par “vide”. L’import ne crée aucune invitation interne.</p>
@@ -391,8 +391,8 @@ const Clients = () => {
               )}
               {previewRows.length > 0 && (
                 <>
-                  <div className="overflow-x-auto rounded-2xl border border-slate-100">
-                    <table className="w-full text-left text-sm">
+                  <div className="touch-scroll overflow-x-auto rounded-2xl border border-slate-100">
+                    <table className="min-w-[42rem] text-left text-sm">
                       <thead className="bg-slate-50">
                         <tr>{columns.map((column) => <th key={column} className="px-4 py-3 text-[10px] uppercase tracking-widest text-slate-400">{column}</th>)}</tr>
                       </thead>
@@ -403,7 +403,7 @@ const Clients = () => {
                       </tbody>
                     </table>
                   </div>
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     <Badge variant="neutral">{previewRows.length} lignes en prévisualisation</Badge>
                     <Button onClick={importClients}>Importer les lignes valides</Button>
                   </div>
