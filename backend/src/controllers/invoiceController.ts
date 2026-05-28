@@ -23,6 +23,7 @@ import {
 } from '../services/numberingService';
 import { appendComplianceStatus, writeComplianceMetadata } from '../services/complianceStorage';
 import { logActivity, getRequestAuditMeta } from '../services/auditTrailService';
+import { normalizeTunisianMatriculeFiscal } from '../utils/teifGenerator';
 
 const MANUAL_STATUSES = ['DRAFT', 'VALIDATED', 'CANCELLED'];
 const WORKFLOW_ONLY_STATUSES = ['TEIF_GENERATED', 'SIGNED', 'SENT_TO_TTN', 'PENDING_TTN', 'ACCEPTED_TTN', 'REJECTED_TTN'];
@@ -958,16 +959,20 @@ export const importInvoiceXml = async (req: Request, res: Response) => {
       customerParty?.['cac:Contact']?.['cbc:Telephone'] ??
       undefined;
 
+    const normalizedClientMf = clientMf && clientMf !== 'NOT_PROVIDED'
+      ? normalizeTunisianMatriculeFiscal(String(clientMf))
+      : null;
+
     let client = null;
-    if (clientMf && clientMf !== 'NOT_PROVIDED') {
-      client = await prisma.client.findFirst({ where: { companyId, matriculeFiscal: String(clientMf) } });
+    if (normalizedClientMf) {
+      client = await prisma.client.findFirst({ where: { companyId, matriculeFiscal: normalizedClientMf } });
     }
     if (!client) {
       client = await prisma.client.create({
         data: {
           companyId,
           name: String(clientName),
-          matriculeFiscal: clientMf ? String(clientMf) : undefined,
+          matriculeFiscal: normalizedClientMf || undefined,
           address: clientAddress ? String(clientAddress) : undefined,
           city: clientCity ? String(clientCity) : undefined,
           email: clientEmail ? String(clientEmail) : undefined,

@@ -177,7 +177,7 @@ export const importClients = async (req: Request, res: Response) => {
             name: row.name,
             email: row.email,
             phone: row.phone === 'vide' ? null : row.phone,
-            matriculeFiscal: row.matriculeFiscal === 'vide' ? null : row.matriculeFiscal,
+            matriculeFiscal: row.matriculeFiscal === 'vide' ? null : normalizeTunisianMatriculeFiscal(row.matriculeFiscal),
             rne: row.rne === 'vide' ? null : row.rne,
             address: row.address === 'vide' ? null : row.address,
             city: row.city === 'vide' ? null : row.city,

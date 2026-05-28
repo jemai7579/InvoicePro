@@ -114,8 +114,8 @@ const Settings = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = t('error.nameRequired') || 'Raison sociale requise';
     
-    const normalizeMF = (mf) => String(mf || '').trim().normalize('NFKC').replace(/[⁄∕／]/g, '/').replace(/\s*\/\s*/g, '/').toUpperCase();
-    const mfRegex = /^(\d{7,8}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}|\d{7,8}[A-Z]{3}\d{3})$/;
+    const normalizeMF = (mf) => String(mf || '').trim().normalize('NFKC').replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u034F\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '').replace(/[⁄∕／]/g, '/').replace(/\s*\/\s*/g, '/').replace(/\s+/g, '').toUpperCase();
+    const mfRegex = /^(\d{7}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}|\d{7}[A-Z]{3}\d{3})$/;
     if (formData.matriculeFiscal && !mfRegex.test(normalizeMF(formData.matriculeFiscal))) {
       // Tunisian MF validation is strict, but let's allow basic presence if regex too tight for old formats
     }

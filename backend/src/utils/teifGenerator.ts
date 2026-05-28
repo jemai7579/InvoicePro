@@ -3,15 +3,17 @@ import { getInvoiceVisibleNumber } from '../services/numberingService';
 
 const round3 = (value: number) => Number(Number(value || 0).toFixed(3));
 const validTvaRates = [0, 7, 13, 19];
-const matriculeFiscalPattern = /^(\d{7,8}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}|\d{7,8}[A-Z]{3}\d{3}|\d{7,8}[A-Z]?(\/[A-Z0-9]+)?)$/i;
+const matriculeFiscalPattern = /^(\d{7}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}|\d{7}[A-Z]{3}\d{3})$/;
 export const TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP = 'Format attendu : 1234567/A/B/C/000 ou 1234567ABC000.';
 
 export const normalizeTunisianMatriculeFiscal = (value?: string | null) =>
   String(value || '')
     .trim()
     .normalize('NFKC')
+    .replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u034F\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '')
     .replace(/[⁄∕／]/g, '/')
     .replace(/\s*\/\s*/g, '/')
+    .replace(/\s+/g, '')
     .toUpperCase();
 
 export const validateTunisianMatriculeFiscal = (value?: string | null) => {
