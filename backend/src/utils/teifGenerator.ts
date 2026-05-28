@@ -4,9 +4,20 @@ import { getInvoiceVisibleNumber } from '../services/numberingService';
 const round3 = (value: number) => Number(Number(value || 0).toFixed(3));
 const validTvaRates = [0, 7, 13, 19];
 const matriculeFiscalPattern = /^(\d{7,8}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}|\d{7,8}[A-Z]{3}\d{3}|\d{7,8}[A-Z]?(\/[A-Z0-9]+)?)$/i;
+export const TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP = 'Format attendu : 1234567/A/B/C/000 ou 1234567ABC000.';
 
-export const validateTunisianMatriculeFiscal = (value?: string | null) =>
-  Boolean(value && matriculeFiscalPattern.test(String(value).trim()));
+export const normalizeTunisianMatriculeFiscal = (value?: string | null) =>
+  String(value || '')
+    .trim()
+    .normalize('NFKC')
+    .replace(/[⁄∕／]/g, '/')
+    .replace(/\s*\/\s*/g, '/')
+    .toUpperCase();
+
+export const validateTunisianMatriculeFiscal = (value?: string | null) => {
+  const normalizedValue = normalizeTunisianMatriculeFiscal(value);
+  return Boolean(normalizedValue && matriculeFiscalPattern.test(normalizedValue));
+};
 
 export const validateTeifInvoiceData = (invoice: any) => {
   const errors: string[] = [];
@@ -19,14 +30,29 @@ export const validateTeifInvoiceData = (invoice: any) => {
 
   if (!company.name) errors.push("La raison sociale de l'emetteur est requise.");
   if (!company.address) errors.push("L'adresse de l'emetteur est requise.");
-  if (!validateTunisianMatriculeFiscal(company.matriculeFiscal)) {
-    errors.push("Le matricule fiscal de l'emetteur est invalide ou manquant.");
+  const companyMatriculeFiscal = normalizeTunisianMatriculeFiscal(company.matriculeFiscal);
+  const clientMatriculeFiscal = normalizeTunisianMatriculeFiscal(client.matriculeFiscal);
+
+  if (!companyMatriculeFiscal) {
+    errors.push(
+      `Pour continuer le workflow TEIF/TTN, veuillez compléter le matricule fiscal de votre entreprise dans Paramètres > Profil Entreprise. ${TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP}`
+    );
+  } else if (!validateTunisianMatriculeFiscal(companyMatriculeFiscal)) {
+    errors.push(
+      `Le matricule fiscal de votre entreprise est invalide. Corrigez-le dans Paramètres > Profil Entreprise. ${TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP}`
+    );
   }
 
   if (!client.name) errors.push('Le nom du client est requis.');
   if (!client.address) errors.push("L'adresse du client est requise.");
-  if (client.matriculeFiscal && !validateTunisianMatriculeFiscal(client.matriculeFiscal)) {
-    errors.push('Le matricule fiscal du client est invalide.');
+  if (!clientMatriculeFiscal) {
+    errors.push(
+      `Pour continuer le workflow TEIF/TTN, veuillez compléter le matricule fiscal du client dans Clients > Modifier client. ${TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP}`
+    );
+  } else if (!validateTunisianMatriculeFiscal(clientMatriculeFiscal)) {
+    errors.push(
+      `Le matricule fiscal du client est invalide. Corrigez-le dans Clients > Modifier client. ${TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP}`
+    );
   }
 
   if (!lines.length) errors.push('Ajoutez au moins une ligne de facture.');
@@ -114,7 +140,7 @@ export const generateTeifXml = (invoice: any) => {
       'cac:AccountingSupplierParty': {
         'cac:Party': {
           'cac:PartyIdentification': {
-            'cbc:ID': invoice.company.matriculeFiscal
+            'cbc:ID': normalizeTunisianMatriculeFiscal(invoice.company.matriculeFiscal)
           },
           'cac:PartyName': {
             'cbc:Name': invoice.company.name
@@ -139,7 +165,7 @@ export const generateTeifXml = (invoice: any) => {
       'cac:AccountingCustomerParty': {
         'cac:Party': {
           'cac:PartyIdentification': {
-            'cbc:ID': invoice.client.matriculeFiscal || 'NOT_PROVIDED'
+            'cbc:ID': normalizeTunisianMatriculeFiscal(invoice.client.matriculeFiscal) || 'NOT_PROVIDED'
           },
           'cac:PartyName': {
             'cbc:Name': invoice.client.name

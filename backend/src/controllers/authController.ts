@@ -5,6 +5,11 @@ import prisma from '../prisma';
 import { getJwtExpiresIn, getJwtSecret } from '../utils/jwtSecret';
 import { getRequestAuditMeta, logActivity } from '../services/auditTrailService';
 import { clearFailedLogins, getFailedLoginBlock, recordFailedLogin } from '../services/loginProtectionService';
+import {
+  normalizeTunisianMatriculeFiscal,
+  TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP,
+  validateTunisianMatriculeFiscal,
+} from '../utils/teifGenerator';
 
 const generateToken = (id: string) => {
   // TODO: migrate browser authentication to secure httpOnly cookies with CSRF protection.
@@ -56,10 +61,9 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Formule d’abonnement invalide.', error: 'Invalid subscription plan' });
     }
 
-    // Validation Matricule Fiscal Tunisien (ex: 1234567/X/A/P/000)
-    const mfRegex = /^\d{7,8}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}$/;
-    if (!mfRegex.test(matriculeFiscal)) {
-      return res.status(400).json({ message: 'Format Matricule Fiscal invalide. Exemple: 1234567/X/A/M/000' });
+    const normalizedMatriculeFiscal = normalizeTunisianMatriculeFiscal(matriculeFiscal);
+    if (!validateTunisianMatriculeFiscal(normalizedMatriculeFiscal)) {
+      return res.status(400).json({ message: `Format Matricule Fiscal invalide. ${TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP}` });
     }
 
     // Validation Téléphone Tunisien (8 chiffres ou avec +216)
@@ -86,7 +90,7 @@ export const register = async (req: Request, res: Response) => {
         name,
         firstName,
         lastName,
-        matriculeFiscal,
+        matriculeFiscal: normalizedMatriculeFiscal,
         registreCommerce,
         address,
         phone,

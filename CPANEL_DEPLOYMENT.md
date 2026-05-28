@@ -1,4 +1,4 @@
-# InvoicePro / El Fatoora - cPanel Deployment
+# InvoicePro - cPanel Deployment
 
 ## Deployment Status
 

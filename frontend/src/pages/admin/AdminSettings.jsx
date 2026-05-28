@@ -24,7 +24,7 @@ const friendlyLabels = {
 };
 
 const integrationLabels = {
-  ttn: 'TTN / El Fatoora',
+  ttn: 'TTN',
   signature: 'Signature',
   billing: 'Billing',
   email: 'Email SMTP',

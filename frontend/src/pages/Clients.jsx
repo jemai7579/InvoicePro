@@ -360,7 +360,10 @@ const Clients = () => {
                 <Input label="Téléphone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <Input label="Matricule Fiscal" value={formData.matriculeFiscal} onChange={(e) => setFormData({ ...formData, matriculeFiscal: e.target.value })} icon={FileText} />
+                <div>
+                  <Input label="Matricule Fiscal" value={formData.matriculeFiscal} onChange={(e) => setFormData({ ...formData, matriculeFiscal: e.target.value })} icon={FileText} />
+                  <p className="mt-1.5 ps-1 text-[10px] font-bold text-slate-400">Requis pour le workflow TEIF/TTN.</p>
+                </div>
                 <Input label="RNE" value={formData.rne} onChange={(e) => setFormData({ ...formData, rne: e.target.value })} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

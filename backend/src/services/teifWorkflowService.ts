@@ -2,7 +2,12 @@ import type { Invoice, Company, Client, InvoiceLine, Payment } from '@prisma/cli
 import crypto from 'crypto';
 import prisma from '../prisma';
 import generatePdf from '../utils/pdfGenerator';
-import { generateTeifXml } from '../utils/teifGenerator';
+import {
+  generateTeifXml,
+  normalizeTunisianMatriculeFiscal,
+  validateTunisianMatriculeFiscal,
+  TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP,
+} from '../utils/teifGenerator';
 import { numberToWordsTND } from '../utils/numberToWords';
 import {
   appendComplianceStatus,
@@ -224,7 +229,27 @@ export const validateTeifXml = async (invoice: FullInvoice) => {
   }
   if (!invoice.clientId) errors.push('Veuillez selectionner un client.');
   if (!invoice.client?.name) errors.push('Le nom du client est requis.');
-  if (!invoice.company?.matriculeFiscal) errors.push("L'identifiant fiscal de l'entreprise est requis.");
+  const companyMatriculeFiscal = normalizeTunisianMatriculeFiscal(invoice.company?.matriculeFiscal);
+  const clientMatriculeFiscal = normalizeTunisianMatriculeFiscal(invoice.client?.matriculeFiscal);
+
+  if (!companyMatriculeFiscal) {
+    errors.push(
+      `Pour continuer le workflow TEIF/TTN, veuillez compléter le matricule fiscal de votre entreprise dans Paramètres > Profil Entreprise. ${TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP}`
+    );
+  } else if (!validateTunisianMatriculeFiscal(companyMatriculeFiscal)) {
+    errors.push(
+      `Le matricule fiscal de votre entreprise est invalide. Corrigez-le dans Paramètres > Profil Entreprise. ${TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP}`
+    );
+  }
+  if (!clientMatriculeFiscal) {
+    errors.push(
+      `Pour continuer le workflow TEIF/TTN, veuillez compléter le matricule fiscal du client dans Clients > Modifier client. ${TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP}`
+    );
+  } else if (!validateTunisianMatriculeFiscal(clientMatriculeFiscal)) {
+    errors.push(
+      `Le matricule fiscal du client est invalide. Corrigez-le dans Clients > Modifier client. ${TUNISIAN_MATRICULE_FISCAL_FORMAT_HELP}`
+    );
+  }
   if (!invoice.lines?.length) errors.push('Ajoutez au moins une ligne de facture.');
 
   if (errors.length === 0) {

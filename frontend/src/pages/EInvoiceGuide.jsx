@@ -30,19 +30,19 @@ const sources = {
     url: 'https://www.idaraty.tn/public/fr/procedures/utilisation-de-la-facture-electronique',
   },
   elfatooraHome: {
-    label: 'El Fatoora',
-    title: 'El Fatoora — Plateforme nationale opérée par TTN',
+    label: 'TTN',
+    title: 'Plateforme nationale opérée par TTN',
     url: 'https://adhesion.elfatoora.tn/home',
   },
   elfatooraAdhesion: {
-    label: 'El Fatoora — adhésion',
-    title: 'El Fatoora — Parcours d’adhésion',
+    label: 'Adhésion TTN',
+    title: 'Parcours d’adhésion TTN',
     url: 'https://adhesion.elfatoora.tn/',
   },
   ttnGuide: {
     label: 'Guide TTN',
     title: 'TTN — Guide d’adhésion au service de facturation électronique',
-    url: 'https://www.tradenet.com.tn/upload/ElFatoora/Elfatoora_User_Guide.pdf',
+    url: 'https://www.tradenet.com.tn/',
   },
   signaturePolicy: {
     label: 'Politique de signature',
@@ -106,7 +106,7 @@ const Flow = () => (
       'Notre plateforme',
       'TEIF',
       'Signature électronique',
-      'TTN / El Fatoora',
+      'TTN',
       'Statut accepté ou rejeté',
     ].map((item, index) => (
       <div key={item} className="flex items-center gap-3 md:block">
@@ -148,13 +148,13 @@ const faq = [
   {
     question: 'Est-ce qu’un PDF est suffisant ?',
     answer:
-      'Non. Un PDF seul n’est pas automatiquement une facture électronique légale. La facture électronique doit respecter le processus : informations obligatoires, format conforme, signature électronique, et validation/enregistrement dans le circuit TTN / El Fatoora.',
+      'Non. Un PDF seul n’est pas automatiquement une facture électronique légale. La facture électronique doit respecter le processus : informations obligatoires, format conforme, signature électronique, et validation/enregistrement dans le circuit TTN.',
     sources: [sources.idaratyAdhesion],
   },
   {
     question: 'Pourquoi ma facture est signée mais pas encore acceptée ?',
     answer:
-      'Parce que la signature électronique et l’acceptation TTN sont deux étapes différentes. La signature concerne l’émetteur et l’intégrité du document. L’acceptation TTN concerne le traitement et l’enregistrement dans le circuit El Fatoora.',
+      'Parce que la signature électronique et l’acceptation TTN sont deux étapes différentes. La signature concerne l’émetteur et l’intégrité du document. L’acceptation TTN concerne le traitement et l’enregistrement dans le circuit officiel.',
     sources: [sources.signaturePolicy, sources.elfatooraHome],
   },
   {
@@ -205,7 +205,7 @@ const EInvoiceGuide = () => {
               Comprendre la facture électronique
             </h1>
             <p className="mt-5 text-lg font-medium leading-8 text-slate-600">
-              Un guide simple pour comprendre TTN, El Fatoora, TEIF, la signature électronique, le dossier entreprise et les statuts d’une facture.
+              Un guide simple pour comprendre TTN, TEIF, la signature électronique, le dossier entreprise et les statuts d’une facture.
             </p>
           </div>
         </header>
@@ -230,7 +230,7 @@ const EInvoiceGuide = () => {
           sourceItems={[sources.idaratyAdhesion, sources.elfatooraHome]}
         >
           <p>
-            La facturation électronique ne consiste pas seulement à créer un PDF. Une facture devient réellement électronique lorsqu’elle respecte un processus complet : création de la facture, génération du format technique, signature électronique, transmission à TTN / El Fatoora, puis réception d’un statut officiel.
+            La facturation électronique ne consiste pas seulement à créer un PDF. Une facture devient réellement électronique lorsqu’elle respecte un processus complet : création de la facture, génération du format technique, signature électronique, transmission à TTN, puis réception d’un statut officiel.
           </p>
         </Section>
 
@@ -241,23 +241,23 @@ const EInvoiceGuide = () => {
           <InfoCard>Une facture PDF seule n’est pas automatiquement une facture électronique légale.</InfoCard>
         </Section>
 
-        <Section number="3" title="C’est quoi TTN / El Fatoora ?" icon={Send} sourceItems={[sources.elfatooraHome, sources.idaratyAdhesion]}>
+        <Section number="3" title="C’est quoi TTN ?" icon={Send} sourceItems={[sources.elfatooraHome, sources.idaratyAdhesion]}>
           <p>
-            TTN signifie Tunisie TradeNet. El Fatoora est la plateforme nationale utilisée pour la transmission, le contrôle et le traitement des factures électroniques. Notre plateforme prépare la facture, mais TTN / El Fatoora joue le rôle de validation, traitement et enregistrement officiel dans le circuit de facturation électronique.
+            TTN signifie Tunisie TradeNet. TTN fournit le circuit national utilisé pour la transmission, le contrôle et le traitement des factures électroniques. InvoicePro prépare la facture, mais TTN joue le rôle de validation, traitement et enregistrement officiel dans le circuit de facturation électronique.
           </p>
           <Flow />
         </Section>
 
         <Section number="4" title="Pourquoi TTN est nécessaire ?" icon={ShieldCheck} sourceItems={[sources.elfatooraHome, sources.idaratyAdhesion]}>
           <p>
-            Notre application permet de créer et gérer les factures, mais elle ne remplace pas TTN. TTN / El Fatoora intervient pour recevoir, contrôler, traiter et confirmer les factures électroniques. Sans TTN, la facture peut rester un document interne ou un brouillon, mais elle ne passe pas par le circuit officiel El Fatoora.
+            InvoicePro permet de créer et gérer les factures, mais il ne remplace pas TTN. TTN intervient pour recevoir, contrôler, traiter et confirmer les factures électroniques. Sans TTN, la facture peut rester un document interne ou un brouillon, mais elle ne passe pas par le circuit officiel.
           </p>
-          <InfoCard>Notre plateforme est l’outil de préparation. TTN / El Fatoora est la porte officielle de validation.</InfoCard>
+          <InfoCard>InvoicePro est l’outil de préparation. TTN est la porte officielle de validation.</InfoCard>
         </Section>
 
         <Section number="5" title="C’est quoi le TEIF ?" icon={FileCode2} sourceItems={[sources.idaratyAdhesion, sources.ttnGuide]}>
           <p>
-            TEIF signifie Tunisian Electronic Invoice Format. C’est le format technique utilisé pour représenter la facture électronique en Tunisie. Une solution de facturation électronique doit produire une facture conforme au format TEIF avant l’envoi dans le circuit El Fatoora.
+            TEIF signifie Tunisian Electronic Invoice Format. C’est le format technique utilisé pour représenter la facture électronique en Tunisie. Une solution de facturation électronique doit produire une facture conforme au format TEIF avant l’envoi dans le circuit TTN.
           </p>
           <p>
             Quand l’utilisateur crée une facture dans la plateforme, le système transforme les données en fichier TEIF : vendeur, client, lignes de facture, TVA, total HT, total TVA, timbre fiscal et total TTC.
@@ -273,10 +273,10 @@ const EInvoiceGuide = () => {
 
         <Section number="7" title="Pourquoi compléter le dossier entreprise ?" icon={Building2} sourceItems={[sources.idaratyAdhesion, sources.elfatooraAdhesion]}>
           <p>
-            Avant d’émettre des factures électroniques réelles, l’entreprise doit être identifiable et conforme. Le dossier permet de vérifier les informations importantes comme la raison sociale, le matricule fiscal, l’adresse, le représentant légal, les documents justificatifs, l’adhésion El Fatoora et la méthode de signature électronique.
+            Avant d’émettre des factures électroniques réelles, l’entreprise doit être identifiable et conforme. Le dossier permet de vérifier les informations importantes comme la raison sociale, le matricule fiscal, l’adresse, le représentant légal, les documents justificatifs, l’adhésion TTN et la méthode de signature électronique.
           </p>
           <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-4">
-            {['Raison sociale', 'Matricule fiscal', 'Adresse', 'Représentant légal', 'Documents justificatifs', 'Statut d’adhésion El Fatoora', 'Signature électronique / certificat', 'Paramètres TTN si disponibles'].map((item) => (
+            {['Raison sociale', 'Matricule fiscal', 'Adresse', 'Représentant légal', 'Documents justificatifs', 'Statut d’adhésion TTN', 'Signature électronique / certificat', 'Paramètres TTN si disponibles'].map((item) => (
               <div key={item} className="flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 {item}
@@ -293,11 +293,11 @@ const EInvoiceGuide = () => {
               'Compléter le dossier entreprise.',
               'Ajouter les informations fiscales.',
               'Configurer ou valider la signature électronique.',
-              'Vérifier l’adhésion TTN / El Fatoora.',
+              'Vérifier l’adhésion TTN.',
               'Créer une facture.',
               'Générer le fichier TEIF.',
               'Signer électroniquement la facture.',
-              'Envoyer la facture à TTN / El Fatoora.',
+              'Envoyer la facture à TTN.',
               'Suivre le statut : en attente, acceptée ou rejetée.',
             ].map((step, index) => (
               <li key={step} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
@@ -310,12 +310,12 @@ const EInvoiceGuide = () => {
 
         <Section number="9" title="Que se passe-t-il après l’envoi à TTN ?" icon={Send} sourceItems={[sources.elfatooraHome, sources.idaratyUse]}>
           <p>
-            Quand une facture signée est envoyée à TTN / El Fatoora, elle peut être traitée, contrôlée, acceptée ou rejetée. Une facture ne doit pas être affichée comme acceptée tant que la plateforme n’a pas reçu une confirmation réelle de TTN.
+            Quand une facture signée est envoyée à TTN, elle peut être traitée, contrôlée, acceptée ou rejetée. Une facture ne doit pas être affichée comme acceptée tant que la plateforme n’a pas reçu une confirmation réelle de TTN.
           </p>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {[
               ['En attente', 'La facture a été envoyée et attend le traitement.'],
-              ['Acceptée', 'La facture est validée dans le circuit El Fatoora.'],
+              ['Acceptée', 'La facture est validée dans le circuit TTN.'],
               ['Rejetée', 'La facture contient une erreur ou ne respecte pas une condition requise.'],
             ].map(([title, desc]) => (
               <div key={title} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
@@ -368,7 +368,7 @@ const EInvoiceGuide = () => {
             ))}
           </div>
           <p className="text-sm">
-            Ces statuts internes sont des statuts de workflow de la plateforme. Ils sont basés sur les prérequis officiels : adhésion El Fatoora, certificat qualifié et solution conforme TEIF.
+            Ces statuts internes sont des statuts de workflow de la plateforme. Ils sont basés sur les prérequis officiels : adhésion TTN, certificat qualifié et solution conforme TEIF.
           </p>
         </Section>
 

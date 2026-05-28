@@ -16,7 +16,7 @@ type Field = { name: string; env?: string; secret?: boolean };
 
 export const INTEGRATIONS: Record<IntegrationKey, { label: string; fields: Field[] }> = {
   ttn: {
-    label: 'TTN / El Fatoora',
+    label: 'TTN',
     fields: [
       { name: 'baseUrl', env: 'TTN_BASE_URL' },
       { name: 'authEndpoint', env: 'TTN_AUTH_ENDPOINT' },

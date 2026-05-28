@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
   CheckCircle2,
@@ -229,10 +230,12 @@ const Invoices = () => {
   const { lang, t } = useLanguage();
   const text = COPY[lang] || COPY.fr;
   const { user, refreshUser } = useContext(AuthContext);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [busyInvoiceId, setBusyInvoiceId] = useState(null);
   const [invoices, setInvoices] = useState([]);
+  const [toast, setToast] = useState(null);
   const [clients, setClients] = useState([]);
   const [products, setProducts] = useState([]);
   const [tvaRates, setTvaRates] = useState([
@@ -248,6 +251,11 @@ const Invoices = () => {
   const [errors, setErrors] = useState({});
   const [clientId, setClientId] = useState('');
   const [lines, setLines] = useState([createLineItem()]);
+
+  const showToast = (type, message) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 6000);
+  };
 
   const replaceInvoice = (updatedInvoice) => {
     if (!updatedInvoice?.id) return;
@@ -297,6 +305,10 @@ const Invoices = () => {
   };
 
   const openEditModal = (invoice) => {
+    if (!invoice?.id) {
+      alert('Facture introuvable: identifiant manquant.');
+      return;
+    }
     setEditingInvoiceId(invoice.id);
     setClientId(invoice.clientId || '');
     setLines(
@@ -313,6 +325,19 @@ const Invoices = () => {
     setErrors({});
     setIsModalOpen(true);
   };
+
+  useEffect(() => {
+    const editInvoiceId = searchParams.get('edit');
+    if (!editInvoiceId || loading) return;
+
+    const invoice = invoices.find((item) => item.id === editInvoiceId);
+    if (invoice) {
+      openEditModal(invoice);
+    } else {
+      alert('Facture introuvable.');
+    }
+    setSearchParams({}, { replace: true });
+  }, [invoices, loading, searchParams, setSearchParams]);
 
   const handleLineChange = (lineId, field, value) => {
     setLines((current) => current.map((line) => (line.id === lineId ? { ...line, [field]: value } : line)));
@@ -394,13 +419,25 @@ const Invoices = () => {
   };
 
   const withBusy = async (invoiceId, action) => {
+    if (!invoiceId) {
+      showToast('error', 'Facture introuvable: identifiant manquant.');
+      return;
+    }
+
     try {
       setBusyInvoiceId(invoiceId);
       const updatedInvoice = await action();
       if (updatedInvoice) {
         replaceInvoice(updatedInvoice);
+      }
+      await fetchData();
+    } catch (error) {
+      console.error(error);
+      const message = error.response?.data?.message || error.message || 'Action impossible.';
+      if (message.includes('TTN_API_NOT_CONFIGURED') || message.includes('TTN API credentials')) {
+        showToast('error', 'Configuration TTN requise avant soumission.');
       } else {
-        await fetchData();
+        showToast('error', message);
       }
     } finally {
       setBusyInvoiceId(null);
@@ -421,34 +458,35 @@ const Invoices = () => {
   const handleGenerateTeif = (invoiceId) =>
     withBusy(invoiceId, async () => {
       const res = await api.post(`/invoices/${invoiceId}/generate-teif`);
-      alert(res.data.message);
+      showToast('success', res.data.message);
       return res.data.invoice;
     });
 
   const handleSignTeif = (invoiceId) =>
     withBusy(invoiceId, async () => {
       const res = await api.post(`/invoices/${invoiceId}/sign-teif`);
-      alert(res.data.message);
+      showToast('success', res.data.message);
       return res.data.invoice;
     });
 
   const handleSubmitTTN = (invoiceId) =>
     withBusy(invoiceId, async () => {
       const res = await api.post(`/invoices/${invoiceId}/submit-ttn`);
-      alert(res.data.message);
+      showToast('success', res.data.message);
       return res.data.invoice;
     });
 
   const handleCheckTTN = (invoiceId, simulateDecision = null) =>
     withBusy(invoiceId, async () => {
       const res = await api.post(`/invoices/${invoiceId}/check-ttn-status`, simulateDecision ? { simulateDecision } : {});
-      alert(res.data.message);
+      showToast('success', res.data.message);
       return res.data.invoice;
     });
 
   const handleValidateInvoice = (invoiceId) =>
     withBusy(invoiceId, async () => {
       const res = await api.patch(`/invoices/${invoiceId}/status`, { status: 'VALIDATED' });
+      showToast('success', 'Facture validée.');
       return res.data;
     });
 
@@ -504,13 +542,22 @@ const Invoices = () => {
   };
 
   const handlePrimaryAction = async (invoice) => {
+    if (!invoice?.id) {
+      showToast('error', 'Facture introuvable: identifiant manquant.');
+      return;
+    }
+
     if (invoice.nextAction === 'sign-teif' && !eInvoiceStatus?.signatureConfigured) {
       window.location.href = '/settings?tab=compliance';
       return;
     }
-    if (invoice.nextAction === 'submit-ttn' && !eInvoiceStatus?.ttnConfigured && eInvoiceStatus?.mode !== 'mock') {
-      window.location.href = '/settings?tab=compliance';
+    const mode = invoice.eInvoiceMode || eInvoiceStatus?.mode || invoice.complianceMode;
+    if (invoice.nextAction === 'submit-ttn' && !eInvoiceStatus?.ttnConfigured && mode !== 'mock') {
+      showToast('error', 'Configuration TTN requise avant soumission.');
       return;
+    }
+    if (invoice.nextAction === 'submit-ttn' && ['mock', 'sandbox', 'test'].includes(mode)) {
+      showToast('warning', 'Mode test TTN — non légal.');
     }
     switch (invoice.nextAction) {
       case 'validate-invoice':
@@ -548,6 +595,21 @@ const Invoices = () => {
 
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-500">
+      {toast && (
+        <div className={`fixed left-3 right-3 top-16 z-[100] flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-2xl sm:left-auto sm:right-6 sm:top-20 sm:max-w-md sm:px-5 sm:py-4 ${
+          toast.type === 'success'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            : toast.type === 'warning'
+              ? 'bg-amber-50 border-amber-200 text-amber-800'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
+          <p className="text-sm font-semibold flex-1">{toast.message}</p>
+          <button type="button" onClick={() => setToast(null)} className="opacity-60 hover:opacity-100">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 font-display tracking-tight">{text.title}</h1>

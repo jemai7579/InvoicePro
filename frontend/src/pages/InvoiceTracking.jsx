@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle, AlertTriangle, CheckCircle2, Clock3, Download, Loader, Send, ShieldCheck, X } from 'lucide-react';
 import api from '../services/api';
 import Card from '../components/ui/Card';
@@ -150,6 +151,7 @@ const variantForStatus = (status) => {
 };
 
 const InvoiceTracking = () => {
+  const navigate = useNavigate();
   const { lang } = useLanguage();
   const text = COPY[lang] || COPY.fr;
   const [loading, setLoading] = useState(true);
@@ -178,6 +180,16 @@ const InvoiceTracking = () => {
   }, []);
 
   const handlePrimaryAction = async (invoice) => {
+    if (!invoice?.id) {
+      showToast('Facture introuvable: identifiant manquant.');
+      return;
+    }
+
+    if (['complete', 'validate-invoice', 'correct-invoice'].includes(invoice.nextAction)) {
+      navigate(`/invoices?edit=${encodeURIComponent(invoice.id)}`);
+      return;
+    }
+
     setBusyInvoiceId(invoice.id);
     try {
       switch (invoice.nextAction) {

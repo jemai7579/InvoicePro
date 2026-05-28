@@ -114,8 +114,9 @@ const Settings = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = t('error.nameRequired') || 'Raison sociale requise';
     
-    const mfRegex = /^\d{7}[A-Z]\/[A-Z]\/[A-Z]\/\d{3}$|^\d{7}[A-Z]{3}\d{3}$/;
-    if (formData.matriculeFiscal && !mfRegex.test(formData.matriculeFiscal)) {
+    const normalizeMF = (mf) => String(mf || '').trim().normalize('NFKC').replace(/[⁄∕／]/g, '/').replace(/\s*\/\s*/g, '/').toUpperCase();
+    const mfRegex = /^(\d{7,8}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}|\d{7,8}[A-Z]{3}\d{3})$/;
+    if (formData.matriculeFiscal && !mfRegex.test(normalizeMF(formData.matriculeFiscal))) {
       // Tunisian MF validation is strict, but let's allow basic presence if regex too tight for old formats
     }
     
@@ -266,30 +267,32 @@ const Settings = () => {
         <TabButton id="team" icon={Users2} label={t('settings.tabs.team')} />
       </nav>
 
-      <Card className="border-slate-100 bg-white">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600">
-              <History className="h-5 w-5" />
+      {activeTab !== 'team' && (
+        <Card className="border-slate-100 bg-white">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600">
+                <History className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">
+                  {lang === 'ar' ? 'السجل والتتبع' : lang === 'en' ? 'History & Traceability' : 'Historique & Traçabilité'}
+                </h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  {lang === 'ar'
+                    ? 'راجع سجل الإجراءات الحساسة والتغييرات من داخل الإعدادات.'
+                    : lang === 'en'
+                      ? 'Review sensitive actions and traceability logs from Settings.'
+                      : 'Consultez les actions sensibles et la traçabilité depuis les paramètres.'}
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">
-                {lang === 'ar' ? 'السجل والتتبع' : lang === 'en' ? 'History & Traceability' : 'Historique & Traçabilité'}
-              </h2>
-              <p className="mt-1 text-sm font-medium text-slate-500">
-                {lang === 'ar'
-                  ? 'راجع سجل الإجراءات الحساسة والتغييرات من داخل الإعدادات.'
-                  : lang === 'en'
-                    ? 'Review sensitive actions and traceability logs from Settings.'
-                    : 'Consultez les actions sensibles et la traçabilité depuis les paramètres.'}
-              </p>
-            </div>
+            <Button type="button" variant="secondary" icon={ChevronRight} onClick={() => navigate('/historique')}>
+              {lang === 'ar' ? 'فتح السجل' : lang === 'en' ? 'Open history' : 'Ouvrir l’historique'}
+            </Button>
           </div>
-          <Button type="button" variant="secondary" icon={ChevronRight} onClick={() => navigate('/historique')}>
-            {lang === 'ar' ? 'فتح السجل' : lang === 'en' ? 'Open history' : 'Ouvrir l’historique'}
-          </Button>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       <div className="animate-in slide-in-from-bottom-6 duration-700 delay-100">
         {activeTab === 'profile' && (
@@ -348,9 +351,10 @@ const Settings = () => {
                         onChange={(e) => handleInputChange('matriculeFiscal', e.target.value)}
                         error={errors.matriculeFiscal}
                         icon={Hash}
-                        placeholder="1234567A/M/C/000"
+                        placeholder="1234567/A/B/C/000"
                         className="font-mono uppercase"
                      />
+                     <p className="ps-1 text-[10px] font-bold text-slate-400">Requis pour le workflow TEIF/TTN.</p>
                      <Input 
                         label="RNE"
                         value={formData.registreCommerce}

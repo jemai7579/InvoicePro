@@ -67,7 +67,8 @@ const Register = () => {
     }));
   };
 
-  const validateMF = (mf) => /^\d{7,8}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}$/.test(mf);
+  const normalizeMF = (mf) => String(mf || '').trim().normalize('NFKC').replace(/[⁄∕／]/g, '/').replace(/\s*\/\s*/g, '/').toUpperCase();
+  const validateMF = (mf) => /^(\d{7,8}\/[A-Z]\/[A-Z]\/[A-Z]\/\d{3}|\d{7,8}[A-Z]{3}\d{3})$/.test(normalizeMF(mf));
   const validatePhone = (phone) => /^(\+216)?\s?\d{8}$/.test(phone);
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -92,7 +93,7 @@ const Register = () => {
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
-        matriculeFiscal: formData.matriculeFiscal,
+        matriculeFiscal: normalizeMF(formData.matriculeFiscal),
         registreCommerce: formData.registreCommerce,
         address: formData.address,
         phone: formData.phone,

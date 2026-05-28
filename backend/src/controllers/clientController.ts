@@ -3,6 +3,7 @@ import prisma from '../prisma';
 import { createNotif } from '../utils/notificationHelper';
 import { generateBusinessNumber } from '../services/numberingService';
 import { logActivity } from '../services/auditTrailService';
+import { normalizeTunisianMatriculeFiscal } from '../utils/teifGenerator';
 import {
   createPlatformInvitation,
   getNetworkOverview,
@@ -88,7 +89,7 @@ export const createClient = async (req: Request, res: Response) => {
           number,
           name,
           email,
-          matriculeFiscal,
+          matriculeFiscal: String(matriculeFiscal || '').trim() ? normalizeTunisianMatriculeFiscal(matriculeFiscal) : null,
           address,
           phone,
           city,
@@ -218,9 +219,21 @@ export const updateClient = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Client not found' });
     }
 
+    const allowedFields = ['name', 'email', 'matriculeFiscal', 'address', 'phone', 'city', 'rne', 'notes'];
+    const data = Object.fromEntries(
+      allowedFields
+        .filter((field) => req.body[field] !== undefined)
+        .map((field) => [
+          field,
+          field === 'matriculeFiscal'
+            ? (String(req.body[field] || '').trim() ? normalizeTunisianMatriculeFiscal(req.body[field]) : null)
+            : req.body[field],
+        ])
+    );
+
     const updatedClient = await prisma.client.update({
       where: { id: req.params.id as string },
-      data: req.body
+      data
     });
 
     res.status(200).json(updatedClient);

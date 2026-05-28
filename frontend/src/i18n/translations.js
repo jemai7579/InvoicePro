@@ -152,7 +152,7 @@ const translations = {
     error: {
       nameRequired: 'Prénom et Nom sont requis.',
       invalidPhone: 'Format de numéro de téléphone invalide.',
-      invalidMF: 'Format Matricule Fiscal invalide (ex: 1234567/X/A/M/000).',
+      invalidMF: 'Format Matricule Fiscal invalide (ex: 1234567/A/B/C/000 ou 1234567ABC000).',
       passwordMismatch: 'Les mots de passe ne correspondent pas.',
       passwordShort: 'Le mot de passe doit contenir au moins 6 caractères.',
       termsRequired: 'Veuillez accepter les conditions générales.',
@@ -402,8 +402,8 @@ const translations = {
         name_placeholder: "ex. Acme Tunisie",
         address_label: "Adresse de facturation",
         address_placeholder: "Rue des entrepreneurs, Tunis...",
-        mf_label: "Matricule Fiscal (Ex: 1234567A/A/M/000)",
-        mf_placeholder: "1234567A/A/M/000",
+        mf_label: "Matricule Fiscal (Ex: 1234567/A/B/C/000)",
+        mf_placeholder: "1234567/A/B/C/000",
         email_placeholder: "contact@entreprise.tn",
         phone_placeholder: "+216 -- --- ---"
       }
@@ -847,7 +847,7 @@ const translations = {
     error: {
       nameRequired: 'First and Last name are required.',
       invalidPhone: 'Invalid phone number format.',
-      invalidMF: 'Invalid Tax ID format (ex: 1234567/X/A/M/000).',
+      invalidMF: 'Invalid Tax ID format (ex: 1234567/A/B/C/000 or 1234567ABC000).',
       passwordMismatch: 'Passwords do not match.',
       passwordShort: 'Password must be at least 6 characters.',
       termsRequired: 'Please accept the terms and conditions.',
